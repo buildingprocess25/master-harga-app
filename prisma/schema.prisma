@@ -7,10 +7,495 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================================
+// ENUMS (NATIVE POSTGRES ENUMS VIA @map)
+// ============================================================================
+
+enum RoleUser {
+  BUILDING_COORDINATOR @map("BUILDING_COORDINATOR")
+  BM_MANAGER           @map("BM_MANAGER")
+  PP_MANAGER           @map("PP_MANAGER")
+  SB_SPECIALIST        @map("SB_SPECIALIST")
+  REGIONAL_MANAGER     @map("REGIONAL_MANAGER")
+  KONTRAKTOR           @map("KONTRAKTOR")
+  ADMIN                @map("ADMIN")
+
+  @@map("role_user")
+}
+
+enum StatusKeaktifanCabang {
+  AKTIF              @map("AKTIF")
+  NONAKTIF_SEMENTARA @map("NONAKTIF_SEMENTARA")
+  BLACKLIST          @map("BLACKLIST")
+
+  @@map("status_keaktifan_cabang")
+}
+
+enum StatusHargaCabang {
+  AKTIF    @map("AKTIF")
+  NONAKTIF @map("NONAKTIF")
+
+  @@map("status_harga_cabang")
+}
+
+enum CakupanHarga {
+  INDUK_CABANG   @map("INDUK_CABANG")
+  KHUSUS_WILAYAH @map("KHUSUS_WILAYAH")
+
+  @@map("cakupan_harga")
+}
+
+enum StatusPengajuanHarga {
+  DRAFT                 @map("DRAFT")
+  DIAJUKAN              @map("DIAJUKAN")
+  SIAP_SURVEI           @map("SIAP_SURVEI")
+  PENDING_BM_MGR        @map("PENDING_BM_MGR")
+  PENDING_SB_SPECIALIST @map("PENDING_SB_SPECIALIST")
+  PENDING_REGIONAL_MGR  @map("PENDING_REGIONAL_MGR")
+  PENDING_KONTRAKTOR    @map("PENDING_KONTRAKTOR")
+  USULAN_KONTRAKTOR     @map("USULAN_KONTRAKTOR")
+  DITOLAK_KONTRAKTOR    @map("DITOLAK_KONTRAKTOR")
+  PERLU_REVISI          @map("PERLU_REVISI")
+  RETURNED_TO_BC        @map("RETURNED_TO_BC")
+  DITOLAK               @map("DITOLAK")
+  RELEASED              @map("RELEASED")
+
+  @@map("status_pengajuan_harga")
+}
+
+enum StatusVoteKontraktor {
+  MENUNGGU @map("MENUNGGU")
+  SETUJU   @map("SETUJU")
+  TOLAK    @map("TOLAK")
+  TIMEOUT  @map("TIMEOUT")
+
+  @@map("status_vote_kontraktor")
+}
+
+// ============================================================================
+// 1. ORGANISASI: DIVISI, CABANG & WILAYAH
+// ============================================================================
+
+model Divisi {
+  id         String   @id(map: "pk_divisi") @default(cuid()) @map("id")
+  kodeDivisi String   @unique(map: "uq_divisi_kode_divisi") @map("kode_divisi")
+  namaDivisi String   @map("nama_divisi")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  masterItems        MasterItem[]
+  masterKoefisiens   MasterKoefisien[]
+  pengajuanHargaList PengajuanHarga[]
+  kontraktorCabangs  KontraktorCabang[]
+  users              User[]
+
+  @@map("divisi")
+}
+
+model Cabang {
+  id         String   @id(map: "pk_cabang") @default(cuid()) @map("id")
+  kodeCabang String   @unique(map: "uq_cabang_kode_cabang") @map("kode_cabang")
+  namaCabang String   @map("nama_cabang")
+  regional   String   @map("regional")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  wilayahList        WilayahCabang[]
+  users              User[]
+  userCoverages      UserCabangCoverage[]
+  kontraktorRelasi   KontraktorCabang[]
+  masterTokoList     MasterToko[]
+  masterHargaList    MasterHargaCabang[]
+  pengajuanHargaList PengajuanHarga[]
+
+  @@map("cabang")
+}
+
+model WilayahCabang {
+  id               String   @id(map: "pk_wilayah_cabang") @default(cuid()) @map("id")
+  cabangId         String   @map("cabang_id")
+  kodeWilayah      String   @unique(map: "uq_wilayah_cabang_kode_wilayah") @map("kode_wilayah")
+  namaWilayah      String   @map("nama_wilayah")
+  keteranganLokasi String?  @map("keterangan_lokasi")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  cabang             Cabang               @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_wilayah_cabang_cabang")
+  masterTokoList     MasterToko[]
+  masterHargaWilayah MasterHargaWilayah[]
+  pengajuanHargaList PengajuanHarga[]
+
+  @@index([cabangId], map: "idx_wilayah_cabang_cabang_id")
+  @@map("wilayah_cabang")
+}
+
+// ============================================================================
+// 2. USERS (SSO WHITELIST) & USER COVERAGE
+// ============================================================================
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id(map: "pk_users") @default(cuid()) @map("id")
+  email        String    @unique(map: "uq_users_email") @map("email")
+  fullName     String    @map("full_name")
+  branchName   String?   @map("branch_name")
+  role         RoleUser  @default(BUILDING_COORDINATOR) @map("role")
+  divisiId     String?   @map("divisi_id")
+  cabangId     String?   @map("cabang_id")
+  kontraktorId String?   @map("kontraktor_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastSyncedAt DateTime? @map("last_synced_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  divisi             Divisi?              @relation(fields: [divisiId], references: [id], onDelete: SetNull, map: "fk_users_divisi")
+  cabang             Cabang?              @relation(fields: [cabangId], references: [id], onDelete: SetNull, map: "fk_users_cabang")
+  kontraktor         Kontraktor?          @relation(fields: [kontraktorId], references: [id], onDelete: SetNull, map: "fk_users_kontraktor")
+  coverages          UserCabangCoverage[]
+  pengajuanHargaList PengajuanHarga[]
+  auditLogs          ApprovalAuditLog[]
+
+  @@index([role, isActive], map: "idx_users_role_is_active")
+  @@index([cabangId], map: "idx_users_cabang_id")
+  @@map("users")
+}
+
+model UserCabangCoverage {
+  id        String   @id(map: "pk_user_cabang_coverage") @default(cuid()) @map("id")
+  userId    String   @map("user_id")
+  cabangId  String   @map("cabang_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_user_cabang_coverage_user")
+  cabang Cabang @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_user_cabang_coverage_cabang")
+
+  @@unique([userId, cabangId], map: "uq_user_cabang_coverage_user_cabang")
+  @@map("user_cabang_coverage")
+}
+
+// ============================================================================
+// 3. REKANAN KONTRAKTOR & KONTRAKTOR CABANG
+// ============================================================================
+
+model Kontraktor {
+  id             String   @id(map: "pk_kontraktor") @default(cuid()) @map("id")
+  kodeVendor     String   @unique(map: "uq_kontraktor_kode_vendor") @map("kode_vendor")
+  namaPerusahaan String   @map("nama_perusahaan")
+  picName        String   @map("pic_name")
+  telepon        String   @map("telepon")
+  email          String   @unique(map: "uq_kontraktor_email") @map("email")
+  alamatKantor   String?  @map("alamat_kantor")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+  cabangRelasi KontraktorCabang[]
+
+  @@map("kontraktor")
+}
+
+model KontraktorCabang {
+  id               String                @id(map: "pk_kontraktor_cabang") @default(cuid()) @map("id")
+  kontraktorId     String                @map("kontraktor_id")
+  cabangId         String                @map("cabang_id")
+  divisiId         String                @map("divisi_id")
+  statusKeaktifan  StatusKeaktifanCabang @default(AKTIF) @map("status_keaktifan")
+  tanggalTerdaftar DateTime              @default(now()) @map("tanggal_terdaftar")
+  parkedAt         DateTime?             @map("parked_at")
+  alasanParked     String?               @map("alasan_parked")
+  itemPemicuKode   String?               @map("item_pemicu_kode")
+  unparkedAt       DateTime?             @map("unparked_at")
+  unparkedBy       String?               @map("unparked_by")
+  unparkReason     String?               @map("unpark_reason")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  kontraktor        Kontraktor         @relation(fields: [kontraktorId], references: [id], onDelete: Cascade, map: "fk_kontraktor_cabang_kontraktor")
+  cabang            Cabang             @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_kontraktor_cabang_cabang")
+  divisi            Divisi             @relation(fields: [divisiId], references: [id], onDelete: Cascade, map: "fk_kontraktor_cabang_divisi")
+  votingPartisipasi VotingKontraktor[]
+
+  @@unique([kontraktorId, cabangId, divisiId], map: "uq_kontraktor_cabang_divisi")
+  @@index([cabangId, statusKeaktifan], map: "idx_kontraktor_cabang_status")
+  @@map("kontraktor_cabang")
+}
+
+// ============================================================================
+// 4. MASTER TOKO, MASTER ITEM & MASTER KOEFISIEN (COMBOBOX)
+// ============================================================================
+
+model MasterToko {
+  id              String   @id(map: "pk_master_toko") @default(cuid()) @map("id")
+  cabangId        String   @map("cabang_id")
+  wilayahCabangId String?  @map("wilayah_cabang_id")
+  namaToko        String   @map("nama_toko")
+  alamat          String   @map("alamat")
+  kota            String   @map("kota")
+  kontakPic       String?  @map("kontak_pic")
+  telepon         String?  @map("telepon")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  cabang        Cabang           @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_master_toko_cabang")
+  wilayahCabang WilayahCabang?   @relation(fields: [wilayahCabangId], references: [id], onDelete: SetNull, map: "fk_master_toko_wilayah")
+  surveiList    SurveiTokoItem[]
+
+  @@index([cabangId], map: "idx_master_toko_cabang_id")
+  @@map("master_toko")
+}
+
+model MasterItem {
+  id                String   @id(map: "pk_master_item") @default(cuid()) @map("id")
+  divisiId          String   @map("divisi_id")
+  kodeItem          String   @map("kode_item")
+  kodeVarian        String   @map("kode_varian")
+  kodeMaster        String   @unique(map: "uq_master_item_kode_master") @map("kode_master")
+  kategori          String   @map("kategori")
+  namaItem          String   @map("nama_item")
+  ukuran            String   @map("ukuran")
+  merk              String   @map("merk")
+  warna             String?  @map("warna")
+  tipe              String?  @map("tipe")
+  permukaan         String?  @map("permukaan")
+  tebal             String?  @map("tebal")
+  toleransi         String?  @map("toleransi")
+  lokasi            String   @map("lokasi")
+  satuan            String   @map("satuan")
+  deskripsiOtomatis String   @map("deskripsi_otomatis")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  divisi             Divisi              @relation(fields: [divisiId], references: [id], onDelete: Cascade, map: "fk_master_item_divisi")
+  hargaPerCabang     MasterHargaCabang[]
+  pengajuanHargaList PengajuanHarga[]
+
+  @@unique([kodeItem, kodeVarian], map: "uq_master_item_kode_varian")
+  @@index([divisiId, kategori], map: "idx_master_item_divisi_kategori")
+  @@map("master_item")
+}
+
+model MasterKoefisien {
+  id                    String   @id(map: "pk_master_koefisien") @default(cuid()) @map("id")
+  divisiId              String   @map("divisi_id")
+  kategoriKomponen      String   @map("kategori_komponen")
+  namaKomponen          String   @map("nama_komponen")
+  satuan                String   @map("satuan")
+  nilaiKoefisienDefault Decimal  @db.Decimal(10, 4) @map("nilai_koefisien_default")
+  hargaAcuanDefault     Decimal? @db.Decimal(15, 2) @map("harga_acuan_default")
+  wajibSurveiToko       Boolean  @default(false) @map("wajib_survei_toko")
+  isActive              Boolean  @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  divisi      Divisi                 @relation(fields: [divisiId], references: [id], onDelete: Cascade, map: "fk_master_koefisien_divisi")
+  rincianAHSP RincianAhspPengajuan[]
+
+  @@index([divisiId, kategoriKomponen], map: "idx_master_koefisien_divisi_kategori")
+  @@map("master_koefisien")
+}
+
+// ============================================================================
+// 5. MASTER HARGA CABANG & MASTER HARGA WILAYAH
+// ============================================================================
+
+model MasterHargaCabang {
+  id                  String            @id(map: "pk_master_harga_cabang") @default(cuid()) @map("id")
+  masterItemId        String            @map("master_item_id")
+  cabangId            String            @map("cabang_id")
+  pengajuanTerakhirId String?           @map("pengajuan_terakhir_id")
+  hargaFinalInduk     Decimal           @db.Decimal(15, 2) @map("harga_final_induk")
+  marginTotalPersen   Decimal           @default(8.00) @db.Decimal(5, 2) @map("margin_total_persen")
+  statusHarga         StatusHargaCabang @default(AKTIF) @map("status_harga")
+  berlakuSejak        DateTime          @default(now()) @map("berlaku_sejak")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  masterItem         MasterItem           @relation(fields: [masterItemId], references: [id], onDelete: Cascade, map: "fk_master_harga_cabang_item")
+  cabang             Cabang               @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_master_harga_cabang_cabang")
+  pengajuanTerakhir  PengajuanHarga?      @relation("RelasiHargaCabangRilis", fields: [pengajuanTerakhirId], references: [id], onDelete: SetNull, map: "fk_master_harga_cabang_pengajuan")
+  masterHargaWilayah MasterHargaWilayah[]
+
+  @@unique([masterItemId, cabangId], map: "uq_master_harga_cabang_item_cabang")
+  @@index([cabangId, statusHarga], map: "idx_master_harga_cabang_status")
+  @@map("master_harga_cabang")
+}
+
+model MasterHargaWilayah {
+  id                     String            @id(map: "pk_master_harga_wilayah") @default(cuid()) @map("id")
+  masterHargaCabangId    String            @map("master_harga_cabang_id")
+  wilayahCabangId        String            @map("wilayah_cabang_id")
+  pengajuanTerakhirId    String?           @map("pengajuan_terakhir_id")
+  hargaFinalWilayah      Decimal           @db.Decimal(15, 2) @map("harga_final_wilayah")
+  selisihDariIndukRp     Decimal           @db.Decimal(15, 2) @map("selisih_dari_induk_rp")
+  selisihDariIndukPersen Decimal           @db.Decimal(5, 2) @map("selisih_dari_induk_persen")
+  statusHarga            StatusHargaCabang @default(AKTIF) @map("status_harga")
+  berlakuSejak           DateTime          @default(now()) @map("berlaku_sejak")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  masterHargaCabang MasterHargaCabang @relation(fields: [masterHargaCabangId], references: [id], onDelete: Cascade, map: "fk_master_harga_wilayah_induk")
+  wilayahCabang     WilayahCabang     @relation(fields: [wilayahCabangId], references: [id], onDelete: Cascade, map: "fk_master_harga_wilayah_wilayah")
+  pengajuanTerakhir PengajuanHarga?   @relation("RelasiHargaWilayahRilis", fields: [pengajuanTerakhirId], references: [id], onDelete: SetNull, map: "fk_master_harga_wilayah_pengajuan")
+
+  @@unique([masterHargaCabangId, wilayahCabangId], map: "uq_master_harga_wilayah_induk_wilayah")
+  @@index([wilayahCabangId, statusHarga], map: "idx_master_harga_wilayah_status")
+  @@map("master_harga_wilayah")
+}
+
+// ============================================================================
+// 6. PENGAJUAN HARGA & RINCIAN AHSP
+// ============================================================================
+
+model PengajuanHarga {
+  id                     String               @id(map: "pk_pengajuan_harga") @default(cuid()) @map("id")
+  nomorTiket             String               @unique(map: "uq_pengajuan_harga_nomor_tiket") @map("nomor_tiket")
+  divisiId               String               @map("divisi_id")
+  cabangId               String               @map("cabang_id")
+  wilayahCabangId        String?              @map("wilayah_cabang_id")
+  masterItemId           String?              @map("master_item_id")
+  pembuatUserId          String?              @map("pembuat_user_id")
+  cakupanHarga           CakupanHarga         @default(INDUK_CABANG) @map("cakupan_harga")
+  status                 StatusPengajuanHarga @default(DIAJUKAN) @map("status")
+  isTermasukBongkaran    Boolean              @default(false) @map("is_termasuk_bongkaran")
+  rataRataSurveiMaterial Decimal?             @db.Decimal(15, 2) @map("rata_rata_survei_material")
+  marginAwalPersen       Decimal              @default(8.00) @db.Decimal(5, 2) @map("margin_awal_persen")
+  isHasilNegosiasi       Boolean              @default(false) @map("is_hasil_negosiasi")
+  marginSNBPersen        Decimal?             @db.Decimal(5, 2) @map("margin_snb_persen")
+  hargaDitetapkanSNB     Decimal?             @db.Decimal(15, 2) @map("harga_ditetapkan_snb")
+  catatanReview          String?              @map("catatan_review")
+  deadlineVoting         DateTime?            @map("deadline_voting")
+  tanggalPengajuan       DateTime             @default(now()) @map("tanggal_pengajuan")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+
+  divisi               Divisi                 @relation(fields: [divisiId], references: [id], onDelete: Cascade, map: "fk_pengajuan_harga_divisi")
+  cabang               Cabang                 @relation(fields: [cabangId], references: [id], onDelete: Cascade, map: "fk_pengajuan_harga_cabang")
+  wilayahCabang        WilayahCabang?         @relation(fields: [wilayahCabangId], references: [id], onDelete: SetNull, map: "fk_pengajuan_harga_wilayah")
+  masterItem           MasterItem?            @relation(fields: [masterItemId], references: [id], onDelete: SetNull, map: "fk_pengajuan_harga_item")
+  pembuatUser          User?                  @relation(fields: [pembuatUserId], references: [id], onDelete: SetNull, map: "fk_pengajuan_harga_user")
+  rincianAHSP          RincianAhspPengajuan[]
+  votingKontraktorList VotingKontraktor[]
+  auditLogs            ApprovalAuditLog[]
+  hargaCabangList      MasterHargaCabang[]    @relation("RelasiHargaCabangRilis")
+  hargaWilayahList     MasterHargaWilayah[]   @relation("RelasiHargaWilayahRilis")
+
+  @@index([cabangId, status], map: "idx_pengajuan_harga_cabang_status")
+  @@index([status], map: "idx_pengajuan_harga_status")
+  @@map("pengajuan_harga")
+}
+
+model RincianAhspPengajuan {
+  id                String  @id(map: "pk_rincian_ahsp_pengajuan") @default(cuid()) @map("id")
+  pengajuanHargaId  String  @map("pengajuan_harga_id")
+  masterKoefisienId String  @map("master_koefisien_id")
+  namaKomponen      String  @map("nama_komponen")
+  kategoriKomponen  String  @map("kategori_komponen")
+  satuan            String  @map("satuan")
+  nilaiKoefisien    Decimal @db.Decimal(10, 4) @map("nilai_koefisien")
+  hargaAcuanSatuan  Decimal @db.Decimal(15, 2) @map("harga_acuan_satuan")
+  marginPersen      Decimal @default(8.00) @db.Decimal(5, 2) @map("margin_persen")
+  subtotal          Decimal @db.Decimal(15, 2) @map("subtotal")
+
+  pengajuanHarga  PengajuanHarga   @relation(fields: [pengajuanHargaId], references: [id], onDelete: Cascade, map: "fk_rincian_ahsp_pengajuan_pengajuan")
+  masterKoefisien MasterKoefisien  @relation(fields: [masterKoefisienId], references: [id], onDelete: Restrict, map: "fk_rincian_ahsp_pengajuan_koefisien")
+  surveiTokoList  SurveiTokoItem[]
+
+  @@index([pengajuanHargaId], map: "idx_rincian_ahsp_pengajuan_id")
+  @@map("rincian_ahsp_pengajuan")
+}
+
+// ============================================================================
+// 7. SURVEI TOKO & LAMPIRAN SURVEI
+// ============================================================================
+
+model SurveiTokoItem {
+  id                String   @id(map: "pk_survei_toko_item") @default(cuid()) @map("id")
+  rincianAhspId     String   @map("rincian_ahsp_id")
+  masterTokoId      String?  @map("master_toko_id")
+  urutanToko        Int      @map("urutan_toko")
+  namaToko          String   @map("nama_toko")
+  alamatToko        String?  @map("alamat_toko")
+  volumeAcuan       Decimal  @default(1.00) @db.Decimal(10, 2) @map("volume_acuan")
+  hargaSatuanSurvei Decimal  @db.Decimal(15, 2) @map("harga_satuan_survei")
+  tanggalSurvei     DateTime @default(now()) @map("tanggal_survei")
+  catatanSurvei     String?  @map("catatan_survei")
+
+  rincianAhsp  RincianAhspPengajuan @relation(fields: [rincianAhspId], references: [id], onDelete: Cascade, map: "fk_survei_toko_item_rincian")
+  masterToko   MasterToko?          @relation(fields: [masterTokoId], references: [id], onDelete: SetNull, map: "fk_survei_toko_item_toko")
+  lampiranList LampiranSurvei[]
+
+  @@unique([rincianAhspId, urutanToko], map: "uq_survei_toko_item_rincian_urutan")
+  @@map("survei_toko_item")
+}
+
+model LampiranSurvei {
+  id            String   @id(map: "pk_lampiran_survei") @default(cuid()) @map("id")
+  surveiTokoId  String   @map("survei_toko_id")
+  jenisLampiran String   @map("jenis_lampiran")
+  namaFile      String   @map("nama_file")
+  fileUrl       String   @map("file_url")
+  ukuranFile    String?  @map("ukuran_file")
+  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+
+  surveiToko SurveiTokoItem @relation(fields: [surveiTokoId], references: [id], onDelete: Cascade, map: "fk_lampiran_survei_survei")
+
+  @@index([surveiTokoId], map: "idx_lampiran_survei_survei_toko_id")
+  @@map("lampiran_survei")
+}
+
+// ============================================================================
+// 8. KUORUM VOTING KONTRAKTOR, LAMPIRAN BANDING & AUDIT LOG
+// ============================================================================
+
+model VotingKontraktor {
+  id                 String               @id(map: "pk_voting_kontraktor") @default(cuid()) @map("id")
+  pengajuanHargaId   String               @map("pengajuan_harga_id")
+  kontraktorCabangId String               @map("kontraktor_cabang_id")
+  putaranVote        Int                  @default(1) @map("putaran_vote")
+  statusVote         StatusVoteKontraktor @default(MENUNGGU) @map("status_vote")
+  usulanHarga        Decimal?             @db.Decimal(15, 2) @map("usulan_harga")
+  usulanMarginPersen Decimal?             @db.Decimal(5, 2) @map("usulan_margin_persen")
+  catatanPenolakan   String?              @map("catatan_penolakan")
+  hasRejectedOnce    Boolean              @default(false) @map("has_rejected_once")
+  tanggalRespon      DateTime?            @map("tanggal_respon")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  pengajuanHarga      PengajuanHarga    @relation(fields: [pengajuanHargaId], references: [id], onDelete: Cascade, map: "fk_voting_kontraktor_pengajuan")
+  kontraktorCabang    KontraktorCabang  @relation(fields: [kontraktorCabangId], references: [id], onDelete: Cascade, map: "fk_voting_kontraktor_kontraktor_cabang")
+  lampiranBandingList LampiranBanding[]
+
+  @@unique([pengajuanHargaId, kontraktorCabangId, putaranVote], map: "uq_voting_kontraktor_pengajuan_putaran")
+  @@index([pengajuanHargaId, statusVote], map: "idx_voting_kontraktor_pengajuan_status")
+  @@map("voting_kontraktor")
+}
+
+model LampiranBanding {
+  id                 String   @id(map: "pk_lampiran_banding") @default(cuid()) @map("id")
+  votingKontraktorId String   @map("voting_kontraktor_id")
+  namaFile           String   @map("nama_file")
+  fileUrl            String   @map("file_url")
+  ukuranFile         String?  @map("ukuran_file")
+  uploadedAt         DateTime @default(now()) @map("uploaded_at")
+
+  votingKontraktor VotingKontraktor @relation(fields: [votingKontraktorId], references: [id], onDelete: Cascade, map: "fk_lampiran_banding_voting")
+
+  @@index([votingKontraktorId], map: "idx_lampiran_banding_voting_id")
+  @@map("lampiran_banding")
+}
+
+model ApprovalAuditLog {
+  id               String   @id(map: "pk_approval_audit_log") @default(cuid()) @map("id")
+  pengajuanHargaId String   @map("pengajuan_harga_id")
+  userId           String?  @map("user_id")
+  roleActor        String   @map("role_actor")
+  action           String   @map("action")
+  catatan          String?  @map("catatan")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  pengajuanHarga PengajuanHarga @relation(fields: [pengajuanHargaId], references: [id], onDelete: Cascade, map: "fk_approval_audit_log_pengajuan")
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull, map: "fk_approval_audit_log_user")
+
+  @@index([pengajuanHargaId], map: "idx_approval_audit_log_pengajuan_id")
+  @@map("approval_audit_log")
 }

@@ -1,122 +1,160 @@
+@import "tailwindcss";
+
 :root {
   color-scheme: light;
+
+  /* 1. Alfamart Core Brand Anchors (Solid HEX) */
+  --alfa-blue: #005BAC;          /* Huruf "Alfa" pada logo resmi */
+  --alfa-blue-hover: #004687;
+  --alfa-red: #ED1C24;           /* Huruf "mart" & pita atas logo resmi */
+  --alfa-yellow: #FFD100;        /* Pita bawah logo resmi */
+
+  /* 2. Alfamart Pastel Surface Palette (Soft Tints + Solid Borders) */
+  --pastel-blue: #EAF3FB;
+  --pastel-blue-border: #B8D8F3;
+  --pastel-blue-ink: #003A70;
+
+  --pastel-red: #FDECEE;
+  --pastel-red-border: #F7C1C5;
+  --pastel-red-ink: #990F14;
+
+  --pastel-yellow: #FFF8DB;
+  --pastel-yellow-border: #F3D56B;
+  --pastel-yellow-ink: #6E4B00;
+
+  --pastel-green: #E7F6F0;
+  --pastel-green-border: #B2DFCC;
+  --pastel-green-ink: #085438;
+
+  /* 3. App Surface & Hierarchy Tokens (Solid HEX) */
+  --background: #F5F7FA;         /* Soft Cool-Warm Canvas */
+  --foreground: #111827;         /* Deep Charcoal Text (Contrast 16:1) */
+  --card: #FFFFFF;               /* Solid Pure White Surface */
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+
+  /* 4. Semantic Interactive Tokens */
+  --primary: #005BAC;            /* Solid Alfa Blue */
+  --primary-foreground: #FFFFFF;
+  --secondary: #EAF3FB;          /* Pastel Alfa Blue Surface */
+  --secondary-foreground: #003A70;
+
+  --muted: #EEF2F6;              /* Pastel Slate Table Header */
+  --muted-foreground: #4B5563;   /* Neutral Dark Grey (Contrast 7.2:1) */
+  --accent: #DCEBFA;             /* Hover Row & Filter Surface */
+  --accent-foreground: #003A70;
+
+  /* 5. Workflow Status Tokens (Solid & Pastel) */
+  --success: #0F8A5F;
+  --success-soft: #E7F6F0;
+  --success-ink: #085438;
+
+  --warning: #D99B00;
+  --warning-soft: #FFF8DB;
+  --warning-ink: #6E4B00;
+
+  --destructive: #D91920;
+  --destructive-soft: #FDECEE;
+  --destructive-ink: #990F14;
+
+  --trial: #4F39B8;
+  --trial-soft: #EFEBFD;
+  --trial-ink: #362387;
+
+  /* 6. Borders, Inputs & Focus Ring */
+  --border: #D8E0EA;
+  --input: #CBD5E1;
+  --ring: #005BAC;
+
+  /* 7. Border Radius Scale */
+  --radius-sm: 0.25rem;          /* 4px */
+  --radius-md: 0.5rem;           /* 8px */
+  --radius-lg: 0.75rem;          /* 12px */
+  --radius-xl: 1rem;             /* 16px */
 }
 
-* {
-  box-sizing: border-box;
+@theme inline {
+  --color-alfa-blue: var(--alfa-blue);
+  --color-alfa-blue-hover: var(--alfa-blue-hover);
+  --color-alfa-red: var(--alfa-red);
+  --color-alfa-yellow: var(--alfa-yellow);
+
+  --color-pastel-blue: var(--pastel-blue);
+  --color-pastel-blue-border: var(--pastel-blue-border);
+  --color-pastel-blue-ink: var(--pastel-blue-ink);
+
+  --color-pastel-red: var(--pastel-red);
+  --color-pastel-red-border: var(--pastel-red-border);
+  --color-pastel-red-ink: var(--pastel-red-ink);
+
+  --color-pastel-yellow: var(--pastel-yellow);
+  --color-pastel-yellow-border: var(--pastel-yellow-border);
+  --color-pastel-yellow-ink: var(--pastel-yellow-ink);
+
+  --color-pastel-green: var(--pastel-green);
+  --color-pastel-green-border: var(--pastel-green-border);
+  --color-pastel-green-ink: var(--pastel-green-ink);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-ink: var(--warning-ink);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-ink: var(--destructive-ink);
+
+  --color-trial: var(--trial);
+  --color-trial-soft: var(--trial-soft);
+  --color-trial-ink: var(--trial-ink);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: #fff;
-  color: #111;
-}
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 
-.shell {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
-}
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-.hero {
-  margin-bottom: 1.5rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.5rem;
-  color: #666;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.lede {
-  margin: 0.5rem 0 0;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-.panel {
-  border: 1px solid #e5e5e5;
-  border-radius: 0.5rem;
-  padding: 1rem;
-}
-
-.panelHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-h2 {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.panelHeader span,
-.empty,
-time {
-  color: #888;
-  font-size: 0.8rem;
-}
-
-.panel p {
-  color: #666;
-  font-size: 0.8rem;
-}
-
-.users {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.users li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #eee;
-  border-radius: 0.375rem;
-}
-
-.users p {
-  margin: 0.125rem 0 0;
-}
-
-time {
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-code {
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  background: #f5f5f5;
-  font-family: SFMono-Regular, Consolas, monospace;
-  font-size: 0.875em;
-}
-
-@media (max-width: 640px) {
-  .users li,
-  .panelHeader {
-    flex-direction: column;
-    align-items: flex-start;
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
