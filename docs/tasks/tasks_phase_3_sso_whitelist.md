@@ -22,7 +22,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
 
 ### Kategori 1: Integrasi SSO & Otorisasi Whitelist
 
-- [ ] **3.1 Session Token & Cookie Utility (`src/lib/auth/session.ts`)**
+- [x] **3.1 Session Token & Cookie Utility (`src/lib/auth/session.ts`)**
   - **Path**: [`src/lib/auth/session.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/lib/auth/session.ts)
   - **Spesifikasi**:
     - Membuat payload session terenkripsi: `id`, `email`, `fullName`, `role`, `divisiId`, `cabangId`, `kontraktorId`.
@@ -30,7 +30,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
     - Durasi TTL sesi: 8 jam (standar jam kerja shift Alfamart).
   - **Code Standard Check**: Menggunakan cookie HTTP-only, SameSite Strict, Secure pada environment non-local.
 
-- [ ] **3.2 Whitelist Verification Service (`src/lib/services/whitelist-service.ts`)**
+- [x] **3.2 Whitelist Verification Service (`src/lib/services/whitelist-service.ts`)**
   - **Path**: [`src/lib/services/whitelist-service.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/lib/services/whitelist-service.ts)
   - **Spesifikasi**:
     - Query Prisma: `prisma.user.findUnique({ where: { email, isActive: true }, include: { divisi: true, cabang: true, kontraktor: true } })`.
@@ -39,7 +39,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
       - Jika email **ditemukan & aktif**: Kembalikan profil wewenang lokal pengguna.
     - Kebijakan tegas: Dilarang melakukan *upsert* atau *auto-create user* baru dari data SSO.
 
-- [ ] **3.3 Route Handler Callback SSO (`src/app/api/auth/sso/callback/route.ts`)**
+- [x] **3.3 Route Handler Callback SSO (`src/app/api/auth/sso/callback/route.ts`)**
   - **Path**: [`src/app/api/auth/sso/callback/route.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/api/auth/sso/callback/route.ts)
   - **Spesifikasi**:
     - Menerima parameter `launchToken` dari redirect portal `login-sparta`.
@@ -54,7 +54,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
     - Jika valid: Buat session cookie dan redirect ke halaman utama `/` (yang akan diteruskan oleh middleware ke workspace role).
     - Jika tidak valid (403): Render halaman respons penolakan ramah pengguna: *"Akun Anda belum terdaftar di modul SPARTA-HARGA. Silakan hubungi Tim S&B Controlling HO."*
 
-- [ ] **3.4 Endpoint Logout (`src/app/api/auth/logout/route.ts`)**
+- [x] **3.4 Endpoint Logout (`src/app/api/auth/logout/route.ts`)**
   - **Path**: [`src/app/api/auth/logout/route.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/api/auth/logout/route.ts)
   - **Spesifikasi**: Menghapus session cookie dan mengarahkan pengguna kembali ke portal utama SPARTA.
 
@@ -62,7 +62,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
 
 ### Kategori 2: Middleware & Routing Otomatis Sesuai Role
 
-- [ ] **3.5 Next.js Edge Middleware Auto-Redirect (`src/middleware.ts`)**
+- [x] **3.5 Next.js Edge Middleware Auto-Redirect (`src/middleware.ts`)**
   - **Path**: [`src/middleware.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/middleware.ts)
   - **Spesifikasi**:
     - Proteksi seluruh rute privat (kecuali rute statis `/_next/`, `/public/`, `/api/auth/`).
@@ -80,7 +80,7 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
 
 ### Kategori 3: State Machine Service & Audit Logging
 
-- [ ] **3.6 State Machine Core Service (`src/lib/services/state-machine.ts`)**
+- [x] **3.6 State Machine Core Service (`src/lib/services/state-machine.ts`)**
   - **Path**: [`src/lib/services/state-machine.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/lib/services/state-machine.ts)
   - **Spesifikasi**:
     - Matriks validasi transisi status:
@@ -97,11 +97,11 @@ Fase 3 berfokus pada penguncian gerbang keamanan enterprise, integrasi SSO, otor
 
 ## Checkpoint
 
-- [ ] Pengujian API Whitelist: Percobaan login dengan email yang tidak terdaftar di database menghasilkan respons **403 Forbidden**.
-- [ ] Pengujian Routing: Mengakses rute akar `/` langsung dialihkan (*auto-redirect*) ke workspace peran yang sesuai dengan sesi aktif.
-- [ ] Pengujian State Machine: Upaya melompati status yang tidak sah (misal: langsung dari `DIAJUKAN` ke `RELEASED`) diblokir oleh service.
-- [ ] Audit Log: Setiap perubahan status menghasilkan riwayat audit baru di tabel `RiwayatAuditHarga`.
-- [ ] Menjalankan verifikasi `pnpm exec tsc --noEmit` menghasilkan **0 error**.
+- [x] Pengujian API Whitelist: Percobaan login dengan email yang tidak terdaftar di database menghasilkan respons **403 Forbidden**.
+- [x] Pengujian Routing: Mengakses rute akar `/` langsung dialihkan (*auto-redirect*) ke workspace peran yang sesuai dengan sesi aktif.
+- [x] Pengujian State Machine: Upaya melompati status yang tidak sah (misal: langsung dari `DIAJUKAN` ke `RELEASED`) diblokir oleh service.
+- [x] Audit Log: Setiap perubahan status menghasilkan riwayat audit baru di tabel `RiwayatAuditHarga`.
+- [x] Menjalankan verifikasi `pnpm exec tsc --noEmit` menghasilkan **0 error**.
 
 ---
 
