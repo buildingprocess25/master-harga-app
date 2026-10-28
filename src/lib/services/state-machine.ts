@@ -67,7 +67,7 @@ export async function advanceTicketStatus({
     // 1. Ambil tiket aktif
     const tiket = await tx.pengajuanHarga.findUnique({
       where: { id: tiketId },
-      select: { id: true, status: true, noTiket: true },
+      select: { id: true, status: true, nomorTiket: true },
     });
 
     if (!tiket) {
@@ -88,7 +88,7 @@ export async function advanceTicketStatus({
       where: { id: tiketId },
       data: {
         status: targetStatus,
-        catatanReviewTerakhir: catatan || null,
+        catatanReview: catatan || null,
       },
     });
 

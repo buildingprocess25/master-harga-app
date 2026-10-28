@@ -133,184 +133,385 @@ async function main() {
   // 3. SEED PUSTAKA KOEFISIEN BAKU (MASTER KOEFISIEN)
   // ==========================================================================
   const koefisienData = [
-    { kode: "KOEF-UPH-01", nama: "Mandor Proyek", kat: "UPAH", sat: "Oh", val: 0.0188 },
-    { kode: "KOEF-UPH-02", nama: "Kepala Tukang", kat: "UPAH", sat: "Oh", val: 0.0375 },
-    { kode: "KOEF-UPH-03", nama: "Tukang Keramik", kat: "UPAH", sat: "Oh", val: 0.1875 },
-    { kode: "KOEF-UPH-04", nama: "Pekerja Terampil", kat: "UPAH", sat: "Oh", val: 0.1250 },
-    { kode: "KOEF-MAT-01", nama: "Keramik 60x60 Polish", kat: "MATERIAL", sat: "M2", val: 1.0340 },
-    { kode: "KOEF-MAT-02", nama: "Semen Portland (PC)", kat: "MATERIAL", sat: "Kg", val: 9.3270 },
-    { kode: "KOEF-MAT-03", nama: "Pasir Pasang", kat: "MATERIAL", sat: "M3", val: 0.0436 },
-    { kode: "KOEF-MAT-04", nama: "Semen Grout Pengisi Nut", kat: "MATERIAL", sat: "Kg", val: 1.5000 },
-    { kode: "KOEF-MAT-05", nama: "Cat Dinding Eksterior", kat: "MATERIAL", sat: "Kg", val: 0.3600 },
-    { kode: "KOEF-MAT-06", nama: "Gypsum Board 9mm", kat: "MATERIAL", sat: "Lbr", val: 0.3640 },
-    { kode: "KOEF-ALT-01", nama: "Sewa Scaffolding", kat: "ALAT", sat: "Set/Hari", val: 1.0000 },
-    { kode: "KOEF-BNG-01", nama: "Bongkaran Lantai Eksisting", kat: "BONGKARAN", sat: "M2", val: 1.0000 },
+    {
+      id: "koef-uph-01",
+      nama: "Mandor Proyek",
+      kat: "UPAH",
+      sat: "Oh",
+      val: 0.0188,
+      harga: 150000,
+      wajibSurvei: false,
+    },
+    {
+      id: "koef-uph-02",
+      nama: "Kepala Tukang",
+      kat: "UPAH",
+      sat: "Oh",
+      val: 0.0375,
+      harga: 135000,
+      wajibSurvei: false,
+    },
+    {
+      id: "koef-uph-03",
+      nama: "Tukang Keramik",
+      kat: "UPAH",
+      sat: "Oh",
+      val: 0.1875,
+      harga: 120000,
+      wajibSurvei: false,
+    },
+    {
+      id: "koef-uph-04",
+      nama: "Pekerja Terampil",
+      kat: "UPAH",
+      sat: "Oh",
+      val: 0.125,
+      harga: 100000,
+      wajibSurvei: false,
+    },
+    {
+      id: "koef-mat-01",
+      nama: "Keramik 60x60 Polish",
+      kat: "MATERIAL",
+      sat: "M2",
+      val: 1.034,
+      harga: 145000,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-mat-02",
+      nama: "Semen Portland (PC)",
+      kat: "MATERIAL",
+      sat: "Kg",
+      val: 9.327,
+      harga: 1850,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-mat-03",
+      nama: "Pasir Pasang",
+      kat: "MATERIAL",
+      sat: "M3",
+      val: 0.0436,
+      harga: 320000,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-mat-04",
+      nama: "Semen Grout Pengisi Nut",
+      kat: "MATERIAL",
+      sat: "Kg",
+      val: 1.5,
+      harga: 18000,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-mat-05",
+      nama: "Cat Dinding Eksterior",
+      kat: "MATERIAL",
+      sat: "Kg",
+      val: 0.36,
+      harga: 65000,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-mat-06",
+      nama: "Gypsum Board 9mm",
+      kat: "MATERIAL",
+      sat: "Lbr",
+      val: 0.364,
+      harga: 78000,
+      wajibSurvei: true,
+    },
+    {
+      id: "koef-alt-01",
+      nama: "Sewa Scaffolding",
+      kat: "ALAT",
+      sat: "Set/Hari",
+      val: 1.0,
+      harga: 35000,
+      wajibSurvei: false,
+    },
+    {
+      id: "koef-bng-01",
+      nama: "Bongkaran Lantai Eksisting",
+      kat: "BONGKARAN",
+      sat: "M2",
+      val: 1.0,
+      harga: 25000,
+      wajibSurvei: false,
+    },
   ];
 
+  const koefisienMap: Record<string, { id: string; namaKomponen: string }> = {};
+
   for (const k of koefisienData) {
-    await prisma.masterKoefisien.upsert({
-      where: { kodeKomponen: k.kode },
+    const record = await prisma.masterKoefisien.upsert({
+      where: { id: k.id },
       update: {
-        namaKomponen: k.nama,
-        kategori: k.kat,
-        satuan: k.sat,
-        nilaiBaku: k.val,
         divisiId: divisiBuilding.id,
+        kategoriKomponen: k.kat,
+        namaKomponen: k.nama,
+        satuan: k.sat,
+        nilaiKoefisienDefault: k.val,
+        hargaAcuanDefault: k.harga,
+        wajibSurveiToko: k.wajibSurvei,
         isActive: true,
       },
       create: {
-        kodeKomponen: k.kode,
-        namaKomponen: k.nama,
-        kategori: k.kat,
-        satuan: k.sat,
-        nilaiBaku: k.val,
+        id: k.id,
         divisiId: divisiBuilding.id,
+        kategoriKomponen: k.kat,
+        namaKomponen: k.nama,
+        satuan: k.sat,
+        nilaiKoefisienDefault: k.val,
+        hargaAcuanDefault: k.harga,
+        wajibSurveiToko: k.wajibSurvei,
         isActive: true,
       },
     });
+    koefisienMap[k.id] = record;
   }
 
   console.log("✅ Pustaka MasterKoefisien berhasil diseed.");
 
   // ==========================================================================
-  // 4. SEED MASTER ITEM SPESIFIKASI
+  // 4. SEED MASTER TOKO CABANG CIKOKOL
   // ==========================================================================
-  const itemKeramik = await prisma.masterItem.upsert({
-    where: { kodeItem: "SIP-001" },
+  const toko1 = await prisma.masterToko.upsert({
+    where: { id: "toko-ckk-01" },
     update: {
-      namaItem: "Pekerjaan Lantai Keramik Homogeneous Tile 60x60 Polish",
-      kategori: "Pekerjaan Lantai",
-      merk: "Roman / Granito",
-      tipe: "Polish Glazed",
-      ukuran: "60x60 cm",
-      warna: "Cream Polos",
-      lokasi: "Area Sales Utama Toko",
-      satuan: "M2",
-      divisiId: divisiBuilding.id,
+      namaToko: "TB Bintang Bangunan Cikokol",
+      alamat: "Jl. MH Thamrin No. 12, Kebon Nanas",
+      kota: "Tangerang",
+      kontakPic: "Koh Alex",
+      telepon: "021-55781234",
+      cabangId: cabangCikokol.id,
       isActive: true,
     },
     create: {
-      kodeItem: "SIP-001",
-      namaItem: "Pekerjaan Lantai Keramik Homogeneous Tile 60x60 Polish",
-      kategori: "Pekerjaan Lantai",
-      merk: "Roman / Granito",
-      tipe: "Polish Glazed",
-      ukuran: "60x60 cm",
-      warna: "Cream Polos",
-      lokasi: "Area Sales Utama Toko",
-      satuan: "M2",
-      divisiId: divisiBuilding.id,
+      id: "toko-ckk-01",
+      namaToko: "TB Bintang Bangunan Cikokol",
+      alamat: "Jl. MH Thamrin No. 12, Kebon Nanas",
+      kota: "Tangerang",
+      kontakPic: "Koh Alex",
+      telepon: "021-55781234",
+      cabangId: cabangCikokol.id,
       isActive: true,
     },
   });
 
-  const itemCat = await prisma.masterItem.upsert({
-    where: { kodeItem: "SIP-002" },
+  const toko2 = await prisma.masterToko.upsert({
+    where: { id: "toko-ckk-02" },
     update: {
-      namaItem: "Pengecatan Dinding Interior & Partisi Toko",
-      kategori: "Pekerjaan Pengecatan",
-      merk: "Dulux / Mowilex",
-      tipe: "Interior Acrylic",
-      ukuran: "1 Pail (20 Ltr)",
-      warna: "Putih Alfamart",
-      lokasi: "Dinding Sales & Gudang",
-      satuan: "M2",
-      divisiId: divisiBuilding.id,
+      namaToko: "Mitra 10 Gading Serpong",
+      alamat: "Jl. Boulevard Gading Serpong Kav. 22",
+      kota: "Tangerang",
+      kontakPic: "CS Mitra 10",
+      telepon: "021-5461111",
+      cabangId: cabangCikokol.id,
       isActive: true,
     },
     create: {
+      id: "toko-ckk-02",
+      namaToko: "Mitra 10 Gading Serpong",
+      alamat: "Jl. Boulevard Gading Serpong Kav. 22",
+      kota: "Tangerang",
+      kontakPic: "CS Mitra 10",
+      telepon: "021-5461111",
+      cabangId: cabangCikokol.id,
+      isActive: true,
+    },
+  });
+
+  const toko3 = await prisma.masterToko.upsert({
+    where: { id: "toko-ckk-03" },
+    update: {
+      namaToko: "Depo Bangunan Serpong",
+      alamat: "Jl. Raya Serpong KM 8",
+      kota: "Tangerang Selatan",
+      kontakPic: "Bpk. Wibowo",
+      telepon: "021-5378899",
+      cabangId: cabangCikokol.id,
+      isActive: true,
+    },
+    create: {
+      id: "toko-ckk-03",
+      namaToko: "Depo Bangunan Serpong",
+      alamat: "Jl. Raya Serpong KM 8",
+      kota: "Tangerang Selatan",
+      kontakPic: "Bpk. Wibowo",
+      telepon: "021-5378899",
+      cabangId: cabangCikokol.id,
+      isActive: true,
+    },
+  });
+
+  console.log("✅ MasterToko berhasil diseed.");
+
+  // ==========================================================================
+  // 5. SEED MASTER ITEM SPESIFIKASI
+  // ==========================================================================
+  const itemKeramik = await prisma.masterItem.upsert({
+    where: { kodeMaster: "SIP-001-01" },
+    update: {
+      kodeItem: "SIP-001",
+      kodeVarian: "01",
+      namaItem: "Pekerjaan Lantai Keramik Homogeneous Tile 60x60 Polish",
+      kategori: "Pekerjaan Lantai",
+      merk: "Roman / Granito",
+      tipe: "Polish Glazed",
+      ukuran: "60x60 cm",
+      warna: "Cream Polos",
+      permukaan: "Glossy Polished",
+      tebal: "9.5 mm",
+      toleransi: "+/- 0.5 mm",
+      lokasi: "Area Sales Utama Toko",
+      satuan: "M2",
+      deskripsiOtomatis:
+        "Pekerjaan Lantai Keramik Homogeneous Tile Roman/Granito 60x60 Polish Glazed Cream Polos Glossy Polished Tebal 9.5 mm",
+      divisiId: divisiBuilding.id,
+    },
+    create: {
+      kodeMaster: "SIP-001-01",
+      kodeItem: "SIP-001",
+      kodeVarian: "01",
+      namaItem: "Pekerjaan Lantai Keramik Homogeneous Tile 60x60 Polish",
+      kategori: "Pekerjaan Lantai",
+      merk: "Roman / Granito",
+      tipe: "Polish Glazed",
+      ukuran: "60x60 cm",
+      warna: "Cream Polos",
+      permukaan: "Glossy Polished",
+      tebal: "9.5 mm",
+      toleransi: "+/- 0.5 mm",
+      lokasi: "Area Sales Utama Toko",
+      satuan: "M2",
+      deskripsiOtomatis:
+        "Pekerjaan Lantai Keramik Homogeneous Tile Roman/Granito 60x60 Polish Glazed Cream Polos Glossy Polished Tebal 9.5 mm",
+      divisiId: divisiBuilding.id,
+    },
+  });
+
+  const itemCat = await prisma.masterItem.upsert({
+    where: { kodeMaster: "SIP-002-01" },
+    update: {
       kodeItem: "SIP-002",
+      kodeVarian: "01",
       namaItem: "Pengecatan Dinding Interior & Partisi Toko",
       kategori: "Pekerjaan Pengecatan",
       merk: "Dulux / Mowilex",
       tipe: "Interior Acrylic",
       ukuran: "1 Pail (20 Ltr)",
       warna: "Putih Alfamart",
+      permukaan: "Matt Finish",
+      tebal: "2 Lapisan",
+      toleransi: "Daya sebar 10-12 m2/liter",
       lokasi: "Dinding Sales & Gudang",
       satuan: "M2",
+      deskripsiOtomatis:
+        "Pengecatan Dinding Interior & Partisi Toko Dulux/Mowilex Putih Alfamart Interior Acrylic Matt Finish 2 Lapisan",
       divisiId: divisiBuilding.id,
-      isActive: true,
+    },
+    create: {
+      kodeMaster: "SIP-002-01",
+      kodeItem: "SIP-002",
+      kodeVarian: "01",
+      namaItem: "Pengecatan Dinding Interior & Partisi Toko",
+      kategori: "Pekerjaan Pengecatan",
+      merk: "Dulux / Mowilex",
+      tipe: "Interior Acrylic",
+      ukuran: "1 Pail (20 Ltr)",
+      warna: "Putih Alfamart",
+      permukaan: "Matt Finish",
+      tebal: "2 Lapisan",
+      toleransi: "Daya sebar 10-12 m2/liter",
+      lokasi: "Dinding Sales & Gudang",
+      satuan: "M2",
+      deskripsiOtomatis:
+        "Pengecatan Dinding Interior & Partisi Toko Dulux/Mowilex Putih Alfamart Interior Acrylic Matt Finish 2 Lapisan",
+      divisiId: divisiBuilding.id,
     },
   });
 
   console.log("✅ MasterItem spesifikasi berhasil diseed.");
 
   // ==========================================================================
-  // 5. SEED KONTRAKTOR REKANAN & PENUGASAN CABANG
+  // 6. SEED KONTRAKTOR REKANAN & PENUGASAN CABANG
   // ==========================================================================
   const kontraktor1 = await prisma.kontraktor.upsert({
-    where: { kodeKontraktor: "KTR-001" },
+    where: { kodeVendor: "KTR-001" },
     update: {
       namaPerusahaan: "PT Cahaya Mandiri Perkasa",
+      picName: "Budi Santoso",
       email: "kontraktor.cahaya@rekanan.com",
       telepon: "021-5551234",
-      alamat: "Kawasan Industri Jatake, Tangerang",
-      isActive: true,
+      alamatKantor: "Kawasan Industri Jatake, Tangerang",
     },
     create: {
-      kodeKontraktor: "KTR-001",
+      kodeVendor: "KTR-001",
       namaPerusahaan: "PT Cahaya Mandiri Perkasa",
+      picName: "Budi Santoso",
       email: "kontraktor.cahaya@rekanan.com",
       telepon: "021-5551234",
-      alamat: "Kawasan Industri Jatake, Tangerang",
-      isActive: true,
+      alamatKantor: "Kawasan Industri Jatake, Tangerang",
     },
   });
 
   const kontraktor2 = await prisma.kontraktor.upsert({
-    where: { kodeKontraktor: "KTR-002" },
+    where: { kodeVendor: "KTR-002" },
     update: {
       namaPerusahaan: "PT Sinar Mitra Konstruksi",
+      picName: "Herry Gunawan",
       email: "kontraktor.sinar@rekanan.com",
       telepon: "021-5555678",
-      alamat: "Ruko Gading Serpong Blok A, Tangerang",
-      isActive: true,
+      alamatKantor: "Ruko Gading Serpong Blok A, Tangerang",
     },
     create: {
-      kodeKontraktor: "KTR-002",
+      kodeVendor: "KTR-002",
       namaPerusahaan: "PT Sinar Mitra Konstruksi",
+      picName: "Herry Gunawan",
       email: "kontraktor.sinar@rekanan.com",
       telepon: "021-5555678",
-      alamat: "Ruko Gading Serpong Blok A, Tangerang",
-      isActive: true,
+      alamatKantor: "Ruko Gading Serpong Blok A, Tangerang",
     },
   });
 
   const kontraktor3 = await prisma.kontraktor.upsert({
-    where: { kodeKontraktor: "KTR-003" },
+    where: { kodeVendor: "KTR-003" },
     update: {
       namaPerusahaan: "CV Graha Indah Mandiri",
+      picName: "Agus Pratama",
       email: "kontraktor.graha@rekanan.com",
       telepon: "021-5559012",
-      alamat: "Jl. Raya Cikokol No. 45, Tangerang",
-      isActive: true,
+      alamatKantor: "Jl. Raya Cikokol No. 45, Tangerang",
     },
     create: {
-      kodeKontraktor: "KTR-003",
+      kodeVendor: "KTR-003",
       namaPerusahaan: "CV Graha Indah Mandiri",
+      picName: "Agus Pratama",
       email: "kontraktor.graha@rekanan.com",
       telepon: "021-5559012",
-      alamat: "Jl. Raya Cikokol No. 45, Tangerang",
-      isActive: true,
+      alamatKantor: "Jl. Raya Cikokol No. 45, Tangerang",
     },
   });
 
   const kontraktorParked = await prisma.kontraktor.upsert({
-    where: { kodeKontraktor: "KTR-004" },
+    where: { kodeVendor: "KTR-004" },
     update: {
       namaPerusahaan: "PT Rekanan Nonaktif Bersyarat",
+      picName: "Surya Dharma",
       email: "kontraktor.parked@rekanan.com",
       telepon: "021-5553344",
-      alamat: "Jl. Daan Mogot KM 19, Tangerang",
-      isActive: true,
+      alamatKantor: "Jl. Daan Mogot KM 19, Tangerang",
     },
     create: {
-      kodeKontraktor: "KTR-004",
+      kodeVendor: "KTR-004",
       namaPerusahaan: "PT Rekanan Nonaktif Bersyarat",
+      picName: "Surya Dharma",
       email: "kontraktor.parked@rekanan.com",
       telepon: "021-5553344",
-      alamat: "Jl. Daan Mogot KM 19, Tangerang",
-      isActive: true,
+      alamatKantor: "Jl. Daan Mogot KM 19, Tangerang",
     },
   });
 
@@ -377,29 +578,30 @@ async function main() {
     },
     update: {
       statusKeaktifan: "NONAKTIF_SEMENTARA",
-      alasanNonaktif: "Menolak 2x berturut-turut pada penawaran paket harga Cikokol",
-      tanggalNonaktif: new Date(),
+      alasanParked: "Menolak 2x berturut-turut pada penawaran paket harga Cikokol",
+      parkedAt: new Date(),
     },
     create: {
       kontraktorId: kontraktorParked.id,
       cabangId: cabangCikokol.id,
       divisiId: divisiBuilding.id,
       statusKeaktifan: "NONAKTIF_SEMENTARA",
-      alasanNonaktif: "Menolak 2x berturut-turut pada penawaran paket harga Cikokol",
-      tanggalNonaktif: new Date(),
+      alasanParked: "Menolak 2x berturut-turut pada penawaran paket harga Cikokol",
+      parkedAt: new Date(),
     },
   });
 
   console.log("✅ Kontraktor & Rekanan Cabang (Aktif & Parked) berhasil diseed.");
 
   // ==========================================================================
-  // 6. SEED AKUN PENGGUNA WHITELIST RESMI (ZERO AUTO-PROVISIONING)
+  // 7. SEED AKUN PENGGUNA WHITELIST RESMI (ZERO AUTO-PROVISIONING)
   // ==========================================================================
   const userBC = await prisma.user.upsert({
     where: { email: "bc.cikokol@alfamart.co.id" },
     update: {
       fullName: "Hendra Wijaya (Building Coord Cikokol)",
       role: "BUILDING_COORDINATOR",
+      branchName: "Cabang Cikokol",
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       isActive: true,
@@ -408,6 +610,7 @@ async function main() {
       email: "bc.cikokol@alfamart.co.id",
       fullName: "Hendra Wijaya (Building Coord Cikokol)",
       role: "BUILDING_COORDINATOR",
+      branchName: "Cabang Cikokol",
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       isActive: true,
@@ -419,6 +622,7 @@ async function main() {
     update: {
       fullName: "Bambang Soedirman (BM Manager Cikokol)",
       role: "BM_MANAGER",
+      branchName: "Cabang Cikokol",
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       isActive: true,
@@ -427,6 +631,7 @@ async function main() {
       email: "bm.cikokol@alfamart.co.id",
       fullName: "Bambang Soedirman (BM Manager Cikokol)",
       role: "BM_MANAGER",
+      branchName: "Cabang Cikokol",
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       isActive: true,
@@ -438,6 +643,7 @@ async function main() {
     update: {
       fullName: "Rian Prakoso (S&B Specialist HO)",
       role: "SB_SPECIALIST",
+      branchName: "Head Office",
       divisiId: divisiBuilding.id,
       isActive: true,
     },
@@ -445,6 +651,7 @@ async function main() {
       email: "snb.specialist@alfamart.co.id",
       fullName: "Rian Prakoso (S&B Specialist HO)",
       role: "SB_SPECIALIST",
+      branchName: "Head Office",
       divisiId: divisiBuilding.id,
       isActive: true,
     },
@@ -455,6 +662,7 @@ async function main() {
     update: {
       fullName: "David Hartono (Regional Manager Jabodetabek)",
       role: "REGIONAL_MANAGER",
+      branchName: "Regional Jabodetabek",
       divisiId: divisiBuilding.id,
       isActive: true,
     },
@@ -462,8 +670,38 @@ async function main() {
       email: "reg.manager1@alfamart.co.id",
       fullName: "David Hartono (Regional Manager Jabodetabek)",
       role: "REGIONAL_MANAGER",
+      branchName: "Regional Jabodetabek",
       divisiId: divisiBuilding.id,
       isActive: true,
+    },
+  });
+
+  // User Cabang Coverage untuk Regional Manager
+  await prisma.userCabangCoverage.upsert({
+    where: {
+      userId_cabangId: {
+        userId: userRegMgr.id,
+        cabangId: cabangCikokol.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: userRegMgr.id,
+      cabangId: cabangCikokol.id,
+    },
+  });
+
+  await prisma.userCabangCoverage.upsert({
+    where: {
+      userId_cabangId: {
+        userId: userRegMgr.id,
+        cabangId: cabangBalaraja.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: userRegMgr.id,
+      cabangId: cabangBalaraja.id,
     },
   });
 
@@ -472,6 +710,7 @@ async function main() {
     update: {
       fullName: "Budi Santoso (PT Cahaya Mandiri Perkasa)",
       role: "KONTRAKTOR",
+      branchName: "PT Cahaya Mandiri Perkasa",
       kontraktorId: kontraktor1.id,
       isActive: true,
     },
@@ -479,6 +718,7 @@ async function main() {
       email: "vendor.cahaya@rekanan.com",
       fullName: "Budi Santoso (PT Cahaya Mandiri Perkasa)",
       role: "KONTRAKTOR",
+      branchName: "PT Cahaya Mandiri Perkasa",
       kontraktorId: kontraktor1.id,
       isActive: true,
     },
@@ -489,12 +729,14 @@ async function main() {
     update: {
       fullName: "Super Admin S&B Controlling HO",
       role: "ADMIN",
+      branchName: "Head Office",
       isActive: true,
     },
     create: {
       email: "admin.harga@alfamart.co.id",
       fullName: "Super Admin S&B Controlling HO",
       role: "ADMIN",
+      branchName: "Head Office",
       isActive: true,
     },
   });
@@ -502,12 +744,12 @@ async function main() {
   console.log("✅ Akun Pengguna Whitelist berhasil diseed.");
 
   // ==========================================================================
-  // 7. SEED SAMPEL TIKET SIKLUS LENGKAP
+  // 8. SEED SAMPEL TIKET SIKLUS LENGKAP
   // ==========================================================================
 
   // Tiket 1: Status DIAJUKAN (Baru dibuat oleh BM Cikokol, menunggu validasi SNB)
-  await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-001" },
+  const tiket1 = await prisma.pengajuanHarga.upsert({
+    where: { nomorTiket: "REQ-2026-001" },
     update: {
       status: "DIAJUKAN",
       masterItemId: itemCat.id,
@@ -515,25 +757,39 @@ async function main() {
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(),
-      alasanPengajuan: "Penyesuaian spesifikasi cat interior toko tahan jamur standar baru 2026",
-      diajukanOlehId: userBM.id,
+      catatanReview:
+        "Penyesuaian spesifikasi cat interior toko tahan jamur standar baru 2026",
+      pembuatUserId: userBM.id,
+      marginAwalPersen: 8.0,
     },
     create: {
-      noTiket: "REQ-2026-001",
+      nomorTiket: "REQ-2026-001",
       status: "DIAJUKAN",
       masterItemId: itemCat.id,
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(),
-      alasanPengajuan: "Penyesuaian spesifikasi cat interior toko tahan jamur standar baru 2026",
-      diajukanOlehId: userBM.id,
+      catatanReview:
+        "Penyesuaian spesifikasi cat interior toko tahan jamur standar baru 2026",
+      pembuatUserId: userBM.id,
+      marginAwalPersen: 8.0,
+    },
+  });
+
+  await prisma.approvalAuditLog.create({
+    data: {
+      pengajuanHargaId: tiket1.id,
+      userId: userBM.id,
+      roleActor: "BM_MANAGER",
+      action: "SUBMIT_PENGAJUAN",
+      catatan: "Pengajuan harga cat interior diajukan oleh BM Cikokol",
     },
   });
 
   // Tiket 2: Status SIAP_SURVEI (Sudah di-mastering koefisiennya oleh SNB, menunggu BC survei)
-  await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-002" },
+  const tiket2 = await prisma.pengajuanHarga.upsert({
+    where: { nomorTiket: "REQ-2026-002" },
     update: {
       status: "SIAP_SURVEI",
       masterItemId: itemKeramik.id,
@@ -541,33 +797,77 @@ async function main() {
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Standarisasi keramik lantai sales area cabang Cikokol",
-      diajukanOlehId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      liveMarginUpah: 8,
-      liveMarginMaterial: 8,
-      liveMarginBongkaran: 8,
+      catatanReview:
+        "Standarisasi keramik lantai sales area cabang Cikokol - Koefisien AHSP sudah ditetapkan S&B",
+      pembuatUserId: userBM.id,
+      marginAwalPersen: 8.0,
     },
     create: {
-      noTiket: "REQ-2026-002",
+      nomorTiket: "REQ-2026-002",
       status: "SIAP_SURVEI",
       masterItemId: itemKeramik.id,
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Standarisasi keramik lantai sales area cabang Cikokol",
-      diajukanOlehId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      liveMarginUpah: 8,
-      liveMarginMaterial: 8,
-      liveMarginBongkaran: 8,
+      catatanReview:
+        "Standarisasi keramik lantai sales area cabang Cikokol - Koefisien AHSP sudah ditetapkan S&B",
+      pembuatUserId: userBM.id,
+      marginAwalPersen: 8.0,
+    },
+  });
+
+  // Hapus rincian AHSP lama tiket 2 jika ada
+  await prisma.rincianAhspPengajuan.deleteMany({
+    where: { pengajuanHargaId: tiket2.id },
+  });
+
+  // Rincian AHSP Tiket 2
+  await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket2.id,
+      masterKoefisienId: "koef-uph-03",
+      namaKomponen: "Tukang Keramik",
+      kategoriKomponen: "UPAH",
+      satuan: "Oh",
+      nilaiKoefisien: 0.1875,
+      hargaAcuanSatuan: 120000,
+      marginPersen: 8.0,
+      subtotal: 24300,
+    },
+  });
+
+  await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket2.id,
+      masterKoefisienId: "koef-mat-01",
+      namaKomponen: "Keramik 60x60 Polish",
+      kategoriKomponen: "MATERIAL",
+      satuan: "M2",
+      nilaiKoefisien: 1.034,
+      hargaAcuanSatuan: 145000,
+      marginPersen: 8.0,
+      subtotal: 161921,
+    },
+  });
+
+  await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket2.id,
+      masterKoefisienId: "koef-mat-02",
+      namaKomponen: "Semen Portland (PC)",
+      kategoriKomponen: "MATERIAL",
+      satuan: "Kg",
+      nilaiKoefisien: 9.327,
+      hargaAcuanSatuan: 1850,
+      marginPersen: 8.0,
+      subtotal: 18635,
     },
   });
 
   // Tiket 3: Status PENDING_BM_MGR (Survei 3 toko selesai oleh BC, menunggu review BM Cikokol)
   const tiket3 = await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-003" },
+    where: { nomorTiket: "REQ-2026-003" },
     update: {
       status: "PENDING_BM_MGR",
       masterItemId: itemKeramik.id,
@@ -575,88 +875,125 @@ async function main() {
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Pengadaan keramik granit renovasi toko Cikokol",
-      diajukanOlehId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      hargaAcuanSurvei: 145000,
-      totalHargaAkhir: 245000,
+      catatanReview:
+        "Survei 3 toko fisik selesai diinput oleh Building Coordinator, menunggu verifikasi BM",
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 145000,
+      hargaDitetapkanSNB: 245000,
+      marginAwalPersen: 8.0,
     },
     create: {
-      noTiket: "REQ-2026-003",
+      nomorTiket: "REQ-2026-003",
       status: "PENDING_BM_MGR",
       masterItemId: itemKeramik.id,
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Pengadaan keramik granit renovasi toko Cikokol",
-      diajukanOlehId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      hargaAcuanSurvei: 145000,
-      totalHargaAkhir: 245000,
+      catatanReview:
+        "Survei 3 toko fisik selesai diinput oleh Building Coordinator, menunggu verifikasi BM",
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 145000,
+      hargaDitetapkanSNB: 245000,
+      marginAwalPersen: 8.0,
     },
   });
 
-  // Seed 3 Toko Survei untuk Tiket 3
-  await prisma.surveiHargaPasarItem.deleteMany({
+  await prisma.rincianAhspPengajuan.deleteMany({
     where: { pengajuanHargaId: tiket3.id },
   });
 
-  const toko1 = await prisma.surveiHargaPasarItem.create({
+  const rincianMatTiket3 = await prisma.rincianAhspPengajuan.create({
     data: {
       pengajuanHargaId: tiket3.id,
-      noToko: 1,
+      masterKoefisienId: "koef-mat-01",
+      namaKomponen: "Keramik 60x60 Polish",
+      kategoriKomponen: "MATERIAL",
+      satuan: "M2",
+      nilaiKoefisien: 1.034,
+      hargaAcuanSatuan: 145000,
+      marginPersen: 8.0,
+      subtotal: 161921,
+    },
+  });
+
+  // Seed 3 Toko Survei untuk Rincian Material Tiket 3
+  const surveiToko1 = await prisma.surveiTokoItem.create({
+    data: {
+      rincianAhspId: rincianMatTiket3.id,
+      masterTokoId: toko1.id,
+      urutanToko: 1,
       namaToko: "TB Bintang Bangunan Cikokol",
       alamatToko: "Jl. MH Thamrin No. 12, Kebon Nanas, Tangerang",
-      kotaToko: "Tangerang",
-      kontakToko: "021-55781234",
+      volumeAcuan: 1.0,
+      hargaSatuanSurvei: 148000,
       tanggalSurvei: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      hargaBarang: 148000,
-      catatan: "Stok tersedia 200 dus, pengiriman free ongkir area Tangerang",
+      catatanSurvei:
+        "Stok tersedia 200 dus, pengiriman free ongkir area Tangerang",
     },
   });
 
   await prisma.lampiranSurvei.create({
     data: {
-      surveiItemId: toko1.id,
-      tipeLampiran: "NOTA_PEMBELIAN",
+      surveiTokoId: surveiToko1.id,
+      jenisLampiran: "NOTA_PEMBELIAN",
       namaFile: "nota_tb_bintang.jpg",
       fileUrl: "/mock-files/nota_tb_bintang.jpg",
-      fileSizeBytes: 245000,
+      ukuranFile: "245 KB",
     },
   });
 
-  const toko2 = await prisma.surveiHargaPasarItem.create({
+  const surveiToko2 = await prisma.surveiTokoItem.create({
     data: {
-      pengajuanHargaId: tiket3.id,
-      noToko: 2,
+      rincianAhspId: rincianMatTiket3.id,
+      masterTokoId: toko2.id,
+      urutanToko: 2,
       namaToko: "Mitra 10 Gading Serpong",
       alamatToko: "Jl. Boulevard Gading Serpong Kav. 22",
-      kotaToko: "Tangerang",
-      kontakToko: "021-5461111",
+      volumeAcuan: 1.0,
+      hargaSatuanSurvei: 142000,
       tanggalSurvei: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      hargaBarang: 142000,
-      catatan: "Promo diskon pembelian borongan di atas 100 dus",
+      catatanSurvei: "Promo diskon pembelian borongan di atas 100 dus",
     },
   });
 
-  const toko3 = await prisma.surveiHargaPasarItem.create({
+  await prisma.lampiranSurvei.create({
     data: {
-      pengajuanHargaId: tiket3.id,
-      noToko: 3,
+      surveiTokoId: surveiToko2.id,
+      jenisLampiran: "FOTO_MATERIAL",
+      namaFile: "foto_material_mitra10.jpg",
+      fileUrl: "/mock-files/foto_material_mitra10.jpg",
+      ukuranFile: "512 KB",
+    },
+  });
+
+  const surveiToko3 = await prisma.surveiTokoItem.create({
+    data: {
+      rincianAhspId: rincianMatTiket3.id,
+      masterTokoId: toko3.id,
+      urutanToko: 3,
       namaToko: "Depo Bangunan Serpong",
       alamatToko: "Jl. Raya Serpong KM 8, Tangerang Selatan",
-      kotaToko: "Tangerang Selatan",
-      kontakToko: "021-5378899",
+      volumeAcuan: 1.0,
+      hargaSatuanSurvei: 145000,
       tanggalSurvei: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      hargaBarang: 145000,
-      catatan: "Harga netto belum termasuk bongkar muat",
+      catatanSurvei: "Harga netto belum termasuk ongkos bongkar muat",
+    },
+  });
+
+  await prisma.lampiranSurvei.create({
+    data: {
+      surveiTokoId: surveiToko3.id,
+      jenisLampiran: "FOTO_TOKO",
+      namaFile: "depo_bangunan_plang.jpg",
+      fileUrl: "/mock-files/depo_bangunan_plang.jpg",
+      ukuranFile: "380 KB",
     },
   });
 
   // Tiket 4: Status PENDING_KONTRAKTOR (Tahap Kuorum 50%+1)
   const tiket4 = await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-004" },
+    where: { nomorTiket: "REQ-2026-004" },
     update: {
       status: "PENDING_KONTRAKTOR",
       masterItemId: itemKeramik.id,
@@ -664,70 +1001,82 @@ async function main() {
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 145000,
-      totalHargaAkhir: 248000,
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 145000,
+      hargaDitetapkanSNB: 248000,
+      marginSNBPersen: 8.0,
       deadlineVoting: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Sisa 2 hari SLA
-      kuorumTerpenuhi: false,
+      catatanReview:
+        "Persetujuan berjenjang BM, S&B, dan Regional Mgr selesai. Tahap voting kuorum rekanan.",
     },
     create: {
-      noTiket: "REQ-2026-004",
+      nomorTiket: "REQ-2026-004",
       status: "PENDING_KONTRAKTOR",
       masterItemId: itemKeramik.id,
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 145000,
-      totalHargaAkhir: 248000,
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 145000,
+      hargaDitetapkanSNB: 248000,
+      marginSNBPersen: 8.0,
       deadlineVoting: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      kuorumTerpenuhi: false,
+      catatanReview:
+        "Persetujuan berjenjang BM, S&B, dan Regional Mgr selesai. Tahap voting kuorum rekanan.",
     },
   });
 
   // Seed Voting Kuorum Kontraktor untuk Tiket 4
-  await prisma.votingPengajuanHarga.deleteMany({
+  await prisma.votingKontraktor.deleteMany({
     where: { pengajuanHargaId: tiket4.id },
   });
 
-  await prisma.votingPengajuanHarga.create({
+  await prisma.votingKontraktor.create({
     data: {
       pengajuanHargaId: tiket4.id,
       kontraktorCabangId: relasiKtr1.id,
+      putaranVote: 1,
       statusVote: "SETUJU",
-      tanggalVote: new Date(),
+      tanggalRespon: new Date(),
     },
   });
 
-  await prisma.votingPengajuanHarga.create({
+  const vote2 = await prisma.votingKontraktor.create({
     data: {
       pengajuanHargaId: tiket4.id,
       kontraktorCabangId: relasiKtr2.id,
+      putaranVote: 1,
       statusVote: "TOLAK",
-      tanggalVote: new Date(),
-      hargaBanding: 265000,
-      catatanBanding: "Kenaikan upah tukang lokal dan biaya angkut material wilayah Tangerang Barat",
+      usulanHarga: 265000,
+      catatanPenolakan:
+        "Kenaikan upah tukang lokal dan biaya angkut material wilayah Tangerang Barat",
+      hasRejectedOnce: true,
+      tanggalRespon: new Date(),
     },
   });
 
-  await prisma.votingPengajuanHarga.create({
+  await prisma.lampiranBanding.create({
+    data: {
+      votingKontraktorId: vote2.id,
+      namaFile: "justifikasi_rekanan_sinar.pdf",
+      fileUrl: "/mock-files/justifikasi_rekanan_sinar.pdf",
+      ukuranFile: "680 KB",
+    },
+  });
+
+  await prisma.votingKontraktor.create({
     data: {
       pengajuanHargaId: tiket4.id,
       kontraktorCabangId: relasiKtr3.id,
+      putaranVote: 1,
       statusVote: "MENUNGGU",
     },
   });
 
   // Tiket 5: Status RELEASED (Harga Resmi Aktif Induk Cabang Cikokol)
-  await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-005" },
+  const tiket5 = await prisma.pengajuanHarga.upsert({
+    where: { nomorTiket: "REQ-2026-005" },
     update: {
       status: "RELEASED",
       masterItemId: itemKeramik.id,
@@ -735,35 +1084,59 @@ async function main() {
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 140000,
-      totalHargaAkhir: 242000,
-      kuorumTerpenuhi: true,
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 140000,
+      hargaDitetapkanSNB: 242000,
+      marginSNBPersen: 8.0,
+      catatanReview:
+        "Kuorum 50%+1 tercapai. Harga resmi berlaku aktif untuk cabang Cikokol.",
     },
     create: {
-      noTiket: "REQ-2026-005",
+      nomorTiket: "REQ-2026-005",
       status: "RELEASED",
       masterItemId: itemKeramik.id,
       divisiId: divisiBuilding.id,
       cabangId: cabangCikokol.id,
       cakupanHarga: "INDUK_CABANG",
       tanggalPengajuan: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 140000,
-      totalHargaAkhir: 242000,
-      kuorumTerpenuhi: true,
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 140000,
+      hargaDitetapkanSNB: 242000,
+      marginSNBPersen: 8.0,
+      catatanReview:
+        "Kuorum 50%+1 tercapai. Harga resmi berlaku aktif untuk cabang Cikokol.",
+    },
+  });
+
+  // Rilis Harga Induk Cabang
+  const hargaCabangCikokol = await prisma.masterHargaCabang.upsert({
+    where: {
+      masterItemId_cabangId: {
+        masterItemId: itemKeramik.id,
+        cabangId: cabangCikokol.id,
+      },
+    },
+    update: {
+      pengajuanTerakhirId: tiket5.id,
+      hargaFinalInduk: 242000,
+      marginTotalPersen: 8.0,
+      statusHarga: "AKTIF",
+      berlakuSejak: new Date(),
+    },
+    create: {
+      masterItemId: itemKeramik.id,
+      cabangId: cabangCikokol.id,
+      pengajuanTerakhirId: tiket5.id,
+      hargaFinalInduk: 242000,
+      marginTotalPersen: 8.0,
+      statusHarga: "AKTIF",
+      berlakuSejak: new Date(),
     },
   });
 
   // Tiket 6: Status RELEASED Khusus Wilayah Serang (Harga Override Wilayah)
-  await prisma.pengajuanHarga.upsert({
-    where: { noTiket: "REQ-2026-006" },
+  const tiket6 = await prisma.pengajuanHarga.upsert({
+    where: { nomorTiket: "REQ-2026-006" },
     update: {
       status: "RELEASED",
       masterItemId: itemKeramik.id,
@@ -772,17 +1145,15 @@ async function main() {
       wilayahCabangId: wilayahSerang.id,
       cakupanHarga: "KHUSUS_WILAYAH",
       tanggalPengajuan: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Disparitas harga material dan transportasi wilayah Serang",
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 152000,
-      totalHargaAkhir: 258000,
-      kuorumTerpenuhi: true,
+      catatanReview:
+        "Disparitas harga material dan transportasi wilayah Serang (+6.6%). Resmi berlaku.",
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 152000,
+      hargaDitetapkanSNB: 258000,
+      marginSNBPersen: 8.0,
     },
     create: {
-      noTiket: "REQ-2026-006",
+      nomorTiket: "REQ-2026-006",
       status: "RELEASED",
       masterItemId: itemKeramik.id,
       divisiId: divisiBuilding.id,
@@ -790,18 +1161,44 @@ async function main() {
       wilayahCabangId: wilayahSerang.id,
       cakupanHarga: "KHUSUS_WILAYAH",
       tanggalPengajuan: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      alasanPengajuan: "Disparitas harga material dan transportasi wilayah Serang",
-      diajukanOlehId: userBM.id,
-      diapprovalBmId: userBM.id,
-      dimasteringSnbId: userSNB.id,
-      diapprovalRegionalId: userRegMgr.id,
-      hargaAcuanSurvei: 152000,
-      totalHargaAkhir: 258000,
-      kuorumTerpenuhi: true,
+      catatanReview:
+        "Disparitas harga material dan transportasi wilayah Serang (+6.6%). Resmi berlaku.",
+      pembuatUserId: userBM.id,
+      rataRataSurveiMaterial: 152000,
+      hargaDitetapkanSNB: 258000,
+      marginSNBPersen: 8.0,
     },
   });
 
-  console.log("✅ 6 Sampel Tiket Siklus Lengkap berhasil diseed.");
+  // Rilis Harga Khusus Wilayah Serang
+  await prisma.masterHargaWilayah.upsert({
+    where: {
+      masterHargaCabangId_wilayahCabangId: {
+        masterHargaCabangId: hargaCabangCikokol.id,
+        wilayahCabangId: wilayahSerang.id,
+      },
+    },
+    update: {
+      pengajuanTerakhirId: tiket6.id,
+      hargaFinalWilayah: 258000,
+      selisihDariIndukRp: 16000,
+      selisihDariIndukPersen: 6.61,
+      statusHarga: "AKTIF",
+      berlakuSejak: new Date(),
+    },
+    create: {
+      masterHargaCabangId: hargaCabangCikokol.id,
+      wilayahCabangId: wilayahSerang.id,
+      pengajuanTerakhirId: tiket6.id,
+      hargaFinalWilayah: 258000,
+      selisihDariIndukRp: 16000,
+      selisihDariIndukPersen: 6.61,
+      statusHarga: "AKTIF",
+      berlakuSejak: new Date(),
+    },
+  });
+
+  console.log("✅ 6 Sampel Tiket Siklus Lengkap & Rilis Harga berhasil diseed.");
   console.log("🎉 Seeding database SPARTA-HARGA selesai 100%!");
 }
 
