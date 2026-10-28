@@ -18,6 +18,7 @@ enum RoleUser {
   SB_SPECIALIST        @map("SB_SPECIALIST")
   REGIONAL_MANAGER     @map("REGIONAL_MANAGER")
   KONTRAKTOR           @map("KONTRAKTOR")
+  ADMIN                @map("ADMIN")
 
   @@map("role_user")
 }
