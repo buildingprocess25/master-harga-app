@@ -3,17 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Lewatkan aset statis dan API publik
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/public") ||
-    pathname.includes(".")
-  ) {
-    return NextResponse.next();
-  }
-
-  // 1. Ambil sesi resmi terotentikasi
+  // 1. Ambil sesi resmi terotentikasi dari cookie
   let role: string | null = null;
   const sessionCookie = request.cookies.get("sparta_harga_session");
 
@@ -32,24 +22,46 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Auto-Redirect pada rute root ("/") jika sudah terotentikasi
-  if (pathname === "/" && role) {
-    const roleRoutes: Record<string, string> = {
-      BUILDING_COORDINATOR: "/building-coordinator",
-      BM_MANAGER: "/bm-manager",
-      SB_SPECIALIST: "/sb-specialist",
-      REGIONAL_MANAGER: "/regional-manager",
-      KONTRAKTOR: "/kontraktor",
-      ADMIN: "/master-harga",
-    };
+  const roleRoutes: Record<string, string> = {
+    BUILDING_COORDINATOR: "/building-coordinator",
+    BM_MANAGER: "/bm-manager",
+    PP_MANAGER: "/bm-manager",
+    SB_SPECIALIST: "/sb-specialist",
+    REGIONAL_MANAGER: "/regional-manager",
+    KONTRAKTOR: "/kontraktor",
+    ADMIN: "/master-harga",
+  };
 
+  // 2. Rute Publik: Lewatkan aset statis dan API auth
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/public") ||
+    pathname === "/login" ||
+    pathname.includes(".")
+  ) {
+    // Jika sudah terotentikasi dan membuka /login, langsung arahkan ke workspace peran
+    if (pathname === "/login" && role) {
+      const targetRoute = roleRoutes[role] || "/";
+      return NextResponse.redirect(new URL(targetRoute, request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Jika belum terotentikasi dan mencoba mengakses rute internal, redirect ke /login
+  if (!role) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // 4. Auto-Redirect pada rute root ("/") ke workspace peran masing-masing
+  if (pathname === "/" && role) {
     const targetRoute = roleRoutes[role];
     if (targetRoute) {
       return NextResponse.redirect(new URL(targetRoute, request.url));
     }
   }
 
-  // 3. Isolasi Akses Peran Khusus Rekanan Kontraktor
+  // 5. Isolasi Akses Peran Khusus Rekanan Kontraktor
   if (role === "KONTRAKTOR") {
     const forbiddenInternalPaths = [
       "/sb-specialist",
