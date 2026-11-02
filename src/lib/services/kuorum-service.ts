@@ -491,6 +491,25 @@ export async function evaluasiKuorum(
   });
 }
 
+/**
+ * Evaluasi lazy: hanya jalan bila tiket masih PENDING_KONTRAKTOR dan SLA sudah lewat.
+ * Dipanggil sebelum menampilkan data agar status yang terlihat selalu final.
+ */
+export async function evaluasiJikaKedaluwarsa(tiketId: string) {
+  const tiket = await prisma.pengajuanHarga.findUnique({
+    where: { id: tiketId },
+    select: { status: true, deadlineVoting: true },
+  });
+  if (
+    tiket?.status === "PENDING_KONTRAKTOR" &&
+    tiket.deadlineVoting &&
+    tiket.deadlineVoting < new Date()
+  ) {
+    return evaluasiKuorum(tiketId);
+  }
+  return null;
+}
+
 /** Evaluasi seluruh tiket PENDING_KONTRAKTOR yang SLA-nya sudah lewat. */
 export async function evaluasiKuorumKedaluwarsa() {
   const tiketList = await prisma.pengajuanHarga.findMany({
@@ -518,6 +537,9 @@ export interface LampiranBandingInput {
   fileUrl: string;
   ukuranFile?: string;
 }
+
+/** Lampiran banding hanya boleh merujuk berkas yang diunggah lewat /api/kuorum/lampiran. */
+export const POLA_URL_LAMPIRAN_BANDING = /^\/api\/kuorum\/lampiran\/[a-f0-9-]{36}\.(pdf|jpg|jpeg|png)$/;
 
 export interface SubmitVoteParams {
   tiketId: string;
@@ -602,6 +624,9 @@ export async function submitVoteKontraktor(params: SubmitVoteParams) {
       throw new KuorumError(
         "Kesempatan banding sudah digunakan. Pada putaran ini hanya dapat Setuju atau Tolak."
       );
+    }
+    if (lampiranList?.some((l) => !POLA_URL_LAMPIRAN_BANDING.test(l.fileUrl))) {
+      throw new KuorumError("Lampiran banding tidak valid. Unggah ulang berkas bukti.");
     }
 
     const sekarang = new Date();
@@ -781,6 +806,88 @@ export async function getPenawaranKontraktor(kontraktorId: string) {
       tanggalRespon: r.tanggalRespon?.toISOString() ?? null,
     };
   });
+}
+
+/** Relasi cabang PT rekanan yang sedang Parked, untuk pemberitahuan di portal rekanan. */
+export async function getCabangParkedKontraktor(kontraktorId: string) {
+  const rows = await prisma.kontraktorCabang.findMany({
+    where: { kontraktorId, statusKeaktifan: "NONAKTIF_SEMENTARA" },
+    orderBy: { parkedAt: "desc" },
+    include: { cabang: true, divisi: true },
+  });
+  return rows.map((r) => ({
+    relasiId: r.id,
+    namaCabang: r.cabang.namaCabang,
+    namaDivisi: r.divisi.namaDivisi,
+    parkedAt: r.parkedAt?.toISOString() ?? null,
+    alasanParked: r.alasanParked,
+  }));
+}
+
+/**
+ * Detail satu penawaran untuk portal rekanan. Hanya memuat baris vote milik PT
+ * yang login (seluruh putaran), tanpa respon rekanan lain maupun rincian AHSP internal.
+ * Mengembalikan null bila PT tersebut tidak pernah diundang pada tiket ini.
+ */
+export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId: string) {
+  const voteList = await prisma.votingKontraktor.findMany({
+    where: { pengajuanHargaId: tiketId, kontraktorCabang: { kontraktorId } },
+    orderBy: { putaranVote: "desc" },
+    include: { lampiranBandingList: { orderBy: { uploadedAt: "asc" } } },
+  });
+  if (voteList.length === 0) return null;
+
+  const tiket = await prisma.pengajuanHarga.findUniqueOrThrow({
+    where: { id: tiketId },
+    include: { masterItem: true, divisi: true, cabang: true, wilayahCabang: true },
+  });
+
+  const toVote = (v: (typeof voteList)[number]) => ({
+    id: v.id,
+    putaran: v.putaranVote,
+    statusVote: v.statusVote as StatusVoteKontraktor,
+    usulanHarga: v.usulanHarga?.toNumber() ?? null,
+    catatan: v.catatanPenolakan,
+    tanggalRespon: v.tanggalRespon?.toISOString() ?? null,
+    lampiranList: v.lampiranBandingList.map((l) => ({
+      id: l.id,
+      namaFile: l.namaFile,
+      url: l.fileUrl,
+      ukuranFile: l.ukuranFile,
+    })),
+  });
+
+  const [terbaru, ...sebelumnya] = voteList;
+  const m = tiket.masterItem;
+
+  return {
+    tiketId: tiket.id,
+    nomorTiket: tiket.nomorTiket,
+    statusTiket: tiket.status as StatusPengajuanHarga,
+    namaDivisi: tiket.divisi.namaDivisi,
+    namaCabang: tiket.cabang.namaCabang,
+    cakupanHarga: tiket.cakupanHarga,
+    namaWilayah: tiket.wilayahCabang?.namaWilayah ?? null,
+    hargaDitawarkan: tiket.hargaDitetapkanSNB?.toNumber() ?? null,
+    deadlineVoting: tiket.deadlineVoting?.toISOString() ?? null,
+    item: m
+      ? {
+          kodeMaster: m.kodeMaster,
+          namaItem: m.namaItem,
+          kategori: m.kategori,
+          merk: m.merk,
+          ukuran: m.ukuran,
+          tipe: m.tipe,
+          warna: m.warna,
+          lokasi: m.lokasi,
+          satuan: m.satuan,
+          deskripsi: m.deskripsiOtomatis,
+        }
+      : null,
+    bolehBanding: !terbaru.hasRejectedOnce,
+    voteAktif: toVote(terbaru),
+    riwayatPutaran: sebelumnya.map(toVote),
+  };
 }
 
 /**
