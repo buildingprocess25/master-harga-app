@@ -937,6 +937,47 @@ export async function getDaftarRekananParked(cabangWewenang: string[] | "SEMUA")
   }));
 }
 
+/** Riwayat pemulihan (Unpark) terakhir dalam cakupan wewenang, untuk jejak audit di layar. */
+export async function getRiwayatUnpark(cabangWewenang: string[] | "SEMUA", limit = 20) {
+  const rows = await prisma.kontraktorCabang.findMany({
+    where: {
+      unparkedAt: { not: null },
+      ...(cabangWewenang === "SEMUA" ? {} : { cabangId: { in: cabangWewenang } }),
+    },
+    orderBy: { unparkedAt: "desc" },
+    take: limit,
+    include: { kontraktor: true, cabang: true, divisi: true },
+  });
+
+  const userIds = [...new Set(rows.map((r) => r.unparkedBy).filter((id): id is string => !!id))];
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, fullName: true, role: true },
+  });
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  return rows.map((r) => ({
+    relasiId: r.id,
+    namaPerusahaan: r.kontraktor.namaPerusahaan,
+    kodeVendor: r.kontraktor.kodeVendor,
+    namaCabang: r.cabang.namaCabang,
+    namaDivisi: r.divisi.namaDivisi,
+    statusKeaktifan: r.statusKeaktifan,
+    unparkedAt: r.unparkedAt!.toISOString(),
+    unparkedOleh: r.unparkedBy ? (userMap.get(r.unparkedBy)?.fullName ?? "Pengguna dihapus") : "-",
+    unparkReason: r.unparkReason,
+  }));
+}
+
+export async function getNamaCabang(cabangIds: string[]) {
+  const rows = await prisma.cabang.findMany({
+    where: { id: { in: cabangIds } },
+    select: { namaCabang: true },
+    orderBy: { namaCabang: "asc" },
+  });
+  return rows.map((r) => r.namaCabang);
+}
+
 export interface UnparkParams {
   relasiId: string;
   userId: string;
