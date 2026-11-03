@@ -23,6 +23,9 @@ node_modules
 .agents/
 skills-lock.json
 
+# uploaded files (lampiran banding, local storage)
+/storage
+
 # misc
 .DS_Store
 *.pem
