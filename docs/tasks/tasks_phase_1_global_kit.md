@@ -131,6 +131,14 @@ Fase 1 berfokus pada penyediaan fondasi bersama (*shared foundation*) bagi selur
   - **Path**: [`src/components/global/index.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/components/global/index.ts)
   - **Spesifikasi**: Barrel export seluruh komponen global agar dapat diimpor bersih melalui `@/components/global`.
 
+- [x] **1.12 Shell Tata Letak Halaman Global: Collapsible Sidebar & Header (`AppLayoutShell.tsx`, `AppSidebar.tsx`, `AppHeader.tsx`)**
+  - **Path**: [`src/components/global/AppLayoutShell.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/components/global/AppLayoutShell.tsx), [`src/components/global/AppSidebar.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/components/global/AppSidebar.tsx), [`src/components/global/AppHeader.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/components/global/AppHeader.tsx)
+  - **Spesifikasi**:
+    - Navigasi sidebar dinamis per wewenang peran (BC, BM, S&B, Regional, Kontraktor, Admin).
+    - Status collapse/expand (260px expanded, 72px icon-only collapsed) dengan persistensi preferensi lokal.
+    - Top Header dengan breadcrumbs, indikator cabang/wilayah, profil pengguna, dan konfirmasi logout SweetAlert2.
+    - Sesuai standar 100% solid surface, batas tegas 2px, dan aksen pita ganda merah-kuning khas Alfamart.
+
 ---
 
 ## Checkpoint

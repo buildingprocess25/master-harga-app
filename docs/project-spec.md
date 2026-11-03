@@ -138,6 +138,9 @@ erDiagram
    - Kontraktor yang menolak 2x berturut-turut otomatis dinonaktifkan sementara di cabang terkait (`statusKeaktifan = NONAKTIF_SEMENTARA`).
    - Mediasi diselesaikan di luar sistem (offline). Pada sistem, antarmuka menyediakan daftar rekanan *parked* dengan aksi tunggal tombol **"Aktifkan Kembali" (*Unpark*)** oleh role yang berwenang.
 
+### 4.3 Diagram Alur Bisnis & Alur Aplikasi Terperinci
+> 📖 *Dokumentasi lengkap diagram alur bisnis swimlane lintas-peran, Finite State Machine (FSM) status tiket, user journey navigasi layar, dan sequence diagram interaksi data dapat diakses pada:* [`flow-bisnis-dan-aplikasi.md`](./flow-bisnis-dan-aplikasi.md).
+
 ---
 
 ## Bagian 5: Matriks Akses Peran (RBAC Matrix)
