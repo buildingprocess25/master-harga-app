@@ -15,97 +15,129 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { SurveyTokoItem, LampiranSurveiItem } from "@/types";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
 
 export interface RincianSurvei3TokoCardProps {
-  surveiList: SurveyTokoItem[];
+  surveiList?: any[];
+  surveyToko?: any[];
   className?: string;
   readonly?: boolean;
+  mode?: "edit" | "readonly";
+  hideHeader?: boolean;
+  satuan?: string;
+  materialCode?: string;
+  materialName?: string;
   onEditStore?: (noToko: number) => void;
+  onChangeToko?: (index: number, updated: any) => void;
 }
 
 export function RincianSurvei3TokoCard({
-  surveiList = [],
+  surveiList,
+  surveyToko,
   className = "",
   readonly = true,
+  mode = "readonly",
+  hideHeader = false,
+  satuan = "m2",
+  materialName,
   onEditStore,
 }: RincianSurvei3TokoCardProps) {
-  // Modal State untuk Penampil Lampiran (File Viewer Modal)
   const [activeLampiranModal, setActiveLampiranModal] = useState<{
     tokoNama: string;
-    lampiranList: LampiranSurveiItem[];
+    lampiranList: any[];
   } | null>(null);
 
+  // Normalize inputs: either surveyToko or surveiList
+  const rawList = surveyToko || surveiList || [];
+
   // Pastikan selalu ada representasi 3 slot toko
-  const stores = [1, 2, 3].map((num) => {
-    const existing = surveiList.find((s) => s.noToko === num);
-    return (
-      existing || {
-        id: `empty-${num}`,
-        noToko: num,
-        namaToko: `Toko Survei ${num}`,
-        tanggalSurvei: "",
-        harga: 0,
-        lampiranList: [],
-      }
-    );
+  const stores = [1, 2, 3].map((num, idx) => {
+    const raw = rawList[idx] || rawList.find((s: any) => s.noToko === num);
+    const harga = Number(raw?.hargaSatuan ?? raw?.harga) || 0;
+    const namaToko = raw?.namaToko || `Toko Survei ${num}`;
+    const alamat = raw?.alamatToko || raw?.alamat || "";
+    const tanggalSurvei = raw?.tanggalSurvei || "";
+    const buktiUrl = raw?.buktiSurveiUrl || raw?.url;
+    const lampiranList =
+      raw?.lampiranList ||
+      (buktiUrl
+        ? [
+            {
+              id: `l-${num}`,
+              tipe: "NOTA_PEMBELIAN",
+              namaFile: `Bukti_Survei_Toko_${num}.jpg`,
+              url: buktiUrl,
+            },
+          ]
+        : []);
+
+    return {
+      noToko: num,
+      namaToko,
+      alamat,
+      tanggalSurvei,
+      harga,
+      catatan: raw?.catatan || "",
+      lampiranList,
+    };
   });
 
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden",
+        "bg-white rounded-xl border-2 border-slate-300 shadow-2xs overflow-hidden",
         className
       )}
     >
       {/* Header Card */}
-      <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Store className="w-4 h-4 text-[#005BAC]" />
-          <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">
-            Hasil Survei 3 Toko Pasar Lokal
-          </h3>
+      {!hideHeader && (
+        <div className="bg-slate-50 border-b-2 border-slate-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Store className="w-4 h-4 text-[#005BAC]" />
+            <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+              Hasil Survei 3 Toko Pasar Lokal {materialName ? `• ${materialName}` : ""}
+            </h3>
+          </div>
+          <span className="text-xs text-slate-500 font-medium">
+            Wajib 3 toko valid berjarak radius wajar
+          </span>
         </div>
-        <span className="text-xs text-slate-500">
-          Wajib 3 toko valid berjarak radius wajar
-        </span>
-      </div>
+      )}
 
       {/* Grid 3 Toko */}
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {stores.map((store) => {
-          const isFilled = store.harga > 0 && !!store.tanggalSurvei;
+          const isFilled = store.harga > 0;
           const lampiranCount = store.lampiranList?.length || 0;
 
           return (
             <div
               key={store.noToko}
               className={cn(
-                "rounded-md border p-3 flex flex-col justify-between transition-all",
+                "rounded-xl border-2 p-3.5 flex flex-col justify-between transition-all bg-white",
                 isFilled
-                  ? "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"
-                  : "bg-slate-50 border-dashed border-slate-300"
+                  ? "border-slate-300 shadow-2xs"
+                  : "border-dashed border-slate-300 bg-slate-50"
               )}
             >
               <div>
                 {/* Header Toko */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-[#005BAC] text-white flex items-center justify-center text-[10px]">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200 mb-2.5">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-700 text-white flex items-center justify-center text-[10px] font-bold">
                       {store.noToko}
                     </span>
-                    {store.namaToko}
+                    <span className="truncate max-w-[130px]">{store.namaToko}</span>
                   </span>
 
                   {isFilled ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#008A00] bg-emerald-50 px-1.5 py-0.5 rounded">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Terverifikasi
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                      Valid
                     </span>
                   ) : (
-                    <span className="text-[11px] font-medium text-slate-400">
-                      Belum Survei
+                    <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">
+                      Kosong
                     </span>
                   )}
                 </div>
@@ -114,27 +146,29 @@ export function RincianSurvei3TokoCard({
                 {isFilled ? (
                   <div className="space-y-1.5 text-xs text-slate-600">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Harga Survei:</span>
+                      <span className="text-slate-500 font-medium">Harga Survei:</span>
                       <span className="font-bold text-slate-900 font-mono text-sm tabular-nums">
-                        {formatRupiah(store.harga)}
+                        {formatRupiah(store.harga)} / {satuan}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> Tanggal:
-                      </span>
-                      <span className="font-medium text-slate-700">
-                        {formatTanggal(store.tanggalSurvei)}
-                      </span>
-                    </div>
+                    {store.tanggalSurvei && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> Tanggal:
+                        </span>
+                        <span className="font-semibold text-slate-700">
+                          {formatTanggal(store.tanggalSurvei)}
+                        </span>
+                      </div>
+                    )}
 
                     {store.alamat && (
-                      <div className="flex items-start justify-between text-[11px] pt-1 border-t border-slate-50">
+                      <div className="flex items-start justify-between text-[11px] pt-1 border-t border-slate-100">
                         <span className="text-slate-400 flex items-center gap-1 shrink-0">
                           <MapPin className="w-3 h-3" /> Lokasi:
                         </span>
-                        <span className="text-slate-700 text-right truncate max-w-[150px]">
+                        <span className="text-slate-700 text-right truncate max-w-[150px] font-medium">
                           {store.alamat}
                         </span>
                       </div>
@@ -147,13 +181,13 @@ export function RincianSurvei3TokoCard({
                     )}
                   </div>
                 ) : (
-                  <div className="py-4 text-center text-xs text-slate-400">
-                    Slot survei toko {store.noToko} masih kosong.
+                  <div className="py-4 text-center text-xs text-slate-400 font-medium">
+                    Slot survei toko {store.noToko} belum terisi.
                   </div>
                 )}
               </div>
 
-              {/* Action Buttons di Bawah Kartu */}
+              {/* Action Buttons */}
               <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                 {isFilled && lampiranCount > 0 ? (
                   <button
@@ -164,10 +198,10 @@ export function RincianSurvei3TokoCard({
                         lampiranList: store.lampiranList,
                       })
                     }
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#005BAC] hover:text-blue-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
                   >
                     <Paperclip className="w-3 h-3" />
-                    <span>Lihat {lampiranCount} Bukti Nota & Foto</span>
+                    <span>Lihat {lampiranCount} Bukti Nota</span>
                   </button>
                 ) : (
                   <span className="text-[11px] text-slate-400 italic">
@@ -179,7 +213,7 @@ export function RincianSurvei3TokoCard({
                   <button
                     type="button"
                     onClick={() => onEditStore(store.noToko)}
-                    className="text-[11px] font-bold text-[#005BAC] hover:underline"
+                    className="text-[11px] font-bold text-blue-700 hover:underline cursor-pointer"
                   >
                     {isFilled ? "Edit" : "+ Isi Survei"}
                   </button>
@@ -192,9 +226,9 @@ export function RincianSurvei3TokoCard({
 
       {/* Modal File Viewer Lampiran */}
       {activeLampiranModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-none flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full border-2 border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-bold text-slate-900">
                   Bukti Survei: {activeLampiranModal.tokoNama}
@@ -206,9 +240,9 @@ export function RincianSurvei3TokoCard({
               <button
                 type="button"
                 onClick={() => setActiveLampiranModal(null)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-md"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -218,13 +252,13 @@ export function RincianSurvei3TokoCard({
                   Tidak ada berkas bukti yang dilampirkan.
                 </p>
               ) : (
-                activeLampiranModal.lampiranList.map((lampiran) => (
+                activeLampiranModal.lampiranList.map((lampiran: any) => (
                   <div
                     key={lampiran.id}
-                    className="flex items-center justify-between p-2.5 rounded border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded bg-blue-100 text-[#005BAC] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
                         {lampiran.tipe === "FOTO_TOKO" ||
                         lampiran.tipe === "FOTO_MATERIAL" ? (
                           <ImageIcon className="w-4 h-4" />
@@ -236,8 +270,8 @@ export function RincianSurvei3TokoCard({
                         <span className="text-xs font-bold text-slate-800 block truncate max-w-[240px]">
                           {lampiran.namaFile}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {lampiran.tipe.replace("_", " ")}
+                        <span className="text-[10px] text-slate-500 font-semibold">
+                          {lampiran.tipe ? lampiran.tipe.replace("_", " ") : "Dokumen"}
                         </span>
                       </div>
                     </div>
@@ -246,21 +280,21 @@ export function RincianSurvei3TokoCard({
                       href={lampiran.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#005BAC] bg-white border border-slate-200 rounded hover:bg-blue-50 transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-blue-700 bg-white border-2 border-slate-200 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
                     >
-                      <Eye className="w-3 h-3" />
-                      Buka
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Buka</span>
                     </a>
                   </div>
                 ))
               )}
             </div>
 
-            <div className="bg-slate-50 px-4 py-2.5 border-t border-slate-200 flex justify-end">
+            <div className="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end">
               <button
                 type="button"
                 onClick={() => setActiveLampiranModal(null)}
-                className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Tutup
               </button>

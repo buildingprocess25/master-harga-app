@@ -15,3 +15,4 @@ export * from "./PengajuanDetailLayout";
 export * from "./AppHeader";
 export * from "./AppSidebar";
 export * from "./AppLayoutShell";
+export * from "./table";

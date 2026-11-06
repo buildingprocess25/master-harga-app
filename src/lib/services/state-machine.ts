@@ -64,9 +64,11 @@ export async function advanceTicketStatus({
   catatan,
 }: AdvanceStatusParams) {
   return prisma.$transaction(async (tx) => {
-    // 1. Ambil tiket aktif
-    const tiket = await tx.pengajuanHarga.findUnique({
-      where: { id: tiketId },
+    // 1. Ambil tiket aktif (dukung pencarian by id maupun nomorTiket)
+    const tiket = await tx.pengajuanHarga.findFirst({
+      where: {
+        OR: [{ id: tiketId }, { nomorTiket: tiketId }],
+      },
       select: { id: true, status: true, nomorTiket: true },
     });
 
@@ -85,7 +87,7 @@ export async function advanceTicketStatus({
 
     // 3. Update Status Tiket
     const updated = await tx.pengajuanHarga.update({
-      where: { id: tiketId },
+      where: { id: tiket.id },
       data: {
         status: targetStatus,
         catatanReview: catatan || null,
@@ -95,7 +97,7 @@ export async function advanceTicketStatus({
     // 4. Catat Audit Log
     await tx.approvalAuditLog.create({
       data: {
-        pengajuanHargaId: tiketId,
+        pengajuanHargaId: tiket.id,
         userId,
         roleActor,
         action: aksi,
