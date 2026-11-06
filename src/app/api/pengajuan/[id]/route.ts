@@ -20,17 +20,23 @@ export async function GET(
     let user = await getSessionUser();
     // Fallback user di dev/preview
     if (!user) {
-      const defaultBm = await prisma.user.findFirst({
-        where: { role: "BM_MANAGER" },
+      const referer = request.headers.get("referer") || "";
+      const isBuildingCoord = referer.includes("building-coordinator");
+      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+
+      const defaultUser = await prisma.user.findFirst({
+        where: { role: targetRole },
+        include: { cabang: true },
       });
-      if (defaultBm) {
+      if (defaultUser) {
         user = {
-          id: defaultBm.id,
-          email: defaultBm.email,
-          fullName: defaultBm.fullName,
-          role: defaultBm.role,
-          cabangId: defaultBm.cabangId,
-          divisiId: defaultBm.divisiId,
+          id: defaultUser.id,
+          email: defaultUser.email,
+          fullName: defaultUser.fullName,
+          role: defaultUser.role,
+          cabangId: defaultUser.cabangId,
+          namaCabang: defaultUser.cabang?.namaCabang || "Cikokol",
+          divisiId: defaultUser.divisiId,
         };
       }
     }
@@ -258,17 +264,23 @@ export async function PATCH(
     let user = await getSessionUser();
     // Fallback user di dev/preview
     if (!user) {
-      const defaultBm = await prisma.user.findFirst({
-        where: { role: "BM_MANAGER" },
+      const referer = request.headers.get("referer") || "";
+      const isBuildingCoord = referer.includes("building-coordinator");
+      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+
+      const defaultUser = await prisma.user.findFirst({
+        where: { role: targetRole },
+        include: { cabang: true },
       });
-      if (defaultBm) {
+      if (defaultUser) {
         user = {
-          id: defaultBm.id,
-          email: defaultBm.email,
-          fullName: defaultBm.fullName,
-          role: defaultBm.role,
-          cabangId: defaultBm.cabangId,
-          divisiId: defaultBm.divisiId,
+          id: defaultUser.id,
+          email: defaultUser.email,
+          fullName: defaultUser.fullName,
+          role: defaultUser.role,
+          cabangId: defaultUser.cabangId,
+          namaCabang: defaultUser.cabang?.namaCabang || "Cikokol",
+          divisiId: defaultUser.divisiId,
         };
       }
     }

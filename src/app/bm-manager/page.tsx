@@ -58,7 +58,7 @@ export default function BMManagerPage() {
     if (!val) return "";
     return val
       .toLowerCase()
-      .replace(/^cabang\s+/i, "")
+      .replace(/^(cabang\s*)+/i, "")
       .replace(/\s+/g, " ")
       .trim();
   };
@@ -86,7 +86,7 @@ export default function BMManagerPage() {
         const res = await fetch("/api/auth/me");
         const json = await res.json();
         if (json.success && json.user?.namaCabang) {
-          const cleanName = json.user.namaCabang.replace(/^cabang\s+/i, "").trim();
+          const cleanName = json.user.namaCabang.replace(/^(cabang\s*)+/i, "").trim();
           setUserCabang(cleanName || json.user.namaCabang);
         }
       } catch (err) {

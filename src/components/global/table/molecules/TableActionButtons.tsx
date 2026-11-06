@@ -27,7 +27,7 @@ export function TableActionButtons({
       ? detailHref(item)
       : detailHref || `${pathname}/${item.id}`;
 
-  const isPendingBm = item.status === "PENDING_BM_MGR";
+  const isPendingBm = item.status === "PENDING_BM_MGR" && pathname.startsWith("/bm-manager");
 
   return (
     <div

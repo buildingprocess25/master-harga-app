@@ -6,21 +6,29 @@ import { CakupanHarga, StatusPengajuanHarga, PengajuanHargaItem } from "@/types"
 export async function GET(request: NextRequest) {
   try {
     let user = await getSessionUser();
-    // Jika sesi belum ada di dev/preview, fallback ke user BM default agar antrean tetap tampil
+    // Jika sesi belum ada di dev/preview, fallback sesuai konteks halaman
     if (!user) {
-      const defaultBm = await prisma.user.findFirst({
-        where: { role: "BM_MANAGER" },
+      const referer = request.headers.get("referer") || "";
+      const requestedRole = request.nextUrl.searchParams.get("role");
+      const isBuildingCoord =
+        requestedRole === "BUILDING_COORDINATOR" ||
+        referer.includes("building-coordinator");
+
+      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+
+      const defaultUser = await prisma.user.findFirst({
+        where: { role: targetRole },
         include: { cabang: true },
       });
-      if (defaultBm) {
+      if (defaultUser) {
         user = {
-          id: defaultBm.id,
-          email: defaultBm.email,
-          fullName: defaultBm.fullName,
-          role: defaultBm.role,
-          cabangId: defaultBm.cabangId,
-          namaCabang: defaultBm.cabang?.namaCabang || "Cikokol",
-          divisiId: defaultBm.divisiId,
+          id: defaultUser.id,
+          email: defaultUser.email,
+          fullName: defaultUser.fullName,
+          role: defaultUser.role,
+          cabangId: defaultUser.cabangId,
+          namaCabang: defaultUser.cabang?.namaCabang || "Cikokol",
+          divisiId: defaultUser.divisiId,
         };
       }
     }

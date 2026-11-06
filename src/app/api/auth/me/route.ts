@@ -2,25 +2,36 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     let user = await getSessionUser();
     // Fallback user di dev/preview
     if (!user) {
-      const defaultBm = await prisma.user.findFirst({
-        where: { role: "BM_MANAGER" },
+      const url = new URL(request.url);
+      const referer = request.headers.get("referer") || "";
+      const requestedRole = url.searchParams.get("role");
+
+      const isBuildingCoord =
+        requestedRole === "BUILDING_COORDINATOR" ||
+        referer.includes("building-coordinator");
+
+      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+
+      const defaultUser = await prisma.user.findFirst({
+        where: { role: targetRole },
         include: { cabang: true, divisi: true },
       });
-      if (defaultBm) {
+
+      if (defaultUser) {
         user = {
-          id: defaultBm.id,
-          email: defaultBm.email,
-          fullName: defaultBm.fullName,
-          role: defaultBm.role,
-          cabangId: defaultBm.cabangId,
-          namaCabang: defaultBm.cabang?.namaCabang || "Cikokol",
-          divisiId: defaultBm.divisiId,
-          namaDivisi: defaultBm.divisi?.namaDivisi || "Building & Maintenance",
+          id: defaultUser.id,
+          email: defaultUser.email,
+          fullName: defaultUser.fullName,
+          role: defaultUser.role,
+          cabangId: defaultUser.cabangId,
+          namaCabang: defaultUser.cabang?.namaCabang || "Cikokol",
+          divisiId: defaultUser.divisiId,
+          namaDivisi: defaultUser.divisi?.namaDivisi || "Building & Maintenance",
         };
       }
     }

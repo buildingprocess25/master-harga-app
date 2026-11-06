@@ -280,7 +280,21 @@ export function AppSidebar({
     }
   };
 
-  const navSections = getNavSections(user?.role);
+  const inferredRole: RoleUser | undefined =
+    user?.role ||
+    (pathname.startsWith("/building-coordinator")
+      ? "BUILDING_COORDINATOR"
+      : pathname.startsWith("/bm-manager")
+      ? "BM_MANAGER"
+      : pathname.startsWith("/sb-specialist")
+      ? "SB_SPECIALIST"
+      : pathname.startsWith("/regional-manager")
+      ? "REGIONAL_MANAGER"
+      : pathname.startsWith("/kontraktor")
+      ? "KONTRAKTOR"
+      : undefined);
+
+  const navSections = getNavSections(inferredRole);
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white text-slate-800 select-none">
