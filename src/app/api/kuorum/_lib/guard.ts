@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { verifyUserWhitelist } from "@/lib/services/whitelist-service";
-import { KuorumError } from "@/lib/services/kuorum-service";
+import { DomainError } from "@/lib/services/transisi-tiket";
 import { RoleUser, UserSessionProfile } from "@/types";
 
 type GuardResult =
@@ -50,7 +50,7 @@ export async function requireRole(allowed: RoleUser[]): Promise<GuardResult> {
 
 /** Ubah error service menjadi respon JSON yang konsisten. */
 export function errorResponse(error: unknown, konteks: string) {
-  if (error instanceof KuorumError) {
+  if (error instanceof DomainError) {
     return NextResponse.json(
       { success: false, message: error.message },
       { status: error.status }

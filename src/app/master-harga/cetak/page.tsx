@@ -5,7 +5,8 @@ import {
   BATAS_EKSPOR_KATALOG,
 } from "@/lib/services/master-harga-service";
 import { requireInternal } from "../_lib/require-internal";
-import { TabelKatalog } from "../_components/TabelKatalog";
+import { getCabangWewenang } from "@/lib/services/kuorum-service";
+import { TabelKatalog } from "@/components/katalog/TabelKatalog";
 import { TombolCetak } from "./TombolCetak";
 
 /**
@@ -18,11 +19,18 @@ export default async function CetakKatalogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireInternal();
-  const filter = parseFilterKatalog(await searchParams);
-  const [{ rows, terpotong }, deskripsi] = await Promise.all([
+  const sp = await searchParams;
+  const filter = parseFilterKatalog(sp);
+  // ?lingkup=wewenang: batasi ke cabang wewenang pengguna (Katalog Harga Regional).
+  if (sp.lingkup === "wewenang") {
+    const wewenang = await getCabangWewenang(user.id, user.role);
+    if (wewenang !== "SEMUA") filter.cabangIds = wewenang;
+  }
+  const [{ rows, terpotong }, deskripsiFilter] = await Promise.all([
     getKatalogUntukEkspor(filter),
     deskripsiFilterKatalog(filter),
   ]);
+  const deskripsi = filter.cabangIds ? `${deskripsiFilter} | Cabang wewenang regional` : deskripsiFilter;
   const totalOverride = rows.reduce((n, r) => n + r.wilayahList.length, 0);
   const dicetak = new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date());
 
