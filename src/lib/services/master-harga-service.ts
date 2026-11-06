@@ -11,6 +11,8 @@ export interface FilterKatalog {
   kategori?: string;
   /** true: hanya item yang memiliki harga khusus wilayah (override). */
   hanyaOverride?: boolean;
+  /** Batasi ke cabang tertentu (cakupan wewenang Regional Manager). */
+  cabangIds?: string[];
 }
 
 export const UKURAN_HALAMAN_KATALOG = 50;
@@ -49,7 +51,12 @@ function buatWhere(f: FilterKatalog): Prisma.MasterHargaCabangWhereInput {
 
   return {
     statusHarga: "AKTIF",
-    ...(f.cabangId ? { cabangId: f.cabangId } : {}),
+    // Filter cabang tunggal tetap dibatasi cakupan wewenang bila ada.
+    ...(f.cabangIds
+      ? { cabangId: f.cabangId && f.cabangIds.includes(f.cabangId) ? f.cabangId : { in: f.cabangIds } }
+      : f.cabangId
+        ? { cabangId: f.cabangId }
+        : {}),
     masterItem: itemWhere,
     ...(f.hanyaOverride ? { masterHargaWilayah: { some: { statusHarga: "AKTIF" } } } : {}),
   };
@@ -158,10 +165,10 @@ export async function getKatalogUntukEkspor(filter: FilterKatalog) {
 }
 
 /** Opsi dropdown filter: hanya nilai yang benar-benar memiliki harga resmi aktif. */
-export async function getOpsiFilterKatalog() {
+export async function getOpsiFilterKatalog(cabangIds?: string[]) {
   const [cabangList, divisiList, kategoriRows] = await Promise.all([
     prisma.cabang.findMany({
-      where: { masterHargaList: { some: { statusHarga: "AKTIF" } } },
+      where: { masterHargaList: { some: { statusHarga: "AKTIF" } }, ...(cabangIds ? { id: { in: cabangIds } } : {}) },
       select: { id: true, namaCabang: true, regional: true },
       orderBy: { namaCabang: "asc" },
     }),
