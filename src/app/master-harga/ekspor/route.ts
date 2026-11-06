@@ -7,6 +7,7 @@ import {
   parseFilterKatalog,
 } from "@/lib/services/master-harga-service";
 import { ROLE_KATALOG } from "../_lib/require-internal";
+import { getCabangWewenang } from "@/lib/services/kuorum-service";
 
 /**
  * GET /master-harga/ekspor?q=&cabang=&divisi=&kategori=&override=1
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest) {
   }
 
   const filter = parseFilterKatalog(Object.fromEntries(request.nextUrl.searchParams));
+  // ?lingkup=wewenang: batasi ke cabang wewenang pengguna (Katalog Harga Regional).
+  if (request.nextUrl.searchParams.get("lingkup") === "wewenang") {
+    const wewenang = await getCabangWewenang(check.profile.id, check.profile.role);
+    if (wewenang !== "SEMUA") filter.cabangIds = wewenang;
+  }
   const { rows, terpotong } = await getKatalogUntukEkspor(filter);
 
   const header = [

@@ -7,7 +7,7 @@ import {
 } from "@/lib/services/kuorum-service";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
 import { requireKontraktor } from "./_lib/require-kontraktor";
-import { SlaCountdown } from "./_components/SlaCountdown";
+import { SlaCountdown } from "@/components/kuorum/SlaCountdown";
 import { StatusVoteBadge, labelStatusTiket } from "./_components/StatusBadge";
 
 type Tab = "perlu-respon" | "riwayat";

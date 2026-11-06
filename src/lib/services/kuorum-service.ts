@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { canTransitionStatus } from "@/lib/services/state-machine";
+import { DomainError, kunciTiket, Tx, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import {
   RoleUser,
   StatusPengajuanHarga,
@@ -8,21 +8,13 @@ import {
   VotingKontraktorItem,
 } from "@/types";
 
-type Tx = Prisma.TransactionClient;
-
 /** SLA respon voting rekanan: 3 x 24 jam sejak putaran dibuka. */
 export const SLA_VOTING_JAM = 72;
 
-/**
- * Error domain kuorum dengan HTTP status, agar route handler dapat
- * meneruskan pesan yang jelas ke pengguna tanpa membocorkan error internal.
- */
-export class KuorumError extends Error {
-  constructor(
-    message: string,
-    public status: number = 400
-  ) {
-    super(message);
+/** Error domain kuorum (turunan DomainError) dengan HTTP status. */
+export class KuorumError extends DomainError {
+  constructor(message: string, status: number = 400) {
+    super(message, status);
     this.name = "KuorumError";
   }
 }
@@ -36,63 +28,12 @@ export function hitungTargetKuorum(totalDiundang: number): number {
 // HELPER INTERNAL (BERJALAN DI DALAM TRANSAKSI)
 // ============================================================================
 
-/**
- * Mengunci baris tiket (SELECT ... FOR UPDATE) agar vote dan evaluasi kuorum
- * pada tiket yang sama diproses berurutan, sehingga hitungan tidak balapan.
- */
-async function kunciTiket(tx: Tx, tiketId: string) {
-  await tx.$queryRaw`SELECT id FROM pengajuan_harga WHERE id = ${tiketId} FOR UPDATE`;
-}
-
 async function getPutaranTerakhir(tx: Tx, tiketId: string): Promise<number | null> {
   const agg = await tx.votingKontraktor.aggregate({
     where: { pengajuanHargaId: tiketId },
     _max: { putaranVote: true },
   });
   return agg._max.putaranVote;
-}
-
-interface UbahStatusParams {
-  tiketId: string;
-  dariStatus: StatusPengajuanHarga;
-  keStatus: StatusPengajuanHarga;
-  userId: string | null;
-  roleActor: string;
-  aksi: string;
-  catatan?: string;
-}
-
-/**
- * Versi transaksional dari advanceTicketStatus (state-machine.ts) agar
- * perubahan status, rilis harga, dan audit log tercatat dalam satu transaksi.
- */
-async function ubahStatusTiket(tx: Tx, params: UbahStatusParams) {
-  const { tiketId, dariStatus, keStatus, userId, roleActor, aksi, catatan } = params;
-
-  if (!canTransitionStatus(dariStatus, keStatus)) {
-    throw new KuorumError(
-      `Transisi status tidak sah dari ${dariStatus} ke ${keStatus}.`,
-      409
-    );
-  }
-
-  const updated = await tx.pengajuanHarga.updateMany({
-    where: { id: tiketId, status: dariStatus },
-    data: { status: keStatus, catatanReview: catatan || null },
-  });
-  if (updated.count === 0) {
-    throw new KuorumError("Status tiket telah berubah. Muat ulang halaman.", 409);
-  }
-
-  await tx.approvalAuditLog.create({
-    data: {
-      pengajuanHargaId: tiketId,
-      userId,
-      roleActor,
-      action: aksi,
-      catatan: catatan || null,
-    },
-  });
 }
 
 /**
