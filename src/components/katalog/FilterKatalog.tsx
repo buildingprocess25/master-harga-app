@@ -11,7 +11,7 @@ export interface OpsiFilter {
 }
 
 const SELECT =
-  "px-2 py-1.5 rounded-md border border-slate-300 text-xs bg-white focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC] min-w-0";
+  "h-9 px-2 rounded-lg border-2 border-slate-300 text-xs bg-white focus:outline-hidden focus:border-[#005BAC] min-w-0";
 
 /** Filter katalog berbasis URL agar hasil filter bisa dibagikan dan dipakai untuk ekspor. */
 export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
@@ -48,9 +48,9 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari nama item, kode master, merk"
+          placeholder="Cari kode master, nama material, merk..."
           aria-label="Cari item"
-          className="w-full pl-8 pr-3 py-1.5 rounded-md border border-slate-300 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC]"
+          className="w-full h-9 pl-8 pr-3 rounded-lg border-2 border-slate-300 text-xs focus:outline-hidden focus:border-[#005BAC]"
         />
       </div>
       <select

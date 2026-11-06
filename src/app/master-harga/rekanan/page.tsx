@@ -1,7 +1,11 @@
+import { redirect } from "next/navigation";
 import { ROLE_UNPARK, requireInternal } from "../_lib/require-internal";
-import { KontenRekananParked } from "@/components/kuorum/KontenRekananParked";
 
-export default async function RekananParkedPage() {
+/**
+ * Rute lama Rekanan Parked. Daftar parked kini ada di workspace masing-masing role
+ * (menu sidebar), jadi rute ini hanya mengalihkan.
+ */
+export default async function RekananParkedLamaPage() {
   const user = await requireInternal(ROLE_UNPARK);
-  return <KontenRekananParked user={user} />;
+  redirect(user.role === "SB_SPECIALIST" ? "/sb-specialist/rekanan-parked" : "/regional-manager/rekanan-parked");
 }

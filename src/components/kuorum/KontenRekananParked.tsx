@@ -11,7 +11,7 @@ import { TabelRekananParked } from "./TabelRekananParked";
 
 /**
  * Isi halaman Rekanan Parked (daftar + aksi Unpark + riwayat aktivasi) sesuai cakupan
- * wewenang pengguna. Dipakai di /master-harga/rekanan, /sb-specialist/rekanan-parked,
+ * wewenang pengguna. Dipakai di /sb-specialist/rekanan-parked,
  * dan /regional-manager/rekanan-parked.
  */
 export async function KontenRekananParked({

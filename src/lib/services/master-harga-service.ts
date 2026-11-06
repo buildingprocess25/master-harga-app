@@ -79,6 +79,8 @@ const INCLUDE_KATALOG = {
 const ORDER_KATALOG: Prisma.MasterHargaCabangOrderByWithRelationInput[] = [
   { masterItem: { kategori: "asc" } },
   { masterItem: { namaItem: "asc" } },
+  // Baris satu varian item berurutan agar bisa dikelompokkan (tabel hierarki katalog).
+  { masterItem: { kodeMaster: "asc" } },
   { cabang: { namaCabang: "asc" } },
 ];
 
@@ -92,6 +94,8 @@ function petakanBaris(r: BarisDb) {
     kodeMaster: m.kodeMaster,
     namaItem: m.namaItem,
     spesifikasi,
+    deskripsi: m.deskripsiOtomatis,
+    lokasi: m.lokasi,
     kategori: m.kategori,
     namaDivisi: m.divisi.namaDivisi,
     satuan: m.satuan,

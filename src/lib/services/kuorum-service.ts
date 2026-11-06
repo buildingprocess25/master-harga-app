@@ -734,6 +734,12 @@ export async function getPenawaranKontraktor(kontraktorId: string) {
       namaItem: p.masterItem?.namaItem ?? "-",
       kodeMaster: p.masterItem?.kodeMaster ?? null,
       satuan: p.masterItem?.satuan ?? null,
+      kategori: p.masterItem?.kategori ?? null,
+      merk: p.masterItem?.merk ?? null,
+      ukuran: p.masterItem?.ukuran ?? null,
+      lokasi: p.masterItem?.lokasi ?? null,
+      deskripsi: p.masterItem?.deskripsiOtomatis ?? null,
+      tanggalPengajuan: p.tanggalPengajuan.toISOString(),
       namaDivisi: p.divisi.namaDivisi,
       namaCabang: r.kontraktorCabang.cabang.namaCabang,
       cakupanHarga: p.cakupanHarga,
@@ -780,8 +786,25 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
 
   const tiket = await prisma.pengajuanHarga.findUniqueOrThrow({
     where: { id: tiketId },
-    include: { masterItem: true, divisi: true, cabang: true, wilayahCabang: true },
+    include: {
+      masterItem: true,
+      divisi: true,
+      cabang: true,
+      wilayahCabang: true,
+      rincianAHSP: { select: { subtotal: true, kategoriKomponen: true } },
+    },
   });
+
+  // Ringkasan harga per kelompok komponen (subtotal sudah termasuk margin), tanpa rincian
+  // koefisien maupun harga acuan agar struktur biaya internal tidak terbuka ke rekanan.
+  const ringkasanKomponen = { upah: 0, materialAlat: 0, bongkaran: 0 };
+  for (const r of tiket.rincianAHSP) {
+    const nilai = r.subtotal.toNumber();
+    const k = r.kategoriKomponen;
+    if (k === "UPAH") ringkasanKomponen.upah += nilai;
+    else if (k === "BONGKARAN") ringkasanKomponen.bongkaran += nilai;
+    else ringkasanKomponen.materialAlat += nilai;
+  }
 
   const toVote = (v: (typeof voteList)[number]) => ({
     id: v.id,
@@ -811,8 +834,11 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
     namaWilayah: tiket.wilayahCabang?.namaWilayah ?? null,
     hargaDitawarkan: tiket.hargaDitetapkanSNB?.toNumber() ?? null,
     deadlineVoting: tiket.deadlineVoting?.toISOString() ?? null,
+    tanggalPengajuan: tiket.tanggalPengajuan.toISOString(),
+    ringkasanKomponen: tiket.rincianAHSP.length > 0 ? ringkasanKomponen : null,
     item: m
       ? {
+          kodeItem: m.kodeItem,
           kodeMaster: m.kodeMaster,
           namaItem: m.namaItem,
           kategori: m.kategori,
@@ -820,6 +846,9 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
           ukuran: m.ukuran,
           tipe: m.tipe,
           warna: m.warna,
+          permukaan: m.permukaan,
+          tebal: m.tebal,
+          toleransi: m.toleransi,
           lokasi: m.lokasi,
           satuan: m.satuan,
           deskripsi: m.deskripsiOtomatis,

@@ -35,7 +35,7 @@ export default async function CetakKatalogPage({
   const dicetak = new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date());
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 print:border-0 print:p-0 print:rounded-none">
+    <div className="max-w-6xl mx-auto my-6 bg-white rounded-xl border-2 border-slate-200 p-6 print:my-0 print:max-w-none print:border-0 print:p-0 print:rounded-none">
       <style>{`@page { size: A4 landscape; margin: 12mm; }
         @media print {
           body { background: #fff !important; }
