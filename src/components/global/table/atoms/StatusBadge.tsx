@@ -123,14 +123,14 @@ export function StatusBadge({ status, isTrial = false, className = "" }: StatusB
     case "PENDING_KONTRAKTOR":
       return (
         <span className={cn(baseClasses, "bg-[#334155] border border-slate-900", className)}>
-          Kuorum Rekanan
+          Review Kontraktor
         </span>
       );
 
     case "USULAN_KONTRAKTOR":
       return (
         <span className={cn(baseClasses, "bg-[#EA580C] border border-orange-900", className)}>
-          Usulan Banding
+          Tolak Kontraktor
         </span>
       );
 

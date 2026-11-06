@@ -6,11 +6,9 @@ import {
   ShieldCheck,
   Search,
   RotateCcw,
-  Download,
   Plus,
   ChevronDown,
-  FileText,
-  FileSpreadsheet,
+  Building2,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
@@ -22,13 +20,11 @@ import {
   PengajuanHargaItem,
   PengajuanHargaFilterState,
   getKodeData,
-  DAFTAR_CABANG_ALFAMART,
 } from "@/types/pengajuan";
 import {
   getStoredPengajuan,
   saveStoredPengajuan,
 } from "@/lib/pengajuanStorage";
-import { exportToCSV, exportToExcel } from "@/lib/export-utils";
 
 export default function BMManagerPage() {
   // Tab State: 'materials' (Pengajuan Spesifikasi) vs 'approvals' (Persetujuan Harga Layer 1)
@@ -42,10 +38,11 @@ export default function BMManagerPage() {
   const [viewingCatatanItem, setViewingCatatanItem] = useState<PengajuanHargaItem | null>(null);
   const [isCatatanModalOpen, setIsCatatanModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
-  // Filter & Search State
-  const [selectedCabang, setSelectedCabang] = useState<string>("all");
+  // Cabang Operasional Terkunci Sesuai Akun B&M Manager
+  const [userCabang, setUserCabang] = useState<string>("Cikokol");
+
+  // Filter & Search State (Tanpa Filter Cabang)
   const [filters, setFilters] = useState<PengajuanHargaFilterState>({
     search: "",
     kategori: "all",
@@ -56,17 +53,56 @@ export default function BMManagerPage() {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper normalisasi nama cabang agar "Cabang Cikokol" dan "Cikokol" selalu saling cocok
+  const normalizeCabang = (val?: string | null) => {
+    if (!val) return "";
+    return val
+      .toLowerCase()
+      .replace(/^cabang\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const isBranchMatch = (item: PengajuanHargaItem, userBranch: string) => {
+    const cleanUser = normalizeCabang(userBranch);
+    if (!cleanUser) return true;
+
+    const cleanItemCabang = normalizeCabang(item.cabang);
+    const cleanItemNamaCabang = normalizeCabang(item.namaCabang);
+
+    if (cleanItemCabang && cleanItemCabang === cleanUser) return true;
+    if (cleanItemNamaCabang && cleanItemNamaCabang === cleanUser) return true;
+
+    // Jika item tidak mencantumkan nama cabang sama sekali, tetap izinkan tampil
+    if (!cleanItemCabang && !cleanItemNamaCabang) return true;
+
+    return false;
+  };
+
+  // Ambil profil sesi untuk mengetahui cabang operasional B&M Manager
+  useEffect(() => {
+    async function fetchUserSession() {
+      try {
+        const res = await fetch("/api/auth/me");
+        const json = await res.json();
+        if (json.success && json.user?.namaCabang) {
+          const cleanName = json.user.namaCabang.replace(/^cabang\s+/i, "").trim();
+          setUserCabang(cleanName || json.user.namaCabang);
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil sesi user B&M Manager:", err);
+      }
+    }
+    fetchUserSession();
+  }, []);
+
   // Load Data dari Route Handler /api/pengajuan (dengan fallback localStorage)
-  const fetchItems = async (cabangTarget = selectedCabang) => {
+  const fetchItems = async () => {
     setIsLoading(true);
     try {
-      const url =
-        cabangTarget !== "all"
-          ? `/api/pengajuan?cabang=${encodeURIComponent(cabangTarget)}`
-          : `/api/pengajuan`;
-      const res = await fetch(url);
+      const res = await fetch("/api/pengajuan");
       const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      if (json.success && Array.isArray(json.data)) {
         setItems(json.data);
         saveStoredPengajuan(json.data);
         setIsLoading(false);
@@ -82,8 +118,8 @@ export default function BMManagerPage() {
   };
 
   useEffect(() => {
-    fetchItems(selectedCabang);
-  }, [selectedCabang]);
+    fetchItems();
+  }, []);
 
   // Dropdown Categories & Brands
   const categories = useMemo(() => {
@@ -94,12 +130,11 @@ export default function BMManagerPage() {
     return Array.from(new Set(items.map((i) => i.merk).filter(Boolean)));
   }, [items]);
 
-  // Filtered Items untuk Tab "Pengajuan Spesifikasi"
+  // Filtered Items untuk Tab "Pengajuan Spesifikasi" (Ketat hanya cabang B&M Manager)
   const filteredMaterials = useMemo(() => {
     return items.filter((item) => {
-      // Filter Cabang Pengaju: B&M Manager beroperasi per cabang
-      const itemCabang = item.cabang || item.namaCabang;
-      if (selectedCabang !== "all" && itemCabang && itemCabang !== selectedCabang) {
+      // Pembatasan cabang: Hanya cabang operasional B&M Manager
+      if (!isBranchMatch(item, userCabang)) {
         return false;
       }
 
@@ -113,7 +148,7 @@ export default function BMManagerPage() {
         const warna = (item.warna || "").toLowerCase();
         const lokasi = (item.lokasi || "").toLowerCase();
         const kat = (item.kategori || "").toLowerCase();
-        const cab = (itemCabang || "").toLowerCase();
+        const cab = (item.cabang || item.namaCabang || "").toLowerCase();
         const desc = (item.deskripsiOtomatis || "").toLowerCase();
 
         const match =
@@ -139,19 +174,15 @@ export default function BMManagerPage() {
 
       return true;
     });
-  }, [items, filters, selectedCabang]);
+  }, [items, filters, userCabang]);
 
   // Items Pending Approval Layer 1 (Survei Harga dari Building Coordinator)
   const pendingApprovals = useMemo(() => {
     return items.filter((i) => {
       if (i.status !== "PENDING_BM_MGR") return false;
-      const itemCabang = i.cabang || i.namaCabang;
-      if (selectedCabang !== "all" && itemCabang && itemCabang !== selectedCabang) {
-        return false;
-      }
-      return true;
+      return isBranchMatch(i, userCabang);
     });
-  }, [items, selectedCabang]);
+  }, [items, userCabang]);
 
   const filteredPendingApprovals = useMemo(() => {
     if (!filters.search.trim()) return pendingApprovals;
@@ -209,10 +240,7 @@ export default function BMManagerPage() {
       return;
     }
 
-    const actualCabang =
-      newItem.cabang ||
-      newItem.namaCabang ||
-      (selectedCabang !== "all" ? selectedCabang : "Cikokol");
+    const actualCabang = userCabang || "Cikokol";
 
     if (editingItem || items.some((i) => i.id === newItem.id)) {
       // Mode Edit / Resubmit via PATCH Route Handler
@@ -239,7 +267,7 @@ export default function BMManagerPage() {
         });
         const patchJson = await patchRes.json();
         if (patchRes.ok && patchJson.success) {
-          await fetchItems(selectedCabang);
+          await fetchItems();
           setEditingItem(null);
           Swal.fire({
             icon: "success",
@@ -294,7 +322,7 @@ export default function BMManagerPage() {
 
       const postJson = await postRes.json();
       if (postRes.ok && postJson.success) {
-        await fetchItems(selectedCabang);
+        await fetchItems();
         Swal.fire({
           icon: "success",
           title: "Material Diajukan",
@@ -334,34 +362,12 @@ export default function BMManagerPage() {
   };
 
   const handleResetFilters = () => {
-    setSelectedCabang("all");
     setFilters({
       search: "",
       kategori: "all",
       merk: "all",
       implementasi: "all",
     });
-  };
-
-  // Export Handlers
-  const handleExportCSV = () => {
-    const targetData = activeTab === "materials" ? filteredMaterials : filteredPendingApprovals;
-    if (targetData.length === 0) {
-      Swal.fire({ icon: "warning", title: "Data Kosong", text: "Tidak ada data untuk diunduh.", confirmButtonColor: "#ED1C24" });
-      return;
-    }
-    exportToCSV(targetData);
-    setIsExportDropdownOpen(false);
-  };
-
-  const handleExportExcel = () => {
-    const targetData = activeTab === "materials" ? filteredMaterials : filteredPendingApprovals;
-    if (targetData.length === 0) {
-      Swal.fire({ icon: "warning", title: "Data Kosong", text: "Tidak ada data untuk diunduh.", confirmButtonColor: "#ED1C24" });
-      return;
-    }
-    exportToExcel(targetData);
-    setIsExportDropdownOpen(false);
   };
 
   return (
@@ -430,20 +436,13 @@ export default function BMManagerPage() {
               />
             </div>
 
-            {/* Filter Cabang Dropdown */}
-            <div className="w-full sm:w-40">
-              <select
-                value={selectedCabang}
-                onChange={(e) => setSelectedCabang(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-xs border-2 border-slate-300 bg-white text-slate-800 font-bold focus:border-red-600 focus:outline-none cursor-pointer"
-              >
-                <option value="all">Semua Cabang</option>
-                {DAFTAR_CABANG_ALFAMART.map((c) => (
-                  <option key={c} value={c}>
-                    Cabang {c}
-                  </option>
-                ))}
-              </select>
+            {/* Indikator Cabang Terkunci (Sesuai Hak Akses B&M Manager) */}
+            <div
+              className="h-9 px-3.5 rounded-lg border-2 border-slate-300 bg-slate-100 flex items-center gap-1.5 text-xs font-bold text-slate-700 shrink-0 select-none shadow-2xs"
+              title="Hanya menampilkan pengajuan untuk cabang Anda"
+            >
+              <Building2 className="w-3.5 h-3.5 text-red-600" />
+              <span>{userCabang}</span>
             </div>
 
             {activeTab === "materials" && (
@@ -508,7 +507,6 @@ export default function BMManagerPage() {
 
             {/* Reset Filters */}
             {(filters.search ||
-              selectedCabang !== "all" ||
               filters.kategori !== "all" ||
               filters.merk !== "all" ||
               filters.implementasi !== "all") && (
@@ -523,42 +521,8 @@ export default function BMManagerPage() {
             )}
           </div>
 
-          {/* Right: Export & Tambah Pengajuan Actions */}
+          {/* Right: Tambah Pengajuan Action */}
           <div className="flex items-center gap-2 shrink-0 pt-2 xl:pt-0 border-t xl:border-t-0 border-slate-100 relative">
-            {/* Export Dropdown Button */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsExportDropdownOpen((prev) => !prev)}
-                className="h-9 px-3 rounded-lg text-xs font-bold text-slate-700 bg-white border-2 border-slate-300 hover:bg-slate-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Unduh Data</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-              </button>
-
-              {isExportDropdownOpen && (
-                <div className="absolute right-0 top-11 w-48 bg-white border-2 border-slate-300 rounded-xl shadow-xl z-30 p-1">
-                  <button
-                    type="button"
-                    onClick={handleExportCSV}
-                    className="w-full text-left px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 rounded-lg flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 text-emerald-600" />
-                    <span>Unduh CSV (.csv)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExportExcel}
-                    className="w-full text-left px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 rounded-lg flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-                    <span>Unduh Excel (.xls)</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Tambah Pengajuan Dropdown */}
             <div className="relative">
               <button
@@ -619,14 +583,11 @@ export default function BMManagerPage() {
             items={filteredMaterials}
             showStatus={true}
             showHarga={false}
-            title={
-              selectedCabang === "all"
-                ? "Daftar Spesifikasi Material (Semua Cabang)"
-                : `Daftar Spesifikasi Material - Cabang ${selectedCabang}`
-            }
+            title={`Daftar Spesifikasi Material - ${userCabang}`}
             getDetailHref={(item) => `/bm-manager/${item.id}`}
             onResetFilter={handleResetFilters}
             onViewCatatan={handleOpenCatatanModal}
+            exportFilename={`Spesifikasi_Material_Cabang_${userCabang}`}
           />
         )}
 
@@ -636,14 +597,11 @@ export default function BMManagerPage() {
             items={filteredPendingApprovals}
             showStatus={true}
             showHarga={true}
-            title={
-              selectedCabang === "all"
-                ? "Daftar Pengajuan Harga (Semua Cabang)"
-                : `Daftar Pengajuan Harga - Cabang ${selectedCabang}`
-            }
+            title={`Daftar Persetujuan Harga - ${userCabang}`}
             onResetFilter={handleResetFilters}
             getDetailHref={(item) => `/bm-manager/${item.id}`}
             onViewCatatan={handleOpenCatatanModal}
+            exportFilename={`Persetujuan_Harga_Cabang_${userCabang}`}
           />
         )}
       </div>
@@ -656,6 +614,7 @@ export default function BMManagerPage() {
         nextIndex={items.length + 1}
         existingItems={items}
         itemToEdit={editingItem}
+        defaultCabang={userCabang}
       />
 
       {/* Modal Review Ulang Spesifikasi (Khusus Item dari Master Katalog) */}
@@ -664,6 +623,7 @@ export default function BMManagerPage() {
         onClose={() => setIsReviewUlangModalOpen(false)}
         onSubmit={handleAddItem}
         existingItems={items}
+        defaultCabang={userCabang}
       />
 
       {/* Modal Catatan S&B (Ringkas) */}

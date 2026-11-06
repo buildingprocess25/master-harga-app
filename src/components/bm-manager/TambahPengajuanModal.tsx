@@ -25,6 +25,7 @@ export interface TambahPengajuanModalProps {
   nextIndex?: number;
   existingItems?: PengajuanHargaItem[];
   itemToEdit?: PengajuanHargaItem | null;
+  defaultCabang?: string;
 }
 
 const INITIAL_MATERIAL_OPTIONS = [
@@ -102,6 +103,7 @@ export function TambahPengajuanModal({
   nextIndex = 1,
   existingItems = [],
   itemToEdit = null,
+  defaultCabang = "Cikokol",
 }: TambahPengajuanModalProps) {
   // Form State - Semua state default dikosongkan
   const [kategori, setKategori] = useState("");
@@ -187,9 +189,9 @@ export function TambahPengajuanModal({
       setImplementasi("");
       setLokasi("");
       setInformasiTambahan("");
-      setCabang("");
+      setCabang(defaultCabang);
     }
-  }, [itemToEdit, isOpen]);
+  }, [itemToEdit, isOpen, defaultCabang]);
 
   // Code generation & duplicate detection
   const otherItems = useMemo(() => {
@@ -303,7 +305,7 @@ export function TambahPengajuanModal({
 
       divisiId: itemToEdit?.divisiId || "div-sipil",
       cabangId: itemToEdit?.cabangId || "cab-cikokol",
-      namaCabang: cabang || "Cikokol",
+      namaCabang: cabang || defaultCabang,
       cakupanHarga: itemToEdit?.cakupanHarga || "INDUK_CABANG",
 
       status: itemToEdit?.status || "DIAJUKAN",
@@ -321,7 +323,7 @@ export function TambahPengajuanModal({
       kode: kodeData.kodeItem,
       kodeMaster: kodeData.kodeMaster,
       item: item.trim(),
-      cabang: cabang || "Cikokol",
+      cabang: cabang || defaultCabang,
       deskripsiOtomatis: deskripsiOtomatis,
       satuan: "m2",
       implementasi: implementasi.trim(),

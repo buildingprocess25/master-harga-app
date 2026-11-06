@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       const defaultBm = await prisma.user.findFirst({
         where: { role: "BM_MANAGER" },
+        include: { cabang: true },
       });
       if (defaultBm) {
         user = {
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
           fullName: defaultBm.fullName,
           role: defaultBm.role,
           cabangId: defaultBm.cabangId,
+          namaCabang: defaultBm.cabang?.namaCabang || "Cikokol",
           divisiId: defaultBm.divisiId,
         };
       }
@@ -32,8 +34,12 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    // Filter cabang dari query parameter
-    if (cabangParam && cabangParam !== "all") {
+    // Jika role adalah BM_MANAGER atau BUILDING_COORDINATOR, wajib dikunci ke cabang pengguna saja
+    if (user && (user.role === "BM_MANAGER" || user.role === "BUILDING_COORDINATOR")) {
+      if (user.cabangId) {
+        where.cabangId = user.cabangId;
+      }
+    } else if (cabangParam && cabangParam !== "all") {
       where.cabang = {
         namaCabang: { contains: cabangParam, mode: "insensitive" },
       };

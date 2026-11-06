@@ -29,6 +29,7 @@ export interface ReviewUlangSpesifikasiModalProps {
   onClose: () => void;
   onSubmit: (item: PengajuanHargaItem) => void;
   existingItems?: PengajuanHargaItem[];
+  defaultCabang?: string;
 }
 
 export function ReviewUlangSpesifikasiModal({
@@ -36,6 +37,7 @@ export function ReviewUlangSpesifikasiModal({
   onClose,
   onSubmit,
   existingItems = [],
+  defaultCabang = "Cikokol",
 }: ReviewUlangSpesifikasiModalProps) {
   // Hanya item yang sudah rilis atau aktif di katalog master
   const catalogItems = useMemo(() => {
@@ -63,7 +65,7 @@ export function ReviewUlangSpesifikasiModal({
   const [implementasi, setImplementasi] = useState("Dinding Gerai");
   const [lokasi, setLokasi] = useState("");
   const [informasiTambahan, setInformasiTambahan] = useState("");
-  const [cabang, setCabang] = useState("Cikokol");
+  const [cabang, setCabang] = useState(defaultCabang);
 
   const [copied, setCopied] = useState(false);
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
@@ -84,7 +86,7 @@ export function ReviewUlangSpesifikasiModal({
       setImplementasi(selectedItem.implementasi || "Dinding Gerai");
       setLokasi(selectedItem.lokasi || "");
       setInformasiTambahan(selectedItem.informasiTambahan || "");
-      setCabang(selectedItem.cabang || selectedItem.namaCabang || "Cikokol");
+      setCabang(defaultCabang);
 
       // Set material components
       const rawMat = selectedItem.koefisienMaterialItems || [

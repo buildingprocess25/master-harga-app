@@ -151,7 +151,7 @@ export function PengajuanHargaTable({
                 No
               </th>
               <th className="text-center px-3.5 py-3 border-r-2 border-slate-200 whitespace-nowrap">
-                Kode / No Tiket
+                Kode
               </th>
 
               {showTanggal && (
