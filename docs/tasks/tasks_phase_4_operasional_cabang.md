@@ -34,7 +34,7 @@ Fase 4 berfokus pada pembangunan seluruh modul operasional cabang (**B&M Manager
 
 ### Kategori 1: Modul Inisiasi & Review B&M Manager (`/bm-manager`)
 
-- [ ] **4.1 Dashboard Utama B&M Manager (`src/app/bm-manager/page.tsx`)**
+- [x] **4.1 Dashboard Utama B&M Manager (`src/app/bm-manager/page.tsx`)**
   - **Path**: [`src/app/bm-manager/page.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/bm-manager/page.tsx)
   - **Spesifikasi**:
     - Dibungkus dengan `AppLayoutShell` (role: `BM_MANAGER`, breadcrumbs: `Dashboard Cabang`).
@@ -43,8 +43,8 @@ Fase 4 berfokus pada pembangunan seluruh modul operasional cabang (**B&M Manager
     - Tabel antrean tiket dengan kolom: Nomor Tiket, Item/Pekerjaan, Divisi, Cakupan (Induk / Wilayah), Status Badge (Solid bold), Tanggal Pengajuan, Aksi Detail.
     - Tombol aksi utama: **"Buat Pengajuan Harga"** (Solid Alfa Blue `#005BAC`).
 
-- [ ] **4.2 Modal Form Inisiasi Penetapan Harga (`ModalRequestPenetapanHarga.tsx`)**
-  - **Path**: `src/components/bm-manager/ModalRequestPenetapanHarga.tsx`
+- [x] **4.2 Modal Form Inisiasi Penetapan Harga (`ModalRequestPenetapanHarga.tsx`)**
+  - **Path**: [`src/components/bm-manager/ModalRequestPenetapanHarga.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/components/bm-manager/ModalRequestPenetapanHarga.tsx)
   - **Spesifikasi**:
     - Pilihan Tipe: **Item Spesifikasi Baru** vs **Update/Review Harga Existing**.
     - Pilihan Divisi (dropdown dari tabel `Divisi`).
@@ -54,14 +54,14 @@ Fase 4 berfokus pada pembangunan seluruh modul operasional cabang (**B&M Manager
     - Alasan Pengajuan & Upload Dokumen Spesifikasi Awal (opsional).
     - Validasi form ketat: seluruh field wajib diisi sebelum tombol submit aktif.
 
-- [ ] **4.3 API Route Pengajuan Tiket Cabang (`/api/pengajuan`)**
-  - **Path**: `src/app/api/pengajuan/route.ts`
+- [x] **4.3 API Route Pengajuan Tiket Cabang (`/api/pengajuan`)**
+  - **Path**: [`src/app/api/pengajuan/route.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/api/pengajuan/route.ts) & [`src/app/api/pengajuan/[id]/route.ts`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/api/pengajuan/[id]/route.ts)
   - **Spesifikasi**:
     - `GET`: Mengambil daftar tiket milik cabang pengguna yang sedang login (dengan filter divisi, status, pencarian).
     - `POST`: Menyimpan tiket pengajuan baru berstatus `DIAJUKAN`, menautkan `masterItemId` (jika existing) atau membuat draft item baru, serta mencatat `ApprovalAuditLog` inisiasi.
 
-- [ ] **4.4 Halaman Detail Review Survei BM Manager (`src/app/bm-manager/[id]/page.tsx`)**
-  - **Path**: `src/app/bm-manager/[id]/page.tsx`
+- [x] **4.4 Halaman Detail Review Survei BM Manager (`src/app/bm-manager/[id]/page.tsx`)**
+  - **Path**: [`src/app/bm-manager/[id]/page.tsx`](file:///c:/Users/UDevran/Documents/Sumber%20Alfaria%20Trijaya/system/master-harga-app/src/app/bm-manager/[id]/page.tsx)
   - **Spesifikasi**:
     - Menggunakan `PengajuanDetailLayout` dengan parameter `role="BM_MANAGER"`.
     - Memeriksa keabsahan harga 3 toko material (`RincianSurvei3TokoCard`) dan ringkasan disparitas (`RingkasanBiayaMaterial`).

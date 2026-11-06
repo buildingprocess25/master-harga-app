@@ -35,7 +35,7 @@ export function middleware(request: NextRequest) {
   // 2. Rute Publik: Lewatkan aset statis dan API auth
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api") ||
     pathname.startsWith("/public") ||
     pathname === "/login" ||
     pathname.includes(".")
