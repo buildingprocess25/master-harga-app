@@ -10,11 +10,18 @@ export async function GET(request: NextRequest) {
     if (!user) {
       const referer = request.headers.get("referer") || "";
       const requestedRole = request.nextUrl.searchParams.get("role");
-      const isBuildingCoord =
-        requestedRole === "BUILDING_COORDINATOR" ||
-        referer.includes("building-coordinator");
-
-      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+      let targetRole: any = "BM_MANAGER";
+      if (requestedRole) {
+        targetRole = requestedRole;
+      } else if (referer.includes("sb-specialist")) {
+        targetRole = "SB_SPECIALIST";
+      } else if (referer.includes("regional-manager")) {
+        targetRole = "REGIONAL_MANAGER";
+      } else if (referer.includes("building-coordinator")) {
+        targetRole = "BUILDING_COORDINATOR";
+      } else if (referer.includes("kontraktor")) {
+        targetRole = "KONTRAKTOR";
+      }
 
       const defaultUser = await prisma.user.findFirst({
         where: { role: targetRole },

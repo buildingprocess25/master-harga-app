@@ -1,209 +1,403 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Info } from "lucide-react";
 import {
-  AppLayoutShell,
-  DetailSpesifikasiCard,
-  PengajuanTimelineBar,
-  RincianKalkulasiKoefisien,
-  VotingKontraktorMonitorCard,
-} from "@/components/global";
-import { META_STATUS, StatusTiketBadge } from "@/components/pengajuan/StatusTiketBadge";
-import { RiwayatAuditCard } from "@/components/pengajuan/RiwayatAuditCard";
-import { SurveiPerKomponen } from "@/components/pengajuan/SurveiPerKomponen";
-import { PerbandinganRegionalCard } from "@/components/regional-manager/PerbandinganRegionalCard";
-import { KeputusanRegional } from "@/components/regional-manager/KeputusanRegional";
-import { RingkasanBandingCard } from "@/components/pengajuan/RingkasanBandingCard";
-import { getRingkasanBanding } from "@/lib/services/banding-service";
-import { requireRolePage } from "@/lib/auth/require-role";
-import { evaluasiJikaKedaluwarsa, getRingkasanKuorum } from "@/lib/services/kuorum-service";
-import { getHargaBerlaku } from "@/lib/services/margin-service";
-import { getPengajuanDetail } from "@/lib/services/pengajuan-service";
-import { cekPrasyaratKuorum, getPerbandinganRegional } from "@/lib/services/regional-service";
-import { cn, formatRupiah } from "@/lib/utils";
-import { StatusPengajuanHarga } from "@/types";
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  ShieldCheck,
+  Building2,
+  AlertCircle,
+  Users,
+} from "lucide-react";
+import Swal from "sweetalert2";
+import { AppLayoutShell } from "@/components/global/AppLayoutShell";
+import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
+import { DetailSpesifikasiCard } from "@/components/global/DetailSpesifikasiCard";
+import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
+import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
+import { RincianKalkulasiKoefisien } from "@/components/global/RincianKalkulasiKoefisien";
+import { VotingKontraktorMonitorCard } from "@/components/global/VotingKontraktorMonitorCard";
+import { PengajuanHargaItem, UserSessionProfile } from "@/types";
+import { formatRupiah } from "@/lib/utils";
 
-const TAHAP_KUORUM: StatusPengajuanHarga[] = ["PENDING_KONTRAKTOR", "USULAN_KONTRAKTOR", "DITOLAK_KONTRAKTOR", "RELEASED"];
+export default function RegionalManagerDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params?.id as string;
 
-const INFO_STATUS: Partial<Record<StatusPengajuanHarga, string>> = {
-  PENDING_KONTRAKTOR: "Kuorum rekanan sedang berjalan. Harga resmi terbit otomatis bila 50% + 1 rekanan setuju.",
-  USULAN_KONTRAKTOR: "Kuorum tidak tercapai dan ada usulan banding rekanan. Menunggu evaluasi S&B Specialist.",
-  PENDING_SB_SPECIALIST: "Tiket sedang dievaluasi ulang marginnya oleh S&B Specialist.",
-  RELEASED: "Harga resmi sudah terbit di Katalog Master Harga.",
-  DITOLAK: "Pengajuan ditutup permanen.",
-};
+  const [user, setUser] = useState<UserSessionProfile | null>(null);
+  const [item, setItem] = useState<PengajuanHargaItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export default async function DetailRegionalPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireRolePage(["REGIONAL_MANAGER"]);
-  const { id } = await params;
+  const loadData = async () => {
+    if (!id) return;
+    setIsLoading(true);
 
-  const awal = await getPengajuanDetail(user, id);
-  if (!awal) notFound();
-  // Tutup putaran voting yang SLA-nya lewat agar status yang ditinjau final.
-  const dievaluasi = await evaluasiJikaKedaluwarsa(id);
-  const detail = dievaluasi ? await getPengajuanDetail(user, id) : awal;
-  if (!detail) notFound();
+    try {
+      // 1. Fetch User Session
+      const userRes = await fetch("/api/auth/me?role=REGIONAL_MANAGER");
+      if (userRes.ok) {
+        const uJson = await userRes.json();
+        if (uJson.success && uJson.user) {
+          setUser(uJson.user);
+        }
+      }
 
-  const { item } = detail;
-  const bisaPutus = item.status === "PENDING_REGIONAL_MGR" || item.status === "DITOLAK_KONTRAKTOR";
-  const tahapKuorum = TAHAP_KUORUM.includes(item.status);
-  const kembali =
-    item.status === "PENDING_KONTRAKTOR"
-      ? { href: "/regional-manager/monitoring-kuorum", label: "Monitoring Kuorum" }
-      : { href: "/regional-manager", label: "Approval Layer 3" };
+      // 2. Fetch Tiket Detail
+      const res = await fetch(`/api/pengajuan/${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setItem(json.data as PengajuanHargaItem);
+        }
+      }
+    } catch (err) {
+      console.warn("Gagal memuat detail tiket:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const [perbandingan, hargaBerlaku, prasyarat, kuorum] = await Promise.all([
-    getPerbandinganRegional({ masterItemId: detail.masterItemId, cabangId: item.cabangId }),
-    getHargaBerlaku({
-      masterItemId: detail.masterItemId,
-      cabangId: item.cabangId,
-      wilayahCabangId: item.wilayahCabangId ?? null,
-      cakupanHarga: item.cakupanHarga,
-    }),
-    bisaPutus ? cekPrasyaratKuorum(id) : Promise.resolve(null),
-    tahapKuorum ? getRingkasanKuorum(id) : Promise.resolve(null),
-  ]);
+  useEffect(() => {
+    loadData();
+  }, [id]);
 
-  // totalHargaSatuan = hargaDitetapkanSNB bila sudah ada (lihat pengajuan-service).
-  const hargaRekomendasi = item.totalHargaSatuan > 0 ? item.totalHargaSatuan : null;
-  // Tiket kembali dari banding: tampilkan hasil voting putaran sebelumnya sebagai konteks.
-  const bandingSebelumnya =
-    item.status === "PENDING_REGIONAL_MGR" ? await getRingkasanBanding(id, hargaRekomendasi) : null;
-  const pembanding =
-    item.cakupanHarga === "KHUSUS_WILAYAH" && hargaBerlaku?.hargaWilayah != null
-      ? { label: "Harga wilayah berlaku", harga: hargaBerlaku.hargaWilayah }
-      : hargaBerlaku
-        ? { label: "Harga induk berlaku", harga: hargaBerlaku.hargaInduk }
-        : null;
-  const selisihBerlaku = pembanding && hargaRekomendasi ? ((hargaRekomendasi - pembanding.harga) / pembanding.harga) * 100 : null;
+  // Handler Persetujuan Layer 3: Setujui & Buka Penawaran ke Rekanan
+  const handleSetujuiHarga = async () => {
+    const confirm = await Swal.fire({
+      title: "Setujui & Buka Penawaran Rekanan?",
+      text: "Harga satuan resmi disetujui tingkat regional. Penawaran kuorum 50%+1 akan otomatis dibuka ke seluruh rekanan kontraktor aktif di cabang dengan batas waktu SLA 3x24 jam.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#005BAC",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Ya, Buka Penawaran",
+      cancelButtonText: "Batal",
+    });
 
-  // Margin hanya untuk kategori yang benar-benar ada di resep (Alat selalu 0%).
-  const adaKategori = (k: string) => item.koefisienItems.some((x) => x.kategori === k);
-  const rincianMargin = (
-    [
-      ["upah", "UPAH", item.liveMarginUpah],
-      ["material", "MATERIAL", item.liveMarginMaterial],
-      ["bongkaran", "BONGKARAN", item.liveMarginBongkaran],
-    ] as const
-  )
-    .filter(([, k]) => adaKategori(k))
-    .map(([label, , v]) => `${label} ${v.toLocaleString("id-ID")}%`)
-    .join(", ");
+    if (!confirm.isConfirmed) return;
 
-  const komponenSurvei = detail.rincian
-    .filter((r) => r.wajibSurveiToko)
-    .map((r) => ({ id: r.id, namaKomponen: r.namaKomponen, satuan: r.satuan, nilaiKoefisien: r.nilaiKoefisien, surveiList: r.surveiList }));
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`/api/pengajuan/${id}/review-regional`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "APPROVE",
+          catatan: "Penetapan harga disetujui Regional Manager. Penawaran resmi dibuka ke rekanan cabang.",
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        await Swal.fire({
+          title: "Penawaran Dibuka",
+          text: json.message,
+          icon: "success",
+          confirmButtonColor: "#005BAC",
+        });
+        router.push("/regional-manager");
+      } else {
+        Swal.fire("Gagal", json.message || "Gagal menyetujui pengajuan.", "error");
+      }
+    } catch (e: any) {
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan koneksi.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler Kembalikan ke S&B Specialist
+  const handleKembalikanKeSNB = async () => {
+    const { value: text, isConfirmed } = await Swal.fire({
+      title: "Kembalikan ke S&B Specialist?",
+      text: "Tiket akan dikembalikan ke S&B Specialist untuk peninjauan ulang margin atau disparitas harga.",
+      input: "textarea",
+      inputPlaceholder: "Tuliskan catatan evaluasi harga regional...",
+      inputValidator: (v) => (!v ? "Catatan evaluasi wajib diisi!" : null),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#FF9E1B",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Kembalikan ke S&B",
+      cancelButtonText: "Batal",
+    });
+
+    if (!isConfirmed || !text) return;
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`/api/pengajuan/${id}/review-regional`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "REVISE",
+          catatan: text.trim(),
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        await Swal.fire({
+          title: "Dikembalikan ke S&B",
+          text: "Tiket telah dikembalikan ke antrean S&B Specialist.",
+          icon: "info",
+          confirmButtonColor: "#005BAC",
+        });
+        router.push("/regional-manager");
+      } else {
+        Swal.fire("Gagal", json.message || "Gagal mengembalikan pengajuan.", "error");
+      }
+    } catch (e: any) {
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler Tolak Pengajuan
+  const handleTolakRegional = async () => {
+    const { value: text, isConfirmed } = await Swal.fire({
+      title: "Tolak Pengajuan Harga?",
+      text: "Pengajuan harga satuan ini akan ditutup permanen di tingkat regional.",
+      input: "textarea",
+      inputPlaceholder: "Tuliskan alasan penolakan secara jelas...",
+      inputValidator: (v) => (!v ? "Alasan penolakan wajib diisi!" : null),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ED1C24",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Ya, Tolak Permanen",
+      cancelButtonText: "Batal",
+    });
+
+    if (!isConfirmed || !text) return;
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`/api/pengajuan/${id}/review-regional`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "REJECT",
+          catatan: text.trim(),
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        await Swal.fire({
+          title: "Pengajuan Ditolak",
+          text: "Status tiket telah ditutup permanen.",
+          icon: "info",
+          confirmButtonColor: "#005BAC",
+        });
+        router.push("/regional-manager");
+      } else {
+        Swal.fire("Gagal", json.message || "Gagal menolak pengajuan.", "error");
+      }
+    } catch (e: any) {
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayoutShell user={user}>
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-12 text-center shadow-2xs">
+          <div className="w-10 h-10 border-4 border-[#005BAC] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <h3 className="text-base font-bold text-slate-800">Memuat Rincian Pengajuan Regional...</h3>
+          <p className="text-xs text-slate-500 mt-1">Mengambil rincian data harga dan hasil survei toko.</p>
+        </div>
+      </AppLayoutShell>
+    );
+  }
+
+  if (!item) {
+    return (
+      <AppLayoutShell user={user}>
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-12 text-center shadow-2xs space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-rose-500 text-white flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-slate-900">Pengajuan Tidak Ditemukan</h3>
+            <p className="text-xs text-slate-500 mt-1">Tiket yang Anda cari tidak terdaftar di sistem.</p>
+          </div>
+          <Link
+            href="/regional-manager"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#005BAC] text-white font-bold text-xs rounded-xl shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Kembali ke Antrean Regional</span>
+          </Link>
+        </div>
+      </AppLayoutShell>
+    );
+  }
+
+  const isPendingRegional = item.status === "PENDING_REGIONAL_MGR";
+  const inKuorum =
+    item.status === "PENDING_KONTRAKTOR" ||
+    item.status === "USULAN_KONTRAKTOR" ||
+    item.status === "DITOLAK_KONTRAKTOR" ||
+    item.status === "RELEASED";
 
   return (
     <AppLayoutShell
       user={user}
-      breadcrumbs={[{ label: "Regional Manager" }, { label: kembali.label, href: kembali.href }, { label: item.noTiket }]}
+      breadcrumbs={[
+        { label: "Regional Manager", href: "/regional-manager" },
+        { label: item.noTiket || "Rincian Tiket" },
+      ]}
     >
-      <div className="space-y-5 pb-10">
-        <Link href={kembali.href} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#005BAC]">
-          <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke {kembali.label}
-        </Link>
+      <div className="space-y-6 max-w-7xl mx-auto pb-12">
+        {/* Navigasi Atas & Status Ringkas */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b-2 border-slate-200">
+          <Link
+            href="/regional-manager"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#005BAC] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Kembali ke Antrean Regional Manager</span>
+          </Link>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="font-mono font-bold text-slate-700">{item.noTiket}</span>
-              <StatusTiketBadge status={item.status} />
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-500">Cabang Pengaju:</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#005BAC] text-white">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>{item.namaCabang || item.cabang || "Cabang"}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Stepper Timeline Siklus Hidup */}
+        <PengajuanTimelineBar item={item} className="shadow-2xs" />
+
+        {/* Kartu Ringkasan Rekomendasi Harga S&B */}
+        <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+              <ShieldCheck className="w-6 h-6 stroke-[2.2]" />
             </div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">{item.namaItem}</h1>
-            <p className="text-xs text-slate-600">
-              {item.namaCabang}
-              {item.namaWilayah ? ` · Wilayah ${item.namaWilayah}` : ""} · {item.namaDivisi}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Harga rekomendasi S&B</div>
-            <div className="text-2xl font-bold font-mono tabular-nums text-slate-900">{formatRupiah(hargaRekomendasi)}</div>
-            {detail.satuan && <div className="text-[11px] text-slate-500">per {detail.satuan}</div>}
-          </div>
-        </div>
-
-        {/* Catatan keputusan terakhir sudah ditampilkan oleh PengajuanTimelineBar. */}
-        <PengajuanTimelineBar item={item} />
-
-        {/* Ringkasan rekomendasi */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kartu label="HPP (tanpa margin)" nilai={formatRupiah(item.totalHpp)} />
-          <Kartu label="Harga rekomendasi" nilai={formatRupiah(hargaRekomendasi)} tone="hijau" />
-          <Kartu
-            label="Margin efektif S&B"
-            nilai={item.totalHpp > 0 && hargaRekomendasi ? `${((hargaRekomendasi / item.totalHpp - 1) * 100).toLocaleString("id-ID", { maximumFractionDigits: 2 })}%` : "-"}
-            catatan={rincianMargin}
-          />
-          {pembanding && selisihBerlaku !== null ? (
-            <Kartu
-              label={pembanding.label}
-              nilai={formatRupiah(pembanding.harga)}
-              catatan={`rekomendasi ${selisihBerlaku >= 0 ? "+" : ""}${selisihBerlaku.toLocaleString("id-ID", { maximumFractionDigits: 2 })}%`}
-              tone={Math.abs(selisihBerlaku) > 10 ? "kuning" : "netral"}
-            />
-          ) : (
-            <Kartu label="Harga berlaku saat ini" nilai="Belum ada" catatan="item baru di cabang ini" />
-          )}
-        </div>
-
-        <PerbandinganRegionalCard data={perbandingan} hargaRekomendasi={hargaRekomendasi} namaCabangTiket={item.namaCabang ?? "-"} />
-
-        {kuorum && kuorum.votingKontraktorList.length > 0 && (
-          <VotingKontraktorMonitorCard votingList={kuorum.votingKontraktorList} deadlineVoting={kuorum.deadlineVoting} />
-        )}
-
-        {bandingSebelumnya && bandingSebelumnya.jumlahBanding > 0 && (
-          <RingkasanBandingCard data={bandingSebelumnya} judul="Hasil Voting Putaran Sebelumnya" />
-        )}
-
-        {bisaPutus && prasyarat ? (
-          <KeputusanRegional
-            tiketId={item.id}
-            status={item.status as "PENDING_REGIONAL_MGR" | "DITOLAK_KONTRAKTOR"}
-            hargaRekomendasi={hargaRekomendasi}
-            satuan={detail.satuan}
-            rekananAktif={prasyarat.rekananAktif}
-            masalah={prasyarat.masalah}
-          />
-        ) : (
-          <div className="flex items-start gap-2 bg-[#EAF3FB] border border-[#B8D8F3] rounded-xl p-3 text-xs text-[#003A70]">
-            <Info className="w-4 h-4 shrink-0 mt-px" />
             <div>
-              <span className="font-bold block">{META_STATUS[item.status].label}</span>
-              {INFO_STATUS[item.status] ?? "Tidak ada tindakan Regional Manager pada tahap ini."}
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                Rekomendasi Harga Satuan S&amp;B Specialist
+              </span>
+              <h2 className="text-xl md:text-2xl font-black text-[#005BAC] font-mono tabular-nums">
+                {formatRupiah(item.totalHargaSatuan || 0)}
+                {item.satuan && (
+                  <span className="text-xs font-sans font-bold text-slate-500 ml-1">
+                    / {item.satuan}
+                  </span>
+                )}
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="bg-slate-50 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-right">
+              <span className="text-[10px] text-slate-500 block font-bold uppercase">HPP Material</span>
+              <span className="text-xs font-black text-slate-800 font-mono">
+                {formatRupiah(item.totalHpp || 0)}
+              </span>
+            </div>
+            <div className="bg-slate-50 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-right">
+              <span className="text-[10px] text-slate-500 block font-bold uppercase">Margin Usulan</span>
+              <span className="text-xs font-black text-emerald-700 font-mono">
+                {item.liveMarginMaterial || 8}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Detail Spesifikasi Material */}
+        <DetailSpesifikasiCard item={item} />
+
+        {/* Hasil Survei 3 Toko Fisik BC */}
+        {item.surveiTokoList && item.surveiTokoList.length > 0 && (
+          <RincianSurvei3TokoCard
+            surveiList={item.surveiTokoList}
+            materialName={item.namaItem || item.item}
+            readonly={true}
+          />
+        )}
+
+        {/* Ringkasan Biaya Material */}
+        {item.surveiTokoList && item.surveiTokoList.length > 0 && (
+          <RingkasanBiayaMaterial
+            surveiList={item.surveiTokoList}
+            namaMaterial={item.namaItem || item.item}
+          />
+        )}
+
+        {/* Tabel AHSP (Read-Only) */}
+        <RincianKalkulasiKoefisien
+          koefisienItems={item.koefisienItems || []}
+          mode="readonly"
+          liveMarginUpah={item.liveMarginUpah ?? 8}
+          liveMarginMaterial={item.liveMarginMaterial ?? 8}
+          liveMarginBongkaran={item.liveMarginBongkaran ?? 8}
+        />
+
+        {/* Monitoring Kuorum Rekanan (Jika sudah di tahap kuorum) */}
+        {inKuorum && (
+          <VotingKontraktorMonitorCard votingList={item.votingKontraktorList || []} />
+        )}
+
+        {/* Panel Keputusan Regional Manager (Layer 3) */}
+        {isPendingRegional && (
+          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-black text-slate-900 uppercase">
+                Persetujuan Penetapan Tingkat Regional (Layer 3)
+              </h4>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                Setujui rekomendasi untuk membuka penawaran ke rekanan kontraktor cabang atau kembalikan ke S&amp;B Specialist
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleTolakRegional}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Tolak</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleKembalikanKeSNB}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Kembalikan ke S&amp;B</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleSetujuiHarga}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Setujui &amp; Buka Penawaran</span>
+              </button>
             </div>
           </div>
         )}
-
-        <DetailSpesifikasiCard item={item} />
-        <SurveiPerKomponen komponen={komponenSurvei} />
-        {item.koefisienItems.length > 0 && (
-          <RincianKalkulasiKoefisien
-            koefisienItems={item.koefisienItems}
-            mode="readonly"
-            liveMarginUpah={item.liveMarginUpah}
-            liveMarginMaterial={item.liveMarginMaterial}
-            liveMarginBongkaran={item.liveMarginBongkaran}
-          />
-        )}
-        <RiwayatAuditCard riwayat={detail.riwayat} />
       </div>
     </AppLayoutShell>
-  );
-}
-
-function Kartu({ label, nilai, catatan, tone = "netral" }: { label: string; nilai: string; catatan?: string; tone?: "netral" | "hijau" | "kuning" }) {
-  const cls = {
-    netral: "bg-white border-slate-200 text-slate-900",
-    hijau: "bg-[#E7F6F0] border-2 border-[#B2DFCC] text-[#085438]",
-    kuning: "bg-[#FFF8DB] border-[#F3D56B] text-[#6E4B00]",
-  }[tone];
-  return (
-    <div className={cn("rounded-xl border px-3 py-2.5", cls)}>
-      <div className="text-[11px] font-semibold opacity-80">{label}</div>
-      <div className="text-base font-bold font-mono tabular-nums">{nilai}</div>
-      {catatan && <div className="text-[10px] opacity-75">{catatan}</div>}
-    </div>
   );
 }

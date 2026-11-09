@@ -18,9 +18,10 @@ export function BuildingCoordHero({
   countSelesai,
   userCabang = "Cikokol",
 }: BuildingCoordHeroProps) {
-  // Selalu bersihkan semua prefix "Cabang" berulang secara tuntas (regex greedy)
+  // Bersihkan semua kemunculan kata "Cabang" untuk mencegah redundansi
   const cleanBranch = (userCabang || "Cikokol")
-    .replace(/^(cabang\s*)+/i, "")
+    .replace(/\bcabang\b/gi, "")
+    .replace(/\s+/g, " ")
     .trim();
   const displayCabang = `Cabang ${cleanBranch || "Cikokol"}`;
 

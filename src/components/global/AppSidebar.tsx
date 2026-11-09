@@ -133,31 +133,14 @@ export function AppSidebar({
       case "SB_SPECIALIST":
         return [
           {
-            title: "Worksheet & Margin",
+            title: "Pengajuan & AHSP",
             items: [
               {
-                label: "Mastering AHSP",
+                label: "Dashboard Pengajuan",
                 href: "/sb-specialist",
-                icon: FileSpreadsheet,
-                badgeCount: 1,
-                badgeVariant: "blue",
-              },
-              {
-                label: "Evaluasi Live Margin",
-                href: "/sb-specialist/evaluasi-margin",
                 icon: Sliders,
-              },
-              {
-                label: "Banding Kontraktor",
-                href: "/sb-specialist/banding-rekanan",
-                icon: Vote,
-              },
-              {
-                label: "Rekanan Nonaktif (Parked)",
-                href: "/sb-specialist/rekanan-parked",
-                icon: Ban,
-                badgeCount: 1,
-                badgeVariant: "red",
+                badgeCount: 3,
+                badgeVariant: "blue",
               },
             ],
           },
@@ -170,9 +153,14 @@ export function AppSidebar({
                 icon: BookOpen,
               },
               {
-                label: "Master Item Spek",
+                label: "Master Item Pekerjaan",
                 href: "/sb-specialist/master-item",
                 icon: Box,
+              },
+              {
+                label: "Rekanan Nonaktif",
+                href: "/master-harga/rekanan",
+                icon: Ban,
               },
             ],
           },
@@ -191,23 +179,13 @@ export function AppSidebar({
                 badgeVariant: "red",
               },
               {
-                label: "Monitoring Kuorum",
-                href: "/regional-manager/monitoring-kuorum",
-                icon: Users,
-              },
-              {
-                label: "Rekanan Parked",
-                href: "/regional-manager/rekanan-parked",
+                label: "Rekanan Nonaktif",
+                href: "/master-harga/rekanan",
                 icon: Ban,
               },
-            ],
-          },
-          {
-            title: "Master Regional",
-            items: [
               {
-                label: "Katalog Harga Regional",
-                href: "/regional-manager/katalog-harga",
+                label: "Katalog Master Harga",
+                href: "/master-harga",
                 icon: Tag,
               },
             ],

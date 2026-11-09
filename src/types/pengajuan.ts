@@ -81,15 +81,17 @@ export interface SurveyTokoItem {
 
 export interface KoefisienDetailItem {
   id: string;
+  masterKoefisienId?: string;
   kodeKomponen?: string;
   kategori: KategoriKoefisien;
   namaKomponen: string;
   satuan: string;
   koefisien: number; // e.g. 0.0188
   hargaAcuan: number; // Harga acuan rupiah dari rata-rata survei
-  subtotal: number; // koefisien * hargaAcuan
-  marginPersen: number; // e.g. 8%
-  total: number; // subtotal * (1 + marginPersen / 100)
+  subtotal?: number; // koefisien * hargaAcuan
+  marginPersen?: number; // e.g. 8%
+  total?: number; // subtotal * (1 + marginPersen / 100)
+  wajibSurveiToko?: boolean;
   isCustom?: boolean;
 }
 

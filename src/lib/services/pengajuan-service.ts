@@ -229,8 +229,8 @@ function petakanKeKontrak(t: DetailDb): PengajuanHargaItem {
   // Survei disimpan per komponen material; kontrak UI saat ini menampilkan satu daftar 3 toko.
   const surveiTokoList: SurveyTokoItem[] = t.rincianAHSP.flatMap((r) => r.surveiTokoList.map(petakanSurvei));
 
-  const totalHpp = koefisienItems.reduce((a, k) => a + k.subtotal, 0);
-  const totalHargaSatuan = koefisienItems.reduce((a, k) => a + k.total, 0);
+  const totalHpp = koefisienItems.reduce((a, k) => a + (k.subtotal ?? 0), 0);
+  const totalHargaSatuan = koefisienItems.reduce((a, k) => a + (k.total ?? 0), 0);
 
   return {
     id: t.id,
