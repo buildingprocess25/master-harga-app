@@ -83,8 +83,16 @@ export function ReviewUlangSpesifikasiModal({
       setPermukaan(selectedItem.permukaan || "");
       setTebal(selectedItem.tebal || "");
       setToleransi(selectedItem.toleransi || "");
-      setImplementasi(selectedItem.implementasi || "Dinding Gerai");
-      setLokasi(selectedItem.lokasi || "");
+      setImplementasi(
+        Array.isArray(selectedItem.implementasi)
+          ? selectedItem.implementasi.join(", ")
+          : (selectedItem.implementasi || "Dinding Gerai")
+      );
+      setLokasi(
+        Array.isArray(selectedItem.lokasi)
+          ? selectedItem.lokasi.join(", ")
+          : (selectedItem.lokasi || "")
+      );
       setInformasiTambahan(selectedItem.informasiTambahan || "");
       setCabang(defaultCabang);
 

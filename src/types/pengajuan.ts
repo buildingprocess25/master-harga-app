@@ -172,7 +172,7 @@ export interface PengajuanHargaItem {
   tipe?: string;
   ukuran?: string;
   warna?: string;
-  lokasi?: string;
+  lokasi?: string | string[];
 
   // Organisasi & Lokasi
   divisiId: string;
@@ -218,7 +218,7 @@ export interface PengajuanHargaItem {
   estimasiHarga?: number;
   hargaRataRata?: number;
   satuan?: string;
-  implementasi?: string;
+  implementasi?: string | string[];
   tebal?: string;
   permukaan?: string;
   toleransi?: string;
@@ -378,6 +378,11 @@ export function getKodeData(data: {
       ? data.lokasi.map((l) => norm(l)).sort().join(",")
       : norm(data.lokasi)
     : "";
+  const cImplementasi = data.implementasi
+    ? Array.isArray(data.implementasi)
+      ? data.implementasi.map((i) => norm(i)).sort().join(",")
+      : norm(data.implementasi)
+    : "";
 
   const isPhysicalMatch = (i: PengajuanHargaItem) => {
     const iItem = i.item || i.namaItem;
@@ -405,7 +410,7 @@ export function getKodeData(data: {
     const matchSIP = existingCode.match(/^(SIP-\d+)/i);
     kodeItem = matchSIP ? matchSIP[1].toUpperCase() : `SIP-${String(nextIndex).padStart(3, "0")}`;
 
-    const matchedLocationItem = physicalMatches.find((i) => {
+    const matchedTargetItem = physicalMatches.find((i) => {
       const iLok = i.lokasi;
       const iLokStr = Array.isArray(iLok)
         ? iLok.map((l) => norm(l)).sort().join(",")
@@ -413,17 +418,19 @@ export function getKodeData(data: {
       return iLokStr === cLokasi;
     });
 
-    if (matchedLocationItem && cLokasi) {
+    if (matchedTargetItem && cLokasi) {
       isDuplicate = true;
-      duplicateItem = matchedLocationItem;
-      const vMatch = (matchedLocationItem.kodeItem || matchedLocationItem.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+      duplicateItem = matchedTargetItem;
+      const vMatch = (matchedTargetItem.kodeMaster || matchedTargetItem.kodeItem || matchedTargetItem.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
       kodeVarian = vMatch ? vMatch[1].toUpperCase() : "A";
     } else {
       const usedVariants = new Set<string>();
       physicalMatches.forEach((i) => {
-        const vMatch = (i.kodeItem || i.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+        const vMatch = (i.kodeMaster || i.kodeItem || i.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
         if (vMatch) {
           usedVariants.add(vMatch[1].toUpperCase());
+        } else {
+          usedVariants.add("A");
         }
       });
 

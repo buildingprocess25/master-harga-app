@@ -150,7 +150,7 @@ export default function SBSpecialistDetailPage() {
   const handleSetujuiSpek = async () => {
     const confirm = await Swal.fire({
       title: "Setujui Spesifikasi?",
-      text: "Spesifikasi dinyatakan sesuai standar. Anda dapat langsung menyusun resep koefisien AHSP.",
+      text: "Spesifikasi dinyatakan sesuai standar. Selanjutnya Anda akan menyusun koefisien.",
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#005BAC",

@@ -4,8 +4,8 @@ import React from "react";
 
 interface CategoryAreaCellProps {
   kategori: string;
-  implementasi?: string;
-  lokasi?: string;
+  implementasi?: string | string[];
+  lokasi?: string | string[];
   className?: string;
 }
 
@@ -15,7 +15,9 @@ export function CategoryAreaCell({
   lokasi,
   className = "",
 }: CategoryAreaCellProps) {
-  const subDetails = [implementasi, lokasi].filter(Boolean).join(" &bull; ");
+  const impStr = Array.isArray(implementasi) ? implementasi.join(", ") : implementasi;
+  const lokStr = Array.isArray(lokasi) ? lokasi.join(", ") : lokasi;
+  const subDetails = [impStr, lokStr].filter(Boolean).join(" &bull; ");
 
   return (
     <div className={`flex flex-col min-w-[120px] max-w-[220px] ${className}`}>

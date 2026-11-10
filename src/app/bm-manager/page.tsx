@@ -146,7 +146,7 @@ export default function BMManagerPage() {
         const merk = (item.merk || "").toLowerCase();
         const tipe = (item.tipe || "").toLowerCase();
         const warna = (item.warna || "").toLowerCase();
-        const lokasi = (item.lokasi || "").toLowerCase();
+        const lokasi = (Array.isArray(item.lokasi) ? item.lokasi.join(" ") : (item.lokasi || "")).toLowerCase();
         const kat = (item.kategori || "").toLowerCase();
         const cab = (item.cabang || item.namaCabang || "").toLowerCase();
         const desc = (item.deskripsiOtomatis || "").toLowerCase();
@@ -168,8 +168,9 @@ export default function BMManagerPage() {
 
       if (filters.kategori !== "all" && item.kategori !== filters.kategori) return false;
       if (filters.merk && filters.merk !== "all" && item.merk !== filters.merk) return false;
-      if (filters.implementasi && filters.implementasi !== "all" && item.implementasi !== filters.implementasi) {
-        return false;
+      if (filters.implementasi && filters.implementasi !== "all") {
+        const impStr = Array.isArray(item.implementasi) ? item.implementasi.join(", ") : (item.implementasi || "");
+        if (!impStr.toLowerCase().includes(filters.implementasi.toLowerCase())) return false;
       }
 
       return true;
@@ -191,7 +192,7 @@ export default function BMManagerPage() {
       const kode = (i.kode || i.kodeItem || i.noTiket || "").toLowerCase();
       const nama = (i.item || i.namaItem || "").toLowerCase();
       const merk = (i.merk || "").toLowerCase();
-      const lokasi = (i.lokasi || "").toLowerCase();
+      const lokasi = (Array.isArray(i.lokasi) ? i.lokasi.join(" ") : (i.lokasi || "")).toLowerCase();
       const cab = (i.cabang || i.namaCabang || "").toLowerCase();
 
       return (
