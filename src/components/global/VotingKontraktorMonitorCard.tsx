@@ -53,7 +53,7 @@ export function VotingKontraktorMonitorCard({
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-[#005BAC]" />
           <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">
-            Pemantauan Kuorum Rekanan Kontraktor (Target: 50% + 1)
+            Penawaran Kontraktor
           </h3>
         </div>
 
@@ -71,7 +71,7 @@ export function VotingKontraktorMonitorCard({
         <div className="mb-4 bg-slate-50 p-3.5 rounded-lg border border-slate-100">
           <div className="flex justify-between items-center mb-1.5 text-xs font-semibold">
             <span className="text-slate-700">
-              Progres Persetujuan Kuorum Cabang:
+              Progres Persetujuan Kontraktor:
             </span>
             <span
               className={cn(
@@ -79,8 +79,8 @@ export function VotingKontraktorMonitorCard({
                 isKuorumTercapai ? "text-[#008A00]" : "text-amber-700"
               )}
             >
-              {setujuCount} dari {total} Rekanan ({persentaseSetuju}%)
-              {isKuorumTercapai ? " • Kuorum Sah" : ` • Butuh ${targetKuorum} Setuju`}
+              {setujuCount} dari {total} Kontraktor ({persentaseSetuju}%)
+              {isKuorumTercapai ? " • Kuorum Tercapai" : ` • Butuh ${targetKuorum} Setuju`}
             </span>
           </div>
 
@@ -137,7 +137,7 @@ export function VotingKontraktorMonitorCard({
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold">
               <tr>
                 <th className="py-2.5 pl-3 w-10">No</th>
-                <th className="py-2.5">Nama Perusahaan Rekanan</th>
+                <th className="py-2.5">Nama Kontraktor</th>
                 <th className="py-2.5 w-32">Status Respon</th>
                 <th className="py-2.5 w-28">Tanggal Vote</th>
                 <th className="py-2.5 text-right w-36">Usulan Banding</th>
@@ -151,7 +151,7 @@ export function VotingKontraktorMonitorCard({
                     colSpan={6}
                     className="py-4 text-center text-slate-400 italic"
                   >
-                    Belum ada data rekanan yang diundang untuk paket ini.
+                    Belum ada penawaran kontraktor.
                   </td>
                 </tr>
               ) : (

@@ -110,7 +110,7 @@ export default function RegionalManagerDashboardPage() {
     [itemsApprovalRaw, search, kategoriFilter, cabangFilter]
   );
 
-  // 2. Tab Kuorum Rekanan / Gagal Kuorum (Status DITOLAK_KONTRAKTOR, USULAN_KONTRAKTOR, PENDING_KONTRAKTOR)
+  // 2. Tab Review Kontraktor / Gagal Kuorum (Status DITOLAK_KONTRAKTOR, USULAN_KONTRAKTOR, PENDING_KONTRAKTOR)
   const itemsKuorumRaw = useMemo(() => {
     return items.filter(
       (item) =>
@@ -153,7 +153,7 @@ export default function RegionalManagerDashboardPage() {
       user={user}
       breadcrumbs={[
         { label: "Regional Manager", href: "/regional-manager" },
-        { label: "Approval Layer 3" },
+        { label: "Persetujuan" },
       ]}
     >
       <div className="space-y-6">
@@ -168,12 +168,9 @@ export default function RegionalManagerDashboardPage() {
                 <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">
                   B&amp;M Regional Manager
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#005BAC] text-white">
-                  Wilayah Regional
-                </span>
               </div>
               <p className="text-xs text-slate-600 font-medium mt-1">
-                Persetujuan akhir penetapan harga satuan tingkat regional dan pembukaan kuorum penawaran ke rekanan kontraktor cabang
+                Persetujuan harga satuan dan penawaran kontraktor.
               </p>
             </div>
           </div>
@@ -182,7 +179,7 @@ export default function RegionalManagerDashboardPage() {
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-white border-2 border-rose-400 rounded-xl px-3.5 py-2 text-center min-w-[100px] shadow-2xs">
               <span className="text-[11px] text-rose-800 font-extrabold block uppercase tracking-wider">
-                Perlu Review
+                Perlu Persetujuan
               </span>
               <span className="text-xl font-black text-rose-900 leading-tight">
                 {itemsApprovalRaw.length}
@@ -191,7 +188,7 @@ export default function RegionalManagerDashboardPage() {
 
             <div className="bg-white border-2 border-blue-400 rounded-xl px-3.5 py-2 text-center min-w-[100px] shadow-2xs">
               <span className="text-[11px] text-blue-800 font-extrabold block uppercase tracking-wider">
-                Kuorum Rekanan
+                Penawaran Kontraktor
               </span>
               <span className="text-xl font-black text-blue-900 leading-tight">
                 {itemsKuorumRaw.length}
@@ -215,7 +212,7 @@ export default function RegionalManagerDashboardPage() {
                 }`}
               >
                 <ClipboardCheck className="w-4 h-4 text-rose-600" />
-                <span>1. Menunggu Persetujuan Layer 3</span>
+                <span>Menunggu Persetujuan</span>
                 <span
                   className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                     activeTab === "approval"
@@ -237,7 +234,7 @@ export default function RegionalManagerDashboardPage() {
                 }`}
               >
                 <Vote className="w-4 h-4 text-blue-600" />
-                <span>2. Kuorum &amp; Negosiasi Rekanan</span>
+                <span>Penawaran Kontraktor</span>
                 <span
                   className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                     activeTab === "kuorum"
@@ -257,7 +254,7 @@ export default function RegionalManagerDashboardPage() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari kode tiket, nama item, merk, atau cabang..."
+                placeholder="Cari tiket, nama item, atau cabang..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-white border-2 border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#005BAC] outline-none"
@@ -316,14 +313,14 @@ export default function RegionalManagerDashboardPage() {
           <PengajuanHargaTable
             items={itemsApproval}
             loading={isLoading}
-            title="Daftar Pengajuan Harga Menunggu Persetujuan Regional Manager"
+            title="Pengajuan Menunggu Persetujuan"
             showTanggal={true}
             showCabang={true}
             showStatus={true}
             showHarga={true}
             showCatatanReview={false}
-            emptyTitle="Tidak Ada Tiket Menunggu Persetujuan"
-            emptyDescription="Saat ini tidak ada rekomendasi harga dari S&B Specialist yang memerlukan persetujuan Regional Manager."
+            emptyTitle="Tidak Ada Pengajuan"
+            emptyDescription="Belum ada pengajuan harga yang perlu disetujui."
             onResetFilter={handleResetFilters}
             getDetailHref={(item) => `/regional-manager/${item.id}`}
           />
@@ -333,14 +330,14 @@ export default function RegionalManagerDashboardPage() {
           <PengajuanHargaTable
             items={itemsKuorum}
             loading={isLoading}
-            title="Daftar Pengajuan dalam Tahap Kuorum Rekanan Kontraktor"
+            title="Penawaran Kontraktor"
             showTanggal={true}
             showCabang={true}
             showStatus={true}
             showHarga={true}
             showCatatanReview={true}
-            emptyTitle="Tidak Ada Kuorum Aktif"
-            emptyDescription="Tidak ada pengajuan yang sedang ditawarkan atau bermasalah dalam kuorum rekanan."
+            emptyTitle="Tidak Ada Data"
+            emptyDescription="Belum ada penawaran kontraktor yang sedang berjalan."
             onResetFilter={handleResetFilters}
             getDetailHref={(item) => `/regional-manager/${item.id}`}
           />

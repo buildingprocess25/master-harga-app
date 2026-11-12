@@ -7,11 +7,11 @@ import { requireRolePage } from "@/lib/auth/require-role";
 export default async function RekananParkedRegionalPage() {
   const user = await requireRolePage(["REGIONAL_MANAGER"]);
   return (
-    <AppLayoutShell user={user} breadcrumbs={[{ label: "Regional Manager" }, { label: "Rekanan Parked" }]}>
+    <AppLayoutShell user={user} breadcrumbs={[{ label: "Regional Manager", href: "/regional-manager" }, { label: "Kontraktor Nonaktif" }]}>
       <HeaderHalaman
         icon={Ban}
-        judul="Rekanan Nonaktif (Parked)"
-        deskripsi="Rekanan yang otomatis dinonaktifkan setelah menolak dua putaran berturut-turut di cabang wewenang Anda. Aktifkan kembali setelah mediasi selesai."
+        judul="Kontraktor Nonaktif"
+        deskripsi="Daftar kontraktor yang dinonaktifkan sementara karena menolak penawaran berturut-turut."
       />
       <KontenRekananParked user={user} tampilJudul={false} />
     </AppLayoutShell>

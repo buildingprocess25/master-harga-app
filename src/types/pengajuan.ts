@@ -224,6 +224,12 @@ export interface PengajuanHargaItem {
   toleransi?: string;
   informasiTambahan?: string;
   isTrial?: boolean;
+  trialDurationDays?: number;
+  alasanTrial?: string;
+  trialCatatanEvaluasi?: string;
+  isHasilNegosiasi?: boolean;
+  usulanHargaKontraktor?: number;
+  votingKontraktor?: any;
   catatanReview?: string;
   koefisienMaterial?: string;
   koefisienMaterialItems?: any[];

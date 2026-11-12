@@ -38,36 +38,12 @@ export const MATERIAL_UNIT_OPTIONS = [
 ];
 
 export interface ComboBoxOption {
+  id?: string;
   label: string;
   unit: string;
   defaultPrice?: number;
+  defaultKoefisien?: number;
 }
-
-export const STANDAR_UPAH_OPTIONS: ComboBoxOption[] = [
-  { label: "Pekerja", unit: "Oh", defaultPrice: 175000 },
-  { label: "Tukang Batu", unit: "Oh", defaultPrice: 200000 },
-  { label: "Tukang Kayu", unit: "Oh", defaultPrice: 200000 },
-  { label: "Tukang Besi", unit: "Oh", defaultPrice: 200000 },
-  { label: "Tukang Cat", unit: "Oh", defaultPrice: 200000 },
-  { label: "Tukang Las", unit: "Oh", defaultPrice: 220000 },
-  { label: "Kepala Tukang", unit: "Oh", defaultPrice: 225000 },
-  { label: "Mandor", unit: "Oh", defaultPrice: 245000 },
-];
-
-export const STANDAR_MATERIAL_OPTIONS: ComboBoxOption[] = [
-  { label: "Semen Portland (PC)", unit: "Kg" },
-  { label: "Semen Instan / Mortar", unit: "Zak" },
-  { label: "Semen Pengisi Nat (Grouting)", unit: "Kg" },
-  { label: "Pasir Pasang", unit: "M3" },
-  { label: "Pasir Beton", unit: "M3" },
-  { label: "Keramik / Granit Tile", unit: "M2" },
-  { label: "Sealant Silikon / Hybrid", unit: "Pcs" },
-  { label: "Cat Dasar Alkali", unit: "Kg" },
-  { label: "Cat Tembok Penutup", unit: "Kg" },
-  { label: "Thinner Super", unit: "Ltr" },
-  { label: "Kawat Ikat Beton", unit: "Kg" },
-  { label: "Paku Usuk", unit: "Kg" },
-];
 
 export const unitSelectStyles = {
   control: (base: any, state: any) => ({
@@ -327,6 +303,43 @@ export function RincianKalkulasiKoefisien({
   const [satuanBaru, setSatuanBaru] = useState("Oh");
   const [koefBaru, setKoefBaru] = useState("1.0000");
   const [hargaBaru, setHargaBaru] = useState("0");
+
+  // Opsi Dropdown Dinamis dari Database Master Koefisien
+  const upahOptions: ComboBoxOption[] = useMemo(() => {
+    return pustakaKoefisien
+      .filter((p) => p.kategori === "UPAH")
+      .map((p) => ({
+        id: p.id,
+        label: p.namaKomponen,
+        unit: p.satuan,
+        defaultPrice: p.hargaAcuanDefault ?? undefined,
+        defaultKoefisien: p.nilaiKoefisienDefault,
+      }));
+  }, [pustakaKoefisien]);
+
+  const materialOptions: ComboBoxOption[] = useMemo(() => {
+    return pustakaKoefisien
+      .filter((p) => p.kategori === "MATERIAL")
+      .map((p) => ({
+        id: p.id,
+        label: p.namaKomponen,
+        unit: p.satuan,
+        defaultPrice: p.hargaAcuanDefault ?? undefined,
+        defaultKoefisien: p.nilaiKoefisienDefault,
+      }));
+  }, [pustakaKoefisien]);
+
+  const bongkaranOptions: ComboBoxOption[] = useMemo(() => {
+    return pustakaKoefisien
+      .filter((p) => p.kategori === "BONGKARAN")
+      .map((p) => ({
+        id: p.id,
+        label: p.namaKomponen,
+        unit: p.satuan,
+        defaultPrice: p.hargaAcuanDefault ?? undefined,
+        defaultKoefisien: p.nilaiKoefisienDefault,
+      }));
+  }, [pustakaKoefisien]);
 
   // Filter Items per Kategori (CATATAN: ALAT/Peralatan Kerja DITIADAKAN sesuai permintaan)
   const upahItems = useMemo(() => {
@@ -907,16 +920,21 @@ export function RincianKalkulasiKoefisien({
                   onSelectOption={(opt) => {
                     setNamaBaru(opt.label);
                     setSatuanBaru(opt.unit);
-                    if (opt.defaultPrice) {
+                    if (opt.defaultKoefisien) {
+                      setKoefBaru(String(opt.defaultKoefisien));
+                    }
+                    if (opt.defaultPrice !== undefined && modalKategori !== "MATERIAL") {
                       setHargaBaru(String(opt.defaultPrice));
                     }
                   }}
                   options={
-                    modalKategori === "UPAH" || modalKategori === "BONGKARAN"
-                      ? STANDAR_UPAH_OPTIONS
-                      : STANDAR_MATERIAL_OPTIONS
+                    modalKategori === "UPAH"
+                      ? upahOptions
+                      : modalKategori === "MATERIAL"
+                      ? materialOptions
+                      : bongkaranOptions
                   }
-                  placeholder={`Pilih atau ketik nama ${modalKategori.toLowerCase()}...`}
+                  placeholder={`Pilih dari pustaka master atau ketik nama ${modalKategori.toLowerCase()}...`}
                   autoFocus
                 />
               </div>

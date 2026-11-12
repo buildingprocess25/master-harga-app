@@ -9,11 +9,11 @@ export default async function KatalogRegionalPage({ searchParams }: { searchPara
   const user = await requireRolePage(["REGIONAL_MANAGER"]);
   const wewenang = await getCabangWewenang(user.id, user.role);
   return (
-    <AppLayoutShell user={user} breadcrumbs={[{ label: "Regional Manager" }, { label: "Katalog Harga Regional" }]}>
+    <AppLayoutShell user={user} breadcrumbs={[{ label: "Regional Manager", href: "/regional-manager" }, { label: "Katalog Harga" }]}>
       <HeaderHalaman
         icon={BookOpen}
-        judul="Katalog Harga Regional"
-        deskripsi="Harga satuan resmi yang berlaku di cabang wewenang Anda, lengkap dengan harga khusus wilayah (override)."
+        judul="Katalog Harga"
+        deskripsi="Daftar harga satuan resmi yang berlaku di wilayah cabang Anda."
       />
       <KontenKatalog
         sp={await searchParams}

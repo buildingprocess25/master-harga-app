@@ -49,11 +49,11 @@ export async function POST(
       catatan: catatan.trim(),
     });
 
-    let msg = "Rekomendasi harga disetujui. Kuorum penawaran ke rekanan kontraktor resmi dibuka.";
+    let msg = "Harga disetujui. Penawaran dibuka ke kontraktor.";
     if (keputusan === "KEMBALI_SNB") {
-      msg = "Pengajuan dikembalikan ke S&B Specialist untuk peninjauan ulang margin.";
+      msg = "Pengajuan dikembalikan ke S&B Specialist.";
     } else if (keputusan === "TOLAK") {
-      msg = "Pengajuan harga telah ditolak permanen.";
+      msg = "Pengajuan ditolak.";
     }
 
     return NextResponse.json({
