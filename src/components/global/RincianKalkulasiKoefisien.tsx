@@ -1,16 +1,212 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Calculator,
   Plus,
   Trash2,
-  AlertCircle,
-  CheckCircle2,
+  ChevronDown,
+  Percent,
+  Save,
+  Layers,
 } from "lucide-react";
+import CreatableSelect from "react-select/creatable";
 import { KoefisienDetailItem, KategoriKoefisien } from "@/types";
 import { cn, formatRupiah, formatKoefisien } from "@/lib/utils";
 
+// =============================================================================
+// Standar Pilihan Unit & Pustaka Default
+// =============================================================================
+export const UPAH_UNIT_OPTIONS = [
+  { label: "Oh", value: "Oh" },
+  { label: "Hari", value: "Hari" },
+  { label: "Bulan", value: "Bulan" },
+  { label: "Ls", value: "Ls" },
+];
+
+export const MATERIAL_UNIT_OPTIONS = [
+  { label: "Kg", value: "Kg" },
+  { label: "M2", value: "M2" },
+  { label: "M3", value: "M3" },
+  { label: "M1", value: "M1" },
+  { label: "Pcs", value: "Pcs" },
+  { label: "Btg", value: "Btg" },
+  { label: "Zak", value: "Zak" },
+  { label: "Ltr", value: "Ltr" },
+  { label: "Unit", value: "Unit" },
+  { label: "Ls", value: "Ls" },
+];
+
+export interface ComboBoxOption {
+  label: string;
+  unit: string;
+  defaultPrice?: number;
+}
+
+export const STANDAR_UPAH_OPTIONS: ComboBoxOption[] = [
+  { label: "Pekerja", unit: "Oh", defaultPrice: 175000 },
+  { label: "Tukang Batu", unit: "Oh", defaultPrice: 200000 },
+  { label: "Tukang Kayu", unit: "Oh", defaultPrice: 200000 },
+  { label: "Tukang Besi", unit: "Oh", defaultPrice: 200000 },
+  { label: "Tukang Cat", unit: "Oh", defaultPrice: 200000 },
+  { label: "Tukang Las", unit: "Oh", defaultPrice: 220000 },
+  { label: "Kepala Tukang", unit: "Oh", defaultPrice: 225000 },
+  { label: "Mandor", unit: "Oh", defaultPrice: 245000 },
+];
+
+export const STANDAR_MATERIAL_OPTIONS: ComboBoxOption[] = [
+  { label: "Semen Portland (PC)", unit: "Kg" },
+  { label: "Semen Instan / Mortar", unit: "Zak" },
+  { label: "Semen Pengisi Nat (Grouting)", unit: "Kg" },
+  { label: "Pasir Pasang", unit: "M3" },
+  { label: "Pasir Beton", unit: "M3" },
+  { label: "Keramik / Granit Tile", unit: "M2" },
+  { label: "Sealant Silikon / Hybrid", unit: "Pcs" },
+  { label: "Cat Dasar Alkali", unit: "Kg" },
+  { label: "Cat Tembok Penutup", unit: "Kg" },
+  { label: "Thinner Super", unit: "Ltr" },
+  { label: "Kawat Ikat Beton", unit: "Kg" },
+  { label: "Paku Usuk", unit: "Kg" },
+];
+
+export const unitSelectStyles = {
+  control: (base: any, state: any) => ({
+    ...base,
+    minHeight: "36px",
+    height: "36px",
+    borderRadius: "0.5rem",
+    borderColor: state.isFocused ? "#005BAC" : "#cbd5e1",
+    borderWidth: "2px",
+    fontSize: "12px",
+    backgroundColor: "#ffffff",
+    boxShadow: state.isFocused ? "0 0 0 1px #005BAC" : "none",
+    "&:hover": {
+      borderColor: "#94a3b8",
+    },
+  }),
+  menu: (base: any) => ({
+    ...base,
+    fontSize: "12px",
+    zIndex: 60,
+    backgroundColor: "#ffffff",
+    border: "2px solid #cbd5e1",
+    borderRadius: "0.5rem",
+  }),
+  valueContainer: (base: any) => ({
+    ...base,
+    padding: "0 8px",
+  }),
+  dropdownIndicator: (base: any) => ({
+    ...base,
+    padding: "2px 6px",
+  }),
+  clearIndicator: (base: any) => ({
+    ...base,
+    padding: "2px 6px",
+  }),
+};
+
+// =============================================================================
+// Komponen ComboBoxInput
+// =============================================================================
+function ComboBoxInput({
+  value,
+  onChange,
+  onSelectOption,
+  options,
+  placeholder,
+  autoFocus,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onSelectOption: (opt: ComboBoxOption) => void;
+  options: ComboBoxOption[];
+  placeholder: string;
+  autoFocus?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!value.trim()) return options;
+    const q = value.toLowerCase();
+    return options.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [value, options]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-medium text-slate-900 focus:outline-none focus:border-[#005BAC] pr-8"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-60 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border-2 border-slate-300 rounded-lg shadow-xl py-1 text-xs">
+          {filtered.length > 0 ? (
+            filtered.map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => {
+                  onSelectOption(opt);
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 hover:text-[#005BAC] flex items-center justify-between transition-colors cursor-pointer border-b border-slate-100 last:border-0"
+              >
+                <span className="font-bold text-slate-900">{opt.label}</span>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  {opt.unit}
+                  {opt.defaultPrice
+                    ? ` • Rp ${opt.defaultPrice.toLocaleString("id-ID")}`
+                    : ""}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2.5 text-slate-500 italic text-[11px]">
+              Ketik nama kustom: &quot;{value}&quot;
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Interface Types
+// =============================================================================
 export interface OpsiPustakaKoefisien {
   id: string;
   namaKomponen: string;
@@ -22,13 +218,24 @@ export interface OpsiPustakaKoefisien {
 }
 
 export interface RincianKalkulasiKoefisienProps {
-  koefisienItems: KoefisienDetailItem[];
+  item?: any;
+  koefisienItems?: KoefisienDetailItem[];
   mode?: "readonly" | "editable";
+  isReadOnly?: boolean;
   liveMarginUpah?: number;
   liveMarginMaterial?: number;
   liveMarginBongkaran?: number;
+  initialMarginUpah?: number;
+  initialMarginMaterial?: number;
+  initialMarginBongkaran?: number;
+  initialUpahItems?: any[];
+  initialMaterialItems?: any[];
+  initialUpahBongkaranItems?: any[];
   onMarginChange?: (upah: number, material: number, bongkaran: number) => void;
   onItemsChange?: (items: KoefisienDetailItem[]) => void;
+  onSave?: (data?: any) => void;
+  onBack?: () => void;
+  userRole?: string;
   pustakaKoefisien?: OpsiPustakaKoefisien[];
   onTambahKoefisienBaru?: (data: {
     kategori: string;
@@ -42,345 +249,455 @@ export interface RincianKalkulasiKoefisienProps {
 }
 
 export function RincianKalkulasiKoefisien({
+  item,
   koefisienItems = [],
   mode = "readonly",
+  isReadOnly: isReadOnlyProp,
   liveMarginUpah = 8,
   liveMarginMaterial = 8,
   liveMarginBongkaran = 8,
+  initialMarginUpah,
+  initialMarginMaterial,
+  initialMarginBongkaran,
+  initialUpahItems,
+  initialMaterialItems,
+  initialUpahBongkaranItems,
   onMarginChange,
   onItemsChange,
+  onSave,
+  onBack,
+  userRole = "S&B Specialist",
   pustakaKoefisien = [],
   onTambahKoefisienBaru,
   className = "",
 }: RincianKalkulasiKoefisienProps) {
-  const isEditable = mode === "editable";
+  const isEditable = isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable";
 
-  // State Dialog Tambah Komponen
-  const [modalKategori, setModalKategori] = useState<KategoriKoefisien | null>(null);
-  const [selectedPustakaId, setSelectedPustakaId] = useState("");
-  const [isInputBaru, setIsInputBaru] = useState(false);
-  const [namaBaru, setNamaBaru] = useState("");
-  const [satuanBaru, setSatuanBaru] = useState("m2");
-  const [koefBaru, setKoefBaru] = useState("1.0000");
-  const [hargaBaru, setHargaBaru] = useState("0");
-  const [wajibSurveiBaru, setWajibSurveiBaru] = useState(false);
-
-  // Filter per kategori
-  const upahItems = koefisienItems.filter((i) => i.kategori === "UPAH");
-  const materialItems = koefisienItems.filter((i) => i.kategori === "MATERIAL");
-  const alatItems = koefisienItems.filter((i) => i.kategori === "ALAT");
-  const bongkaranItems = koefisienItems.filter(
-    (i) => i.kategori === "BONGKARAN"
+  // State Margin Numerik Terpusat (Tanpa Slider)
+  const [marginUpahState, setMarginUpahState] = useState<number>(
+    initialMarginUpah ?? liveMarginUpah ?? item?.marginUpah ?? 8,
+  );
+  const [marginMaterialState, setMarginMaterialState] = useState<number>(
+    initialMarginMaterial ?? liveMarginMaterial ?? item?.marginMaterial ?? 8,
+  );
+  const [marginBongkaranState, setMarginBongkaranState] = useState<number>(
+    initialMarginBongkaran ??
+      liveMarginBongkaran ??
+      item?.marginBongkaran ??
+      item?.marginUpah ??
+      8,
   );
 
-  // Kalkulasi Subtotal per Kategori
-  const calculateGroupTotals = (
-    items: KoefisienDetailItem[],
-    marginPercent: number
+  useEffect(() => {
+    const val = initialMarginUpah ?? liveMarginUpah;
+    if (val !== undefined) setMarginUpahState(val);
+  }, [initialMarginUpah, liveMarginUpah]);
+
+  useEffect(() => {
+    const val = initialMarginMaterial ?? liveMarginMaterial;
+    if (val !== undefined) setMarginMaterialState(val);
+  }, [initialMarginMaterial, liveMarginMaterial]);
+
+  useEffect(() => {
+    const val = initialMarginBongkaran ?? liveMarginBongkaran;
+    if (val !== undefined) setMarginBongkaranState(val);
+  }, [initialMarginBongkaran, liveMarginBongkaran]);
+
+  // Handle Perubahan Nilai Margin Numerik
+  const handleMarginInputChange = (
+    kategori: KategoriKoefisien,
+    valStr: string,
   ) => {
-    const hpp = items.reduce(
-      (acc, i) => acc + (Number(i.koefisien) || 0) * (Number(i.hargaAcuan) || 0),
-      0
-    );
-    const total = hpp * (1 + marginPercent / 100);
-    return { hpp, total };
+    const parsed = parseFloat(valStr.replace(",", ".")) || 0;
+    if (kategori === "UPAH") {
+      setMarginUpahState(parsed);
+      onMarginChange?.(parsed, marginMaterialState, marginBongkaranState);
+    } else if (kategori === "MATERIAL") {
+      setMarginMaterialState(parsed);
+      onMarginChange?.(marginUpahState, parsed, marginBongkaranState);
+    } else if (kategori === "BONGKARAN") {
+      setMarginBongkaranState(parsed);
+      onMarginChange?.(marginUpahState, marginMaterialState, parsed);
+    }
   };
 
-  const upahTotals = calculateGroupTotals(upahItems, liveMarginUpah);
-  const materialTotals = calculateGroupTotals(materialItems, liveMarginMaterial);
-  const alatTotals = calculateGroupTotals(alatItems, 0); // Alat tanpa margin
+  // State Modal Tambah Komponen
+  const [modalKategori, setModalKategori] = useState<KategoriKoefisien | null>(null);
+  const [namaBaru, setNamaBaru] = useState("");
+  const [satuanBaru, setSatuanBaru] = useState("Oh");
+  const [koefBaru, setKoefBaru] = useState("1.0000");
+  const [hargaBaru, setHargaBaru] = useState("0");
+
+  // Filter Items per Kategori (CATATAN: ALAT/Peralatan Kerja DITIADAKAN sesuai permintaan)
+  const upahItems = useMemo(() => {
+    if (koefisienItems && koefisienItems.length > 0) {
+      return koefisienItems.filter((i) => i.kategori === "UPAH");
+    }
+    if (initialUpahItems && initialUpahItems.length > 0) {
+      return initialUpahItems.map((u: any) => ({
+        id: u.id || `u-${Math.random()}`,
+        kategori: "UPAH" as KategoriKoefisien,
+        namaKomponen: u.label || u.namaKomponen || "Tenaga Kerja",
+        satuan: u.unit || u.satuan || "Oh",
+        koefisien: Number(u.value || u.koefisien) || 0,
+        hargaAcuan: u.hargaAcuan || 0,
+        subtotal: (Number(u.value || u.koefisien) || 0) * (u.hargaAcuan || 0),
+        isCustom: u.isCustom,
+      }));
+    }
+    return [];
+  }, [koefisienItems, initialUpahItems]);
+
+  const materialItems = useMemo(() => {
+    if (koefisienItems && koefisienItems.length > 0) {
+      return koefisienItems
+        .filter((i) => i.kategori === "MATERIAL")
+        .map((m) => ({ ...m, wajibSurveiToko: true }));
+    }
+    if (initialMaterialItems && initialMaterialItems.length > 0) {
+      return initialMaterialItems.map((m: any) => ({
+        id: m.id || `m-${Math.random()}`,
+        kategori: "MATERIAL" as KategoriKoefisien,
+        namaKomponen: m.label || m.namaKomponen || "Material",
+        satuan: m.unit || m.satuan || "Kg",
+        koefisien: Number(m.value || m.koefisien) || 0,
+        hargaAcuan: m.hargaAcuan || 0,
+        subtotal: 0,
+        wajibSurveiToko: true,
+        isCustom: m.isCustom,
+      }));
+    }
+    return [];
+  }, [koefisienItems, initialMaterialItems]);
+
+  const bongkaranItems = useMemo(() => {
+    if (koefisienItems && koefisienItems.length > 0) {
+      return koefisienItems.filter((i) => i.kategori === "BONGKARAN");
+    }
+    if (initialUpahBongkaranItems && initialUpahBongkaranItems.length > 0) {
+      return initialUpahBongkaranItems.map((b: any) => ({
+        id: b.id || `ub-${Math.random()}`,
+        kategori: "BONGKARAN" as KategoriKoefisien,
+        namaKomponen: b.label || b.namaKomponen || "Bongkaran",
+        satuan: b.unit || b.satuan || "Oh",
+        koefisien: Number(b.value || b.koefisien) || 0,
+        hargaAcuan: b.hargaAcuan || 0,
+        subtotal: (Number(b.value || b.koefisien) || 0) * (b.hargaAcuan || 0),
+        isCustom: b.isCustom,
+      }));
+    }
+    return [];
+  }, [koefisienItems, initialUpahBongkaranItems]);
+
+  // Kalkulasi Subtotal per Grup Komponen
+  const calculateGroupTotals = (
+    items: KoefisienDetailItem[],
+    marginPercent: number,
+  ) => {
+    const hpp = items.reduce(
+      (acc, i) =>
+        acc + (Number(i.koefisien) || 0) * (Number(i.hargaAcuan) || 0),
+      0,
+    );
+    const nominalMargin = Math.round(hpp * (marginPercent / 100));
+    const total = hpp + nominalMargin;
+    return { hpp, nominalMargin, total };
+  };
+
+  const upahTotals = calculateGroupTotals(upahItems, marginUpahState);
+  const materialTotals = calculateGroupTotals(materialItems, marginMaterialState);
   const bongkaranTotals = calculateGroupTotals(
     bongkaranItems,
-    liveMarginBongkaran
+    marginBongkaranState,
   );
 
   const grandTotalHpp =
-    upahTotals.hpp +
-    materialTotals.hpp +
-    alatTotals.hpp +
-    bongkaranTotals.hpp;
-
+    upahTotals.hpp + materialTotals.hpp + bongkaranTotals.hpp;
   const grandTotalAkhir =
-    upahTotals.total +
-    materialTotals.total +
-    alatTotals.total +
-    bongkaranTotals.total;
+    upahTotals.total + materialTotals.total + bongkaranTotals.total;
 
   // Handler Hapus Baris
-  const handleHapusBaris = (itemIndex: number) => {
+  const handleHapusBaris = (itemId: string) => {
     if (!onItemsChange) return;
-    const next = [...koefisienItems];
-    next.splice(itemIndex, 1);
+    const next = koefisienItems.filter((x) => x.id !== itemId);
     onItemsChange(next);
   };
 
   // Handler Ubah Nilai Koefisien / Harga Baris
   const handleUbahNilai = (
-    itemIndex: number,
+    itemId: string,
     field: "koefisien" | "hargaAcuan",
-    val: number
+    val: number,
   ) => {
     if (!onItemsChange) return;
-    const next = [...koefisienItems];
-    next[itemIndex] = {
-      ...next[itemIndex],
-      [field]: val,
-    };
+    const next = koefisienItems.map((it) => {
+      if (it.id === itemId) {
+        return {
+          ...it,
+          [field]: val,
+        };
+      }
+      return it;
+    });
     onItemsChange(next);
   };
 
-  // Handler Tambah Komponen dari Modal
-  const handleSimpanKomponenModal = async () => {
+  // Handler Simpan Komponen Baru
+  const handleSimpanKomponen = async () => {
     if (!modalKategori || !onItemsChange) return;
+    if (!namaBaru.trim()) return;
 
-    if (isInputBaru) {
-      if (!namaBaru.trim()) return;
-      const kVal = parseFloat(koefBaru) || 1;
-      const hVal = parseFloat(hargaBaru) || 0;
+    const kVal = parseFloat(koefBaru) || 1;
+    const hVal = parseFloat(hargaBaru) || 0;
 
-      let pustakaId = "";
-      if (onTambahKoefisienBaru) {
-        try {
-          const res = await onTambahKoefisienBaru({
-            kategori: modalKategori,
-            namaKomponen: namaBaru.trim(),
-            satuan: satuanBaru.trim() || "unit",
-            nilaiKoefisienDefault: kVal,
-            hargaAcuanDefault: hVal,
-            wajibSurveiToko: modalKategori === "MATERIAL" ? wajibSurveiBaru : false,
-          });
-          pustakaId = res?.data?.id || res?.id || "";
-        } catch (e) {
-          console.warn("Gagal simpan ke pustaka:", e);
-        }
+    let pustakaId = "";
+
+    // 1. Cek apakah komponen sudah ada di daftar pustaka
+    const matchExisting = pustakaKoefisien.find(
+      (p) =>
+        p.namaKomponen.toLowerCase() === namaBaru.trim().toLowerCase() &&
+        p.kategori === modalKategori,
+    );
+
+    if (matchExisting) {
+      pustakaId = matchExisting.id;
+    } else if (onTambahKoefisienBaru) {
+      try {
+        const res = await onTambahKoefisienBaru({
+          kategori: modalKategori,
+          namaKomponen: namaBaru.trim(),
+          satuan: satuanBaru.trim() || "Oh",
+          nilaiKoefisienDefault: kVal,
+          hargaAcuanDefault: modalKategori === "MATERIAL" ? 0 : hVal,
+          wajibSurveiToko: modalKategori === "MATERIAL",
+        });
+        pustakaId = res?.data?.id || res?.id || "";
+      } catch (e) {
+        console.warn("Gagal simpan ke pustaka:", e);
       }
-
-      const newItem: KoefisienDetailItem = {
-        id: pustakaId || `new_${Date.now()}`,
-        masterKoefisienId: pustakaId,
-        kategori: modalKategori,
-        namaKomponen: namaBaru.trim(),
-        satuan: satuanBaru.trim() || "unit",
-        koefisien: kVal,
-        hargaAcuan: hVal,
-        wajibSurveiToko: modalKategori === "MATERIAL" ? wajibSurveiBaru : false,
-      };
-
-      onItemsChange([...koefisienItems, newItem]);
-    } else {
-      const selected = pustakaKoefisien.find((p) => p.id === selectedPustakaId);
-      if (!selected) return;
-
-      const newItem: KoefisienDetailItem = {
-        id: selected.id,
-        masterKoefisienId: selected.id,
-        kategori: modalKategori,
-        namaKomponen: selected.namaKomponen,
-        satuan: selected.satuan,
-        koefisien: selected.nilaiKoefisienDefault || 1,
-        hargaAcuan: selected.hargaAcuanDefault || 0,
-        wajibSurveiToko: selected.wajibSurveiToko,
-      };
-
-      onItemsChange([...koefisienItems, newItem]);
     }
+
+    const newItem: KoefisienDetailItem = {
+      id: pustakaId || `item_${Date.now()}`,
+      masterKoefisienId: pustakaId || `item_${Date.now()}`,
+      kategori: modalKategori,
+      namaKomponen: namaBaru.trim(),
+      satuan: satuanBaru.trim() || "Oh",
+      koefisien: kVal,
+      hargaAcuan: modalKategori === "MATERIAL" ? 0 : hVal,
+      wajibSurveiToko: modalKategori === "MATERIAL",
+      isCustom: true,
+    };
+
+    onItemsChange([...koefisienItems, newItem]);
 
     // Reset Modal
     setModalKategori(null);
-    setSelectedPustakaId("");
-    setIsInputBaru(false);
     setNamaBaru("");
-    setSatuanBaru("m2");
+    setSatuanBaru("Oh");
     setKoefBaru("1.0000");
     setHargaBaru("0");
-    setWajibSurveiBaru(false);
   };
 
-  // Render Tabel Grup Komponen
+  // Render Tabel Grup Komponen (Gaya Solid master-harga-app)
   const renderGroup = (
     title: string,
     items: KoefisienDetailItem[],
     currentMargin: number,
-    kategori: KategoriKoefisien
+    kategori: KategoriKoefisien,
+    totals: { hpp: number; nominalMargin: number; total: number },
   ) => {
-    if (items.length === 0 && !isEditable) return null;
-
-    const groupHpp = items.reduce(
-      (sum, it) => sum + (Number(it.koefisien) || 0) * (Number(it.hargaAcuan) || 0),
-      0
-    );
-    const groupNominalMargin = groupHpp * (currentMargin / 100);
-    const groupTotalAkhir = groupHpp + groupNominalMargin;
+    const isUpah = kategori === "UPAH" || kategori === "BONGKARAN";
 
     return (
       <div className="mb-4 bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
-        <div className="bg-slate-100 px-3.5 py-2.5 border-b-2 border-slate-300 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black text-slate-800 tracking-wide uppercase">
+        {/* Header Grup */}
+        <div className="bg-slate-100 px-4 py-3 border-b-2 border-slate-300 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-2.5 h-4 rounded-xs ${
+                kategori === "UPAH"
+                  ? "bg-[#005BAC]"
+                  : kategori === "MATERIAL"
+                  ? "bg-emerald-600"
+                  : "bg-amber-600"
+              }`}
+            />
+            <span className="text-xs font-black text-slate-900 tracking-wide uppercase">
               {title}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {kategori !== "ALAT" && (
-              onMarginChange ? (
-                <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-0.5 rounded-lg">
-                  <span className="text-[11px] font-bold text-amber-900">
-                    Margin {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}:
-                  </span>
-                  <div className="relative w-16">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="100"
-                      value={currentMargin}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        if (kategori === "UPAH") {
-                          onMarginChange(val, liveMarginMaterial, liveMarginBongkaran);
-                        } else if (kategori === "MATERIAL") {
-                          onMarginChange(liveMarginUpah, val, liveMarginBongkaran);
-                        } else if (kategori === "BONGKARAN") {
-                          onMarginChange(liveMarginUpah, liveMarginMaterial, val);
-                        }
-                      }}
-                      className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-900 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
-                    />
-                    <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-600 font-bold">
-                      %
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-xs font-bold text-slate-700 font-mono bg-white border border-slate-300 px-2 py-0.5 rounded">
-                  Margin: {currentMargin}%
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Input Margin Numerik Langsung (Tanpa Slider) */}
+            {userRole === "S&B Specialist" && (
+              <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] font-bold text-amber-950">
+                  Margin {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}:
                 </span>
-              )
+                <div className="relative w-18">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={currentMargin}
+                    disabled={!isEditable}
+                    onChange={(e) =>
+                      handleMarginInputChange(kategori, e.target.value)
+                    }
+                    className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                  />
+                  <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-700 font-bold">
+                    %
+                  </span>
+                </div>
+              </div>
             )}
 
+            {/* Tombol Tambah Komponen */}
             {isEditable && (
               <button
                 type="button"
                 onClick={() => {
                   setModalKategori(kategori);
-                  setSelectedPustakaId("");
-                  setIsInputBaru(false);
-                  setSatuanBaru(kategori === "UPAH" ? "Oh" : "m2");
-                  setWajibSurveiBaru(kategori === "MATERIAL");
+                  setNamaBaru("");
+                  setSatuanBaru(isUpah ? "Oh" : item?.satuan || "Kg");
+                  setHargaBaru(isUpah ? "175000" : "0");
+                  setKoefBaru("1.0000");
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Tambah {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Komponen"}</span>
+                <span>
+                  Tambah {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}
+                </span>
               </button>
             )}
           </div>
         </div>
 
+        {/* Tabel Komponen */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
-              <tr className="border-b-2 border-slate-200 text-slate-600 font-bold text-[11px] bg-slate-50">
-                <th className="py-2.5 pl-3 w-10">No</th>
+              <tr className="border-b-2 border-slate-200 text-slate-700 font-bold text-[11px] bg-slate-50 uppercase tracking-wider">
+                <th className="py-2.5 pl-3 w-10 text-center">No</th>
                 <th className="py-2.5">Komponen Pekerjaan</th>
-                <th className="py-2.5 w-20">Satuan</th>
+                <th className="py-2.5 w-24">Satuan</th>
                 <th className="py-2.5 text-right w-28">Koefisien</th>
-                <th className="py-2.5 text-right w-36">Harga Acuan</th>
-                <th className="py-2.5 text-right w-32">Subtotal</th>
-                <th className="py-2.5 pr-3 text-right w-36 font-extrabold text-[#005BAC]">
+                <th className="py-2.5 text-right w-36">Harga Acuan (Rp)</th>
+                <th className="py-2.5 text-right w-32">Subtotal Dasar</th>
+                <th className="py-2.5 pr-3 text-right w-36 font-black text-[#005BAC]">
                   Total (+{currentMargin}%)
                 </th>
-                {isEditable && <th className="py-2.5 w-10 text-center pr-2">Aksi</th>}
+                {isEditable && (
+                  <th className="py-2.5 w-12 text-center pr-2">Aksi</th>
+                )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 font-mono tabular-nums text-slate-800">
+            <tbody className="divide-y-2 divide-slate-100 font-mono tabular-nums text-slate-900">
               {items.length === 0 ? (
                 <tr>
                   <td
                     colSpan={isEditable ? 8 : 7}
-                    className="py-4 text-center text-slate-400 font-sans italic"
+                    className="py-5 text-center text-slate-500 font-sans italic text-xs"
                   >
-                    Belum ada rincian komponen {title.toLowerCase()}.
+                    Belum ada komponen {title.toLowerCase()} yang ditambahkan.
                   </td>
                 </tr>
               ) : (
-                items.map((item, localIdx) => {
-                  const globalIdx = koefisienItems.findIndex((x) => x === item);
-                  const subtotal = (Number(item.koefisien) || 0) * (Number(item.hargaAcuan) || 0);
-                  const totalItem = subtotal * (1 + currentMargin / 100);
+                items.map((rowItem, idx) => {
+                  const subtotal =
+                    (Number(rowItem.koefisien) || 0) *
+                    (Number(rowItem.hargaAcuan) || 0);
+                  const totalRow =
+                    subtotal + Math.round(subtotal * (currentMargin / 100));
 
                   return (
-                    <tr key={item.id || localIdx} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-2.5 pl-3 text-slate-500 font-sans font-semibold">
-                        {localIdx + 1}
+                    <tr
+                      key={rowItem.id || idx}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="py-2.5 pl-3 text-center text-slate-500 font-sans font-semibold">
+                        {idx + 1}
                       </td>
                       <td className="py-2.5 font-sans font-bold text-slate-900">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span>{item.namaKomponen}</span>
-                          {item.wajibSurveiToko && (
-                            <span className="text-[10px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded">
-                              Disurvei BC
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>{rowItem.namaKomponen}</span>
+                          {rowItem.wajibSurveiToko && (
+                            <span className="text-[10px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded uppercase">
+                              Survei BC (3 Toko)
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-2.5 text-slate-600 font-sans">{item.satuan}</td>
+                      <td className="py-2.5 text-slate-700 font-sans font-medium">
+                        {rowItem.satuan}
+                      </td>
 
-                      {/* Koefisien (Bisa diedit bila mode editable) */}
+                      {/* Input Koefisien */}
                       <td className="py-2 text-right">
                         {isEditable ? (
                           <input
                             type="number"
                             step="0.0001"
-                            min="0.0001"
-                            value={item.koefisien || ""}
+                            min="0"
+                            value={rowItem.koefisien || ""}
                             onChange={(e) =>
                               handleUbahNilai(
-                                globalIdx,
+                                rowItem.id,
                                 "koefisien",
-                                parseFloat(e.target.value) || 0
+                                parseFloat(e.target.value) || 0,
                               )
                             }
                             className="w-24 text-right px-2 py-1 bg-white border-2 border-slate-300 rounded font-bold text-slate-900 focus:border-[#005BAC] outline-none"
                           />
                         ) : (
                           <span className="font-bold text-slate-900">
-                            {formatKoefisien(item.koefisien)}
+                            {formatKoefisien(rowItem.koefisien)}
                           </span>
                         )}
                       </td>
 
                       {/* Harga Acuan */}
                       <td className="py-2 text-right text-slate-700">
-                        {isEditable && !item.wajibSurveiToko ? (
+                        {isEditable && !rowItem.wajibSurveiToko ? (
                           <input
                             type="number"
                             step="500"
                             min="0"
-                            value={item.hargaAcuan || ""}
+                            value={rowItem.hargaAcuan || ""}
                             onChange={(e) =>
                               handleUbahNilai(
-                                globalIdx,
+                                rowItem.id,
                                 "hargaAcuan",
-                                parseFloat(e.target.value) || 0
+                                parseFloat(e.target.value) || 0,
                               )
                             }
                             className="w-28 text-right px-2 py-1 bg-white border-2 border-slate-300 rounded font-bold text-slate-900 focus:border-[#005BAC] outline-none"
                           />
+                        ) : rowItem.wajibSurveiToko ? (
+                          <span className="text-[11px] text-slate-600 italic font-sans font-medium">
+                            {rowItem.hargaAcuan > 0
+                              ? formatRupiah(rowItem.hargaAcuan)
+                              : "Survei BC"}
+                          </span>
                         ) : (
-                          <span>{formatRupiah(item.hargaAcuan)}</span>
+                          <span className="font-semibold">
+                            {formatRupiah(rowItem.hargaAcuan)}
+                          </span>
                         )}
                       </td>
 
                       {/* Subtotal */}
-                      <td className="py-2.5 text-right text-slate-700 font-semibold">
+                      <td className="py-2.5 text-right text-slate-800 font-semibold">
                         {formatRupiah(subtotal)}
                       </td>
 
                       {/* Total (+Margin) */}
                       <td className="py-2.5 pr-3 text-right font-black text-slate-900">
-                        {formatRupiah(totalItem)}
+                        {formatRupiah(totalRow)}
                       </td>
 
                       {/* Tombol Hapus */}
@@ -388,8 +705,8 @@ export function RincianKalkulasiKoefisien({
                         <td className="py-2 text-center pr-2">
                           <button
                             type="button"
-                            title="Hapus komponen"
-                            onClick={() => handleHapusBaris(globalIdx)}
+                            title="Hapus baris"
+                            onClick={() => handleHapusBaris(rowItem.id)}
                             className="p-1 rounded text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -405,16 +722,25 @@ export function RincianKalkulasiKoefisien({
         </div>
 
         {/* Subtotal Grup Footer */}
-        <div className="bg-slate-50 border-t-2 border-slate-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-700">
+        <div className="bg-slate-50 border-t-2 border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-800">
           <div className="flex items-center gap-4">
-            <span>Dasar: <strong className="text-slate-900">{formatRupiah(groupHpp)}</strong></span>
+            <span>
+              Dasar: <strong className="text-slate-900 font-mono font-bold">{formatRupiah(totals.hpp)}</strong>
+            </span>
             {currentMargin > 0 && (
-              <span>Margin ({currentMargin}%): <strong className="text-amber-800">{formatRupiah(groupNominalMargin)}</strong></span>
+              <span>
+                + Margin ({currentMargin}%):{" "}
+                <strong className="text-amber-800 font-mono font-bold">
+                  {formatRupiah(totals.nominalMargin)}
+                </strong>
+              </span>
             )}
           </div>
           <div className="font-bold text-slate-900">
-            Total {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : kategori === "ALAT" ? "Alat" : "Bongkaran"}:{" "}
-            <span className="text-[#005BAC] font-black">{formatRupiah(groupTotalAkhir)}</span>
+            Total {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}:{" "}
+            <span className="text-[#005BAC] font-black font-mono text-sm">
+              {formatRupiah(totals.total)}
+            </span>
           </div>
         </div>
       </div>
@@ -425,62 +751,87 @@ export function RincianKalkulasiKoefisien({
     <div
       className={cn(
         "bg-white rounded-2xl border-2 border-slate-300 shadow-2xs overflow-hidden",
-        className
+        className,
       )}
     >
-      {/* Header Card */}
-      <div className="bg-slate-50 border-b-2 border-slate-200 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#005BAC] text-white flex items-center justify-center font-bold">
-            <Calculator className="w-4 h-4" />
+      {/* Header Utama Card (Sesuai Gaya master-harga-app) */}
+      <div className="bg-slate-50 border-b-2 border-slate-200 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#005BAC] text-white flex items-center justify-center font-bold shadow-xs">
+            <Calculator className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-xs font-black text-slate-900 tracking-wide uppercase">
-              Rincian AHSP &amp; Live Margin
+              Rincian Koefisien
             </h3>
             <p className="text-[11px] text-slate-500 font-medium">
-              Kalkulasi otomatis harga satuan standar berbasis koefisien resep
+              Kalkulasi otomatis harga satuan standar berbasis koefisien resep (Tenaga Kerja, Bahan, dan Bongkaran)
             </p>
           </div>
         </div>
 
-        {isEditable && (
-          <span className="text-xs font-bold text-white bg-[#005BAC] px-2.5 py-1 rounded-md">
-            Mode Editor Koefisien
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {item?.status === "USULAN_KONTRAKTOR" && (
+            <span className="text-xs font-bold text-amber-900 bg-amber-100 border-2 border-amber-300 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+              <Percent className="w-3.5 h-3.5 text-amber-700" />
+              <span>Mode Negosiasi Kontraktor</span>
+            </span>
+          )}
+          {isEditable ? (
+            <span className="text-xs font-bold text-white bg-[#005BAC] px-3 py-1 rounded-md shadow-2xs">
+              Mode Edit
+            </span>
+          ) : (
+            <span className="text-xs font-bold text-slate-700 bg-white border-2 border-slate-300 px-3 py-1 rounded-md">
+              Hanya Baca
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Rincian Grup Tabel Komponen */}
-      <div className="p-4 space-y-2">
-        {renderGroup("A. Tenaga Kerja (Upah)", upahItems, liveMarginUpah, "UPAH")}
+      {/* Rincian Grup Tabel Komponen (Peralatan Kerja TIDAK ADA) */}
+      <div className="p-4 sm:p-5 space-y-4">
+        {/* A. Tenaga Kerja (Upah) */}
+        {renderGroup(
+          "A. Tenaga Kerja (Upah)",
+          upahItems,
+          marginUpahState,
+          "UPAH",
+          upahTotals,
+        )}
+
+        {/* B. Bahan / Material */}
         {renderGroup(
           "B. Bahan / Material",
           materialItems,
-          liveMarginMaterial,
-          "MATERIAL"
-        )}
-        {renderGroup("C. Peralatan Kerja (Alat)", alatItems, 0, "ALAT")}
-        {renderGroup(
-          "D. Pekerjaan Bongkaran",
-          bongkaranItems,
-          liveMarginBongkaran,
-          "BONGKARAN"
+          marginMaterialState,
+          "MATERIAL",
+          materialTotals,
         )}
 
+        {/* C. Pekerjaan Bongkaran (Jika ada atau item mendukung bongkaran) */}
+        {(bongkaranItems.length > 0 || item?.isTermasukBongkaran) &&
+          renderGroup(
+            "C. Pekerjaan Bongkaran",
+            bongkaranItems,
+            marginBongkaranState,
+            "BONGKARAN",
+            bongkaranTotals,
+          )}
+
         {/* Ringkasan Total Akhir AHSP */}
-        <div className="mt-4 pt-3 border-t-2 border-slate-300 bg-slate-50 p-4 rounded-xl border-2 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="mt-5 pt-3 border-t-2 border-slate-300 bg-slate-50 p-4 rounded-xl border-2 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <span className="text-xs text-slate-600 font-bold block">
               Total HPP Murni (Sebelum Margin):
             </span>
-            <span className="font-mono text-base font-bold text-slate-800">
+            <span className="font-mono text-base font-bold text-slate-900">
               {formatRupiah(grandTotalHpp)}
             </span>
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-black text-slate-700 uppercase tracking-wide block">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wide block">
               Total Harga Satuan (+Margin):
             </span>
             <span className="font-mono text-2xl font-black text-[#005BAC] tabular-nums">
@@ -488,158 +839,169 @@ export function RincianKalkulasiKoefisien({
             </span>
           </div>
         </div>
+
+        {/* Footer Tombol Simpan / Kembali jika prop disediakan */}
+        {(onSave || onBack) && (
+          <div className="pt-3 border-t-2 border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <span className="text-xs text-slate-500 italic">
+              {item?.status === "PENDING_SB_SPECIALIST" || item?.status === "USULAN_KONTRAKTOR"
+                ? "Margin yang disimpan akan otomatis memperbarui harga penawaran dan diteruskan ke sistem."
+                : item?.isTrial
+                ? "Koefisien & margin akan disimpan sebagai acuan perhitungan item trial."
+                : "Koefisien akan menjadi acuan survei harga 3 toko oleh Building Coordinator."}
+            </span>
+            <div className="flex items-center gap-3 self-end sm:self-auto">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="px-4 py-2 border-2 border-slate-300 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Kembali
+                </button>
+              )}
+              {onSave && (
+                <button
+                  type="button"
+                  onClick={() => onSave()}
+                  className="px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Simpan</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Modal Sederhana Tambah Komponen Baru / Pilih dari Pustaka */}
+      {/* Modal Tambah Komponen Baru (Gaya Solid master-harga-app) */}
       {modalKategori && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 max-w-md w-full shadow-xl space-y-4">
+          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 max-w-lg w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
-              <h4 className="text-sm font-black text-slate-900 uppercase">
-                Tambah Komponen {modalKategori}
-              </h4>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-4 bg-[#005BAC] rounded-xs" />
+                <h4 className="text-sm font-black text-slate-900 uppercase">
+                  Tambah Komponen {modalKategori}
+                </h4>
+              </div>
               <button
                 type="button"
                 onClick={() => setModalKategori(null)}
-                className="text-slate-400 hover:text-slate-700 font-bold text-sm cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 font-bold text-sm cursor-pointer p-1"
               >
                 ✕
               </button>
             </div>
 
-            {/* Toggle Pilih dari Pustaka vs Input Baru */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setIsInputBaru(false)}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-2 cursor-pointer ${
-                  !isInputBaru
-                    ? "bg-[#005BAC] border-[#005BAC] text-white"
-                    : "bg-white border-slate-300 text-slate-700"
-                }`}
-              >
-                Pilih dari Pustaka
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsInputBaru(true)}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border-2 cursor-pointer ${
-                  isInputBaru
-                    ? "bg-[#005BAC] border-[#005BAC] text-white"
-                    : "bg-white border-slate-300 text-slate-700"
-                }`}
-              >
-                Ketik Komponen Baru
-              </button>
-            </div>
-
-            {!isInputBaru ? (
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Pilih Komponen:
+            <div className="space-y-3.5">
+              {/* Nama Komponen dengan ComboBoxInput */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1">
+                  Nama Komponen (Pilih Standar atau Ketik Kustom) <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={selectedPustakaId}
-                  onChange={(e) => setSelectedPustakaId(e.target.value)}
-                  className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#005BAC]"
-                >
-                  <option value="">-- Pilih dari Pustaka Standar --</option>
-                  {pustakaKoefisien
-                    .filter((p) => p.kategori === modalKategori)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.namaKomponen} ({p.satuan}) {p.hargaAcuanDefault ? `- ${formatRupiah(p.hargaAcuanDefault)}` : ""}
-                      </option>
-                    ))}
-                </select>
-                <p className="text-[11px] text-slate-500">
-                  Komponen akan otomatis dimuat dengan nilai koefisien dan harga acuan standar.
-                </p>
+                <ComboBoxInput
+                  value={namaBaru}
+                  onChange={setNamaBaru}
+                  onSelectOption={(opt) => {
+                    setNamaBaru(opt.label);
+                    setSatuanBaru(opt.unit);
+                    if (opt.defaultPrice) {
+                      setHargaBaru(String(opt.defaultPrice));
+                    }
+                  }}
+                  options={
+                    modalKategori === "UPAH" || modalKategori === "BONGKARAN"
+                      ? STANDAR_UPAH_OPTIONS
+                      : STANDAR_MATERIAL_OPTIONS
+                  }
+                  placeholder={`Pilih atau ketik nama ${modalKategori.toLowerCase()}...`}
+                  autoFocus
+                />
               </div>
-            ) : (
-              <div className="space-y-3">
+
+              {/* Satuan & Koefisien */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Nama Komponen:
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Satuan <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={namaBaru}
-                    onChange={(e) => setNamaBaru(e.target.value)}
-                    placeholder="Contoh: Semen Portland, Mandor..."
-                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#005BAC]"
+                  <CreatableSelect
+                    styles={unitSelectStyles}
+                    options={
+                      modalKategori === "UPAH" || modalKategori === "BONGKARAN"
+                        ? UPAH_UNIT_OPTIONS
+                        : MATERIAL_UNIT_OPTIONS
+                    }
+                    value={
+                      satuanBaru
+                        ? { label: satuanBaru, value: satuanBaru }
+                        : null
+                    }
+                    onChange={(selected: any) =>
+                      setSatuanBaru(selected ? selected.value : "Oh")
+                    }
+                    placeholder="Pilih/ketik satuan"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Satuan:
-                    </label>
-                    <input
-                      type="text"
-                      value={satuanBaru}
-                      onChange={(e) => setSatuanBaru(e.target.value)}
-                      placeholder="Oh, m2, kg..."
-                      className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-[#005BAC]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Koefisien Acuan:
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={koefBaru}
-                      onChange={(e) => setKoefBaru(e.target.value)}
-                      className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-[#005BAC]"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Harga Acuan Awal (Rp):
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Koefisien <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
-                    step="500"
-                    value={hargaBaru}
-                    onChange={(e) => setHargaBaru(e.target.value)}
-                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-[#005BAC]"
+                    step="0.0001"
+                    min="0.0001"
+                    value={koefBaru}
+                    onChange={(e) => setKoefBaru(e.target.value)}
+                    placeholder="0.0000"
+                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
                   />
                 </div>
-
-                {modalKategori === "MATERIAL" && (
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer pt-1">
-                    <input
-                      type="checkbox"
-                      checked={wajibSurveiBaru}
-                      onChange={(e) => setWajibSurveiBaru(e.target.checked)}
-                      className="rounded border-slate-300 accent-[#005BAC]"
-                    />
-                    <span>Wajib disurvei oleh Building Coordinator di cabang</span>
-                  </label>
-                )}
               </div>
-            )}
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t-2 border-slate-200">
+              {/* Harga Acuan & Keterangan Survei Material */}
+              {modalKategori !== "MATERIAL" ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Harga Acuan Upah (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={hargaBaru}
+                    onChange={(e) => setHargaBaru(e.target.value)}
+                    placeholder="0"
+                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+              ) : (
+                <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-start gap-2.5 text-xs text-blue-950 font-medium">
+                  <p>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Tombol Aksi Modal */}
+            <div className="flex justify-end gap-2.5 pt-3 border-t-2 border-slate-200">
               <button
                 type="button"
                 onClick={() => setModalKategori(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border-2 border-slate-300 rounded-xl hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 border-2 border-slate-300 text-slate-700 bg-white hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
-                disabled={!isInputBaru && !selectedPustakaId}
-                onClick={handleSimpanKomponenModal}
-                className="px-4 py-2 text-xs font-bold text-white bg-[#005BAC] rounded-xl hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                onClick={handleSimpanKomponen}
+                disabled={!namaBaru.trim()}
+                className="px-5 py-2 bg-[#005BAC] hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition cursor-pointer"
               >
-                Tambahkan
+                Simpan Komponen
               </button>
             </div>
           </div>

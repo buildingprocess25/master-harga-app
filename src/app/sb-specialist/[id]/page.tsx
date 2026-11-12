@@ -3,49 +3,104 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Select from "react-select";
 import {
   ArrowLeft,
   CheckCircle2,
   XCircle,
   RotateCcw,
-  SlidersHorizontal,
-  Send,
-  Save,
-  AlertCircle,
   FileText,
-  Building2,
+  AlertCircle,
+  Store,
   Clock,
-  Sparkles,
+  Plus,
+  Trash2,
+  Save,
+  Send,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
-import { DetailSpesifikasiCard } from "@/components/global/DetailSpesifikasiCard";
+import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import {
   RincianKalkulasiKoefisien,
   OpsiPustakaKoefisien,
 } from "@/components/global/RincianKalkulasiKoefisien";
+import { VotingKontraktorMonitorCard } from "@/components/global/VotingKontraktorMonitorCard";
 import {
   PengajuanHargaItem,
   UserSessionProfile,
   KoefisienDetailItem,
 } from "@/types";
-import { formatRupiah } from "@/lib/utils";
 
 const OPTIONS_REVISI = [
+  "Kategori Pekerjaan",
   "Nama Material",
-  "Ukuran & Dimensi",
-  "Merk & Produsen",
-  "Warna Standar",
+  "Ukuran",
+  "Merk",
+  "Warna",
   "Tipe / Motif",
   "Ketebalan",
   "Finishing Permukaan",
-  "Toleransi Teknis",
-  "Lokasi / Area Toko",
-  "Informasi Spesifikasi Lainnya",
+  "Toleransi",
+  "Implementasi / Posisi",
+  "Lokasi / Area Gerai",
+  "Informasi Tambahan",
 ];
+
+// Solid Anti-Slop Style Config for React Select
+const solidComboboxStyles = {
+  control: (base: any, state: any) => ({
+    ...base,
+    minHeight: "36px",
+    height: "36px",
+    borderRadius: "0.5rem",
+    borderColor: state.isFocused ? "#005BAC" : "#cbd5e1",
+    borderWidth: "2px",
+    fontSize: "12px",
+    backgroundColor: state.isDisabled ? "#f1f5f9" : "#ffffff",
+    boxShadow: "none",
+    "&:hover": {
+      borderColor: state.isFocused ? "#005BAC" : "#94a3b8",
+    },
+  }),
+  menu: (base: any) => ({
+    ...base,
+    fontSize: "12px",
+    zIndex: 9999,
+    borderRadius: "0.5rem",
+    border: "2px solid #cbd5e1",
+    backgroundColor: "#ffffff",
+    boxShadow:
+      "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+  }),
+  menuPortal: (base: any) => ({
+    ...base,
+    zIndex: 9999,
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    fontSize: "12px",
+    backgroundColor: state.isSelected
+      ? "#005BAC"
+      : state.isFocused
+      ? "#e0f2fe"
+      : "#ffffff",
+    color: state.isSelected ? "#ffffff" : "#0f172a",
+    fontWeight: state.isSelected ? "700" : "500",
+    cursor: state.isDisabled ? "not-allowed" : "pointer",
+  }),
+};
+
+type ActionType =
+  | "none"
+  | "approve_spec"
+  | "reject_spec"
+  | "revise_spec"
+  | "approve_harga"
+  | "reject_harga";
 
 export default function SBSpecialistDetailPage() {
   const params = useParams();
@@ -58,23 +113,35 @@ export default function SBSpecialistDetailPage() {
 
   // State Resep AHSP
   const [koefisienList, setKoefisienList] = useState<KoefisienDetailItem[]>([]);
-  const [pustakaKoefisien, setPustakaKoefisien] = useState<OpsiPustakaKoefisien[]>([]);
+  const [pustakaKoefisien, setPustakaKoefisien] = useState<
+    OpsiPustakaKoefisien[]
+  >([]);
 
-  // State Live Margin
+  // State Live Margin (Direct inputan, bukan drag bar)
   const [liveMarginUpah, setLiveMarginUpah] = useState<number>(8);
   const [liveMarginMaterial, setLiveMarginMaterial] = useState<number>(8);
   const [liveMarginBongkaran, setLiveMarginBongkaran] = useState<number>(8);
 
-  // State Dialog Revisi Spesifikasi
-  const [isRevisiModalOpen, setIsRevisiModalOpen] = useState(false);
-  const [selectedRevisiFields, setSelectedRevisiFields] = useState<string[]>([]);
-  const [catatanRevisi, setCatatanRevisi] = useState("");
+  const handleMarginChange = (
+    upah: number,
+    mat: number,
+    bongkaran: number
+  ) => {
+    setLiveMarginUpah(upah);
+    setLiveMarginMaterial(mat);
+    setLiveMarginBongkaran(bongkaran);
+  };
 
-  // State Status Spesifikasi Valid
-  const [isSpekValid, setIsSpekValid] = useState(false);
+  // State Aksi Interaktif Halaman
+  const [activeAction, setActiveAction] = useState<ActionType>("none");
+  const [catatan, setCatatan] = useState("");
+  const [isSpekDisetujui, setIsSpekDisetujui] = useState(false);
+  const [revisiList, setRevisiList] = useState<
+    { field: string; note: string }[]
+  >([{ field: "", note: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch Data Pengajuan & Master Koefisien
+  // Load Data Pengajuan & Master Koefisien
   const loadData = async () => {
     if (!id) return;
     setIsLoading(true);
@@ -101,13 +168,10 @@ export default function SBSpecialistDetailPage() {
           setLiveMarginMaterial(d.liveMarginMaterial ?? 8);
           setLiveMarginBongkaran(d.liveMarginBongkaran ?? 8);
 
-          // Jika status sudah lewat DIAJUKAN, berarti spek sudah divalidasi
-          if (d.status !== "DIAJUKAN" && d.status !== "PERLU_REVISI") {
-            setIsSpekValid(true);
-          }
-
           // 3. Fetch Pustaka Koefisien (berdasarkan divisi tiket)
-          const pRes = await fetch(`/api/master-koefisien?divisiId=${d.divisiId || ""}`);
+          const pRes = await fetch(
+            `/api/master-koefisien?divisiId=${d.divisiId || ""}`
+          );
           if (pRes.ok) {
             const pJson = await pRes.json();
             if (pJson.success && Array.isArray(pJson.data)) {
@@ -145,21 +209,9 @@ export default function SBSpecialistDetailPage() {
     }
   };
 
-  // ===================== AKSI VALIDASI SPESIFIKASI =====================
-
-  const handleSetujuiSpek = async () => {
-    const confirm = await Swal.fire({
-      title: "Setujui Spesifikasi?",
-      text: "Spesifikasi dinyatakan sesuai standar. Selanjutnya Anda akan menyusun koefisien.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#005BAC",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Ya, Setujui Spek",
-      cancelButtonText: "Batal",
-    });
-
-    if (!confirm.isConfirmed) return;
+  // =================== HANDLER PERSETUJUAN SPESIFIKASI ===================
+  const handleApproveSpec = async () => {
+    if (!item) return;
 
     try {
       setIsSubmitting(true);
@@ -168,16 +220,20 @@ export default function SBSpecialistDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keputusan: "SETUJU",
-          catatan: "Spesifikasi disetujui untuk penyusunan AHSP.",
+          catatan:
+            catatan.trim() ||
+            "Spesifikasi disetujui untuk penyusunan resep AHSP oleh S&B Specialist.",
         }),
       });
 
       const json = await res.json();
       if (json.success) {
-        setIsSpekValid(true);
+        setIsSpekDisetujui(true);
+        setActiveAction("none");
+        setCatatan("");
         Swal.fire({
           title: "Spesifikasi Disetujui",
-          text: "Silakan buat koefisien.",
+          text: "Silakan buat koefisien pada bagian di bawah ini.",
           icon: "success",
           confirmButtonColor: "#005BAC",
         });
@@ -191,15 +247,24 @@ export default function SBSpecialistDetailPage() {
     }
   };
 
-  const handleKirimRevisiSpek = async () => {
-    if (selectedRevisiFields.length === 0) {
-      Swal.fire("Perhatian", "Pilih minimal satu bagian yang perlu diperbaiki.", "warning");
+  const handleReviseSpec = async () => {
+    if (!item) return;
+
+    const validRevisi = revisiList.filter((r) => r.field.trim() && r.note.trim());
+    if (validRevisi.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Perhatian",
+        text: "Pilih minimal satu bagian yang perlu direvisi beserta catatannya.",
+        confirmButtonColor: "#ED1C24",
+      });
       return;
     }
-    if (!catatanRevisi.trim()) {
-      Swal.fire("Perhatian", "Tuliskan catatan perbaikan agar B&M Manager memahami yang perlu direvisi.", "warning");
-      return;
-    }
+
+    const compiledCatatan = validRevisi
+      .map((r) => `- ${r.field}: ${r.note}`)
+      .join("\n");
+    const compiledRevisiFields = validRevisi.map((r) => r.field);
 
     try {
       setIsSubmitting(true);
@@ -208,8 +273,8 @@ export default function SBSpecialistDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keputusan: "REVISI",
-          catatan: catatanRevisi.trim(),
-          revisiFields: selectedRevisiFields,
+          catatan: compiledCatatan,
+          revisiFields: compiledRevisiFields,
         }),
       });
 
@@ -217,8 +282,8 @@ export default function SBSpecialistDetailPage() {
       if (json.success) {
         await Swal.fire({
           title: "Pengajuan Dikembalikan",
-          text: "Catatan perbaikan telah dikirim ke B&M Manager cabang.",
-          icon: "success",
+          text: "Catatan perbaikan spesifikasi telah dikirim ke B&M Manager cabang.",
+          icon: "info",
           confirmButtonColor: "#005BAC",
         });
         router.push("/sb-specialist");
@@ -229,26 +294,21 @@ export default function SBSpecialistDetailPage() {
       Swal.fire("Kesalahan", e.message || "Terjadi kesalahan koneksi.", "error");
     } finally {
       setIsSubmitting(false);
-      setIsRevisiModalOpen(false);
     }
   };
 
-  const handleTolakSpek = async () => {
-    const { value: text, isConfirmed } = await Swal.fire({
-      title: "Tolak Pengajuan Harga?",
-      text: "Pengajuan akan ditutup secara permanen dan tidak dapat dilanjutkan.",
-      input: "textarea",
-      inputPlaceholder: "Tuliskan alasan penolakan secara jelas...",
-      inputValidator: (v) => (!v ? "Alasan penolakan wajib diisi!" : null),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ED1C24",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Ya, Tolak Permanen",
-      cancelButtonText: "Batal",
-    });
+  const handleRejectSpec = async () => {
+    if (!item) return;
 
-    if (!isConfirmed || !text) return;
+    if (!catatan.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Perhatian",
+        text: "Alasan penolakan pengajuan wajib diisi.",
+        confirmButtonColor: "#ED1C24",
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -257,7 +317,7 @@ export default function SBSpecialistDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keputusan: "TOLAK",
-          catatan: text.trim(),
+          catatan: catatan.trim(),
         }),
       });
 
@@ -265,114 +325,81 @@ export default function SBSpecialistDetailPage() {
       if (json.success) {
         await Swal.fire({
           title: "Pengajuan Ditolak",
-          text: "Status tiket telah ditutup permanen.",
-          icon: "info",
-          confirmButtonColor: "#005BAC",
+          text: "Pengajuan spesifikasi harga telah ditutup permanen.",
+          icon: "warning",
+          confirmButtonColor: "#ED1C24",
         });
         router.push("/sb-specialist");
       } else {
-        Swal.fire("Gagal", json.message || "Gagal menolak tiket.", "error");
+        Swal.fire("Gagal", json.message || "Gagal menolak spesifikasi.", "error");
       }
     } catch (e: any) {
-      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan.", "error");
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan koneksi.", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ===================== AKSI PENYUSUNAN RESEP AHSP =====================
+  // =================== HANDLER SIMPAN / TERBITKAN RESEP KOEFISIEN ===================
+  const handleSaveKoefisien = async () => {
+    if (!item) return;
 
-  const handleSimpanResep = async (terbitkan: boolean) => {
     if (koefisienList.length === 0) {
-      Swal.fire("Perhatian", "Tambahkan minimal satu komponen pekerjaan AHSP.", "warning");
-      return;
-    }
-
-    if (terbitkan) {
-      const hasMaterialSurvei = koefisienList.some(
-        (k) => k.kategori === "MATERIAL" && k.wajibSurveiToko
-      );
-      if (!hasMaterialSurvei) {
-        Swal.fire(
-          "Perhatian",
-          "Tambahkan minimal satu komponen bahan/material yang dicentang 'Disurvei BC' agar Building Coordinator cabang dapat melakukan survei 3 toko.",
-          "warning"
-        );
-        return;
-      }
-
-      const confirm = await Swal.fire({
-        title: "Kunci & Terbitkan ke Cabang?",
-        text: "Resep AHSP akan dikunci dan tiket diterbitkan ke Building Coordinator cabang untuk survei fisik 3 toko pasar.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#005BAC",
-        cancelButtonColor: "#64748b",
-        confirmButtonText: "Ya, Terbitkan ke Cabang",
-        cancelButtonText: "Batal",
+      Swal.fire({
+        icon: "warning",
+        title: "Koefisien Kosong",
+        text: "Tambahkan minimal satu komponen koefisien upah atau material sebelum menyimpan.",
+        confirmButtonColor: "#ED1C24",
       });
-
-      if (!confirm.isConfirmed) return;
+      return;
     }
 
     try {
       setIsSubmitting(true);
-      const barisPayload = koefisienList.map((k) => ({
-        masterKoefisienId: k.masterKoefisienId || k.id,
-        nilaiKoefisien: Number(k.koefisien) || 1,
-        hargaAcuanSatuan: Number(k.hargaAcuan) || 0,
-      }));
-
       const res = await fetch(`/api/pengajuan/${id}/mastering`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          baris: barisPayload,
-          terbitkan,
-          catatan: terbitkan
-            ? "Resep AHSP resmi dikunci dan diterbitkan ke Building Coordinator cabang."
-            : "Draft resep AHSP disimpan oleh S&B Specialist.",
+          baris: koefisienList.map((k) => ({
+            masterKoefisienId: k.masterKoefisienId || k.id,
+            nilaiKoefisien: Number(k.koefisien) || 0,
+            hargaAcuanSatuan: Number(k.hargaAcuan) || 0,
+            namaKomponen: k.namaKomponen,
+            satuan: k.satuan,
+            kategori: k.kategori,
+            wajibSurveiToko: k.kategori === "MATERIAL",
+          })),
+          koefisienItems: koefisienList,
+          liveMarginUpah,
+          liveMarginMaterial,
+          liveMarginBongkaran,
+          terbitkan: true,
         }),
       });
 
       const json = await res.json();
       if (json.success) {
+        setItem((prev) => (prev ? { ...prev, status: "SIAP_SURVEI" } : null));
         await Swal.fire({
-          title: terbitkan ? "Berhasil Diterbitkan" : "Draft Tersimpan",
-          text: json.message,
+          title: "Koefisien dibuat",
+          text: "Koefisien telah dikunci. Siap untuk survei.",
           icon: "success",
           confirmButtonColor: "#005BAC",
         });
-        if (terbitkan) {
-          router.push("/sb-specialist");
-        } else {
-          loadData();
-        }
+        router.push("/sb-specialist");
       } else {
-        Swal.fire("Gagal", json.message || "Gagal menyimpan resep AHSP.", "error");
+        Swal.fire("Gagal", json.message || "Gagal menyimpan resep koefisien.", "error");
       }
     } catch (e: any) {
-      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan.", "error");
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan koneksi.", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ===================== AKSI EVALUASI PASCA-SURVEI =====================
-
-  const handleSetujuiHargaPascaSurvei = async () => {
-    const confirm = await Swal.fire({
-      title: "Setujui Rekomendasi Harga?",
-      text: "Evaluasi harga dan margin akan disimpan, lalu diteruskan ke Regional Manager untuk persetujuan akhir Layer 3.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#005BAC",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Ya, Teruskan ke Regional",
-      cancelButtonText: "Batal",
-    });
-
-    if (!confirm.isConfirmed) return;
+  // =================== HANDLER PERSETUJUAN HARGA SURVEI (LAYER 2) ===================
+  const handleApproveHarga = async () => {
+    if (!item) return;
 
     try {
       setIsSubmitting(true);
@@ -380,22 +407,21 @@ export default function SBSpecialistDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "APPROVE",
-          margin: {
-            upah: liveMarginUpah,
-            material: liveMarginMaterial,
-            bongkaran: liveMarginBongkaran,
-          },
-          teruskan: true,
-          catatan: "Rekomendasi harga satuan telah dievaluasi dan disetujui S&B Specialist.",
+          action: "SETUJU_HARGA",
+          catatan:
+            catatan.trim() ||
+            "Disetujui S&B Specialist (Layer 2) dan diteruskan ke Regional Manager.",
+          liveMarginUpah,
+          liveMarginMaterial,
+          liveMarginBongkaran,
         }),
       });
 
       const json = await res.json();
       if (json.success) {
         await Swal.fire({
-          title: "Berhasil Disetujui",
-          text: "Rekomendasi harga telah diteruskan ke antrean Regional Manager.",
+          title: "Harga Disetujui (Layer 2)",
+          text: "Rekomendasi harga satuan telah diteruskan ke Regional Manager untuk approval akhir.",
           icon: "success",
           confirmButtonColor: "#005BAC",
         });
@@ -410,22 +436,18 @@ export default function SBSpecialistDetailPage() {
     }
   };
 
-  const handleKembalikanSurveiKeBC = async () => {
-    const { value: text, isConfirmed } = await Swal.fire({
-      title: "Kembalikan Survei ke BC?",
-      text: "Building Coordinator cabang akan diminta melakukan perbaikan survei toko sesuai catatan evaluasi Anda.",
-      input: "textarea",
-      inputPlaceholder: "Tuliskan catatan perbaikan atau ketidakwajaran harga survei...",
-      inputValidator: (v) => (!v ? "Catatan evaluasi wajib diisi!" : null),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#FF9E1B",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Kembalikan ke BC",
-      cancelButtonText: "Batal",
-    });
+  const handleRejectHarga = async () => {
+    if (!item) return;
 
-    if (!isConfirmed || !text) return;
+    if (!catatan.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Perhatian",
+        text: "Alasan pengembalian harga survei ke BC wajib diisi.",
+        confirmButtonColor: "#ED1C24",
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -434,7 +456,7 @@ export default function SBSpecialistDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "KEMBALIKAN_KE_BC",
-          catatan: text.trim(),
+          catatan: catatan.trim(),
         }),
       });
 
@@ -442,7 +464,7 @@ export default function SBSpecialistDetailPage() {
       if (json.success) {
         await Swal.fire({
           title: "Survei Dikembalikan",
-          text: "Tiket telah dikembalikan ke Building Coordinator cabang.",
+          text: "Tiket harga survei telah dikembalikan ke Building Coordinator cabang.",
           icon: "info",
           confirmButtonColor: "#005BAC",
         });
@@ -457,13 +479,76 @@ export default function SBSpecialistDetailPage() {
     }
   };
 
+  // Helper Badge Status Header Sesuai Prototype
+  const renderStatusBadge = () => {
+    if (!item) return null;
+
+    switch (item.status) {
+      case "DIAJUKAN":
+      case "PENDING_BM_MGR":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-amber-500 text-white shadow-2xs">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Status: Validasi Spesifikasi</span>
+          </span>
+        );
+      case "PENDING_SB_SPECIALIST":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-[#005BAC] text-white shadow-2xs">
+            <Store className="w-3.5 h-3.5" />
+            <span>Status: Validasi Harga Survei</span>
+          </span>
+        );
+      case "USULAN_KONTRAKTOR":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-purple-600 text-white shadow-2xs">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Status: Usulan Kontraktor</span>
+          </span>
+        );
+      case "SIAP_SURVEI":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-blue-600 text-white shadow-2xs">
+            <Store className="w-3.5 h-3.5" />
+            <span>Status: Siap Survei</span>
+          </span>
+        );
+      case "PERLU_REVISI":
+      case "RETURNED_TO_BC":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-amber-600 text-white shadow-2xs">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Status: Perlu Revisi</span>
+          </span>
+        );
+      case "DITOLAK":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-rose-600 text-white shadow-2xs">
+            <XCircle className="w-3.5 h-3.5" />
+            <span>Status: Ditolak</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-emerald-600 text-white shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Status: {item.status.replace(/_/g, " ")}</span>
+          </span>
+        );
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayoutShell user={user}>
         <div className="bg-white border-2 border-slate-300 rounded-2xl p-12 text-center shadow-2xs">
           <div className="w-10 h-10 border-4 border-[#005BAC] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <h3 className="text-base font-bold text-slate-800">Memuat Rincian Pengajuan...</h3>
-          <p className="text-xs text-slate-500 mt-1">Mengambil data spesifikasi dan resep AHSP.</p>
+          <h3 className="text-base font-bold text-slate-800">
+            Memuat Rincian Pengajuan...
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Mengambil data spesifikasi dan resep AHSP.
+          </p>
         </div>
       </AppLayoutShell>
     );
@@ -473,12 +558,16 @@ export default function SBSpecialistDetailPage() {
     return (
       <AppLayoutShell user={user}>
         <div className="bg-white border-2 border-slate-300 rounded-2xl p-12 text-center shadow-2xs space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-rose-500 text-white flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-900">Pengajuan Tidak Ditemukan</h3>
-            <p className="text-xs text-slate-500 mt-1">Tiket yang Anda cari tidak terdaftar di sistem.</p>
+            <h3 className="text-base font-black text-slate-900">
+              Pengajuan Tidak Ditemukan
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Tiket yang Anda cari tidak terdaftar di sistem.
+            </p>
           </div>
           <Link
             href="/sb-specialist"
@@ -492,9 +581,21 @@ export default function SBSpecialistDetailPage() {
     );
   }
 
-  const isDiajukan = item.status === "DIAJUKAN" || item.status === "PERLU_REVISI";
+  const isDiajukan =
+    (item.status === "DIAJUKAN" || item.status === "PENDING_BM_MGR") &&
+    !isSpekDisetujui;
   const isPendingSb = item.status === "PENDING_SB_SPECIALIST";
-  const isBanding = item.status === "USULAN_KONTRAKTOR";
+  const isBanding =
+    item.status === "PENDING_KONTRAKTOR" ||
+    item.status === "USULAN_KONTRAKTOR" ||
+    item.status === "DITOLAK_KONTRAKTOR" ||
+    Boolean(item.votingKontraktorList?.length);
+  const showRincianKoefisien =
+    isSpekDisetujui ||
+    item.status === "SIAP_SURVEI" ||
+    item.status === "PENDING_SB_SPECIALIST" ||
+    item.status === "USULAN_KONTRAKTOR" ||
+    item.status === "RELEASED";
 
   return (
     <AppLayoutShell
@@ -504,395 +605,450 @@ export default function SBSpecialistDetailPage() {
         { label: item.noTiket || "Rincian Tiket" },
       ]}
     >
-      <div className="space-y-6 max-w-7xl mx-auto pb-12">
-        {/* Navigasi Atas & Status Ringkas */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b-2 border-slate-200">
+      <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans">
+        {/* Navigation Breadcrumb & Back + Status Badge Sesuai Prototype */}
+        <div className="flex items-center justify-between pb-2 border-b-2 border-slate-200">
           <Link
             href="/sb-specialist"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#005BAC] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#005BAC] transition"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Antrean S&amp;B Specialist</span>
           </Link>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Cabang Pengaju:</span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#005BAC] text-white">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>{item.namaCabang || item.cabang || "Cabang"}</span>
-            </span>
-          </div>
+          {renderStatusBadge()}
         </div>
 
-        {/* Stepper Timeline Siklus Hidup */}
+        {/* Timeline Bar Pengajuan */}
         <PengajuanTimelineBar item={item} className="shadow-2xs" />
 
-        {/* 1. Detail Spesifikasi Material Usulan BM */}
-        <DetailSpesifikasiCard item={item} />
+        {/* Card Ringkasan Spesifikasi Item */}
+        <DetailSpesifikasi item={item} showDeskripsi={true} />
 
-        {/* ================= SECTION KONDISI 1: STATUS DIAJUKAN ================= */}
+        {/* =========================================================================
+            ALUR 1: TINJAUAN & VALIDASI SPESIFIKASI (STATUS DIAJUKAN)
+            ========================================================================= */}
         {isDiajukan && (
+          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#005BAC]" />
+                <span>Tinjauan &amp; Validasi Spesifikasi</span>
+              </h3>
+            </div>
+
+            {activeAction === "none" ||
+            activeAction === "approve_harga" ||
+            activeAction === "reject_harga" ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/sb-specialist")}
+                  className="w-full sm:w-auto px-4 py-2 bg-white border-2 border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+                  disabled={isSubmitting}
+                >
+                  Kembali
+                </button>
+
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveAction("reject_spec");
+                      setCatatan("");
+                    }}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Tolak</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveAction("revise_spec");
+                      setCatatan("");
+                      setRevisiList([{ field: "", note: "" }]);
+                    }}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Revisi</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveAction("approve_spec");
+                      setCatatan("");
+                    }}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Setujui Spesifikasi</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {activeAction === "revise_spec" ? (
+                  <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl space-y-3">
+                    <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-amber-700" />
+                      <span>Detail Bagian yang Perlu Direvisi</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {revisiList.map((rev, index) => (
+                        <div
+                          key={index}
+                          className="flex flex-col sm:flex-row gap-3 bg-white p-3.5 rounded-xl border-2 border-amber-200 relative"
+                        >
+                          <div className="flex-1 space-y-1.5">
+                            <label className="text-[11px] text-slate-700 font-bold block">
+                              Pilih Bagian
+                            </label>
+                            <Select
+                              value={
+                                rev.field
+                                  ? { label: rev.field, value: rev.field }
+                                  : null
+                              }
+                              onChange={(option: any) => {
+                                const newList = [...revisiList];
+                                newList[index].field = option
+                                  ? option.value
+                                  : "";
+                                setRevisiList(newList);
+                              }}
+                              options={OPTIONS_REVISI.map((opt) => ({
+                                label: opt,
+                                value: opt,
+                                isDisabled: revisiList.some(
+                                  (r, rIndex) =>
+                                    rIndex !== index && r.field === opt
+                                ),
+                              }))}
+                              placeholder="Pilih bagian..."
+                              styles={solidComboboxStyles}
+                              menuPortalTarget={
+                                typeof document !== "undefined"
+                                  ? document.body
+                                  : undefined
+                              }
+                              isClearable
+                              isSearchable
+                            />
+                          </div>
+
+                          <div className="flex-[2] space-y-1.5">
+                            <label className="text-[11px] text-slate-700 font-bold block">
+                              Catatan Revisi
+                            </label>
+                            <div className="flex gap-2 items-start">
+                              <textarea
+                                value={rev.note}
+                                onChange={(e) => {
+                                  const newList = [...revisiList];
+                                  newList[index].note = e.target.value;
+                                  setRevisiList(newList);
+                                }}
+                                rows={2}
+                                className="w-full text-xs font-medium bg-white border-2 border-slate-300 rounded-lg p-2 focus:border-[#005BAC] focus:outline-none"
+                                placeholder="Jelaskan detail yang perlu diperbaiki..."
+                              />
+                              {revisiList.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="p-2 text-rose-600 hover:bg-rose-100 rounded-lg shrink-0 cursor-pointer border border-rose-300"
+                                  onClick={() => {
+                                    const newList = [...revisiList];
+                                    newList.splice(index, 1);
+                                    setRevisiList(newList);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {revisiList.length < OPTIONS_REVISI.length && (
+                      <button
+                        type="button"
+                        className="w-full py-2 text-xs font-bold text-amber-900 border-2 border-dashed border-amber-400 bg-white hover:bg-amber-100/60 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        onClick={() =>
+                          setRevisiList([...revisiList, { field: "", note: "" }])
+                        }
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Bagian Lain</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                      <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>
+                        {activeAction === "approve_spec"
+                          ? "Catatan Persetujuan (Opsional)"
+                          : "Alasan Penolakan (Wajib)"}
+                      </span>
+                    </label>
+                    <textarea
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      placeholder={
+                        activeAction === "approve_spec"
+                          ? "Tuliskan catatan persetujuan jika ada..."
+                          : "Tuliskan alasan spesifikasi ini ditolak..."
+                      }
+                      rows={3}
+                      className={`w-full text-xs font-medium bg-white border-2 ${
+                        activeAction === "reject_spec" && !catatan.trim()
+                          ? "border-rose-400"
+                          : "border-slate-300"
+                      } rounded-xl p-3 focus:border-[#005BAC] focus:outline-none`}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t-2 border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setActiveAction("none")}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer border border-slate-300"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={
+                      activeAction === "approve_spec"
+                        ? handleApproveSpec
+                        : activeAction === "reject_spec"
+                        ? handleRejectSpec
+                        : handleReviseSpec
+                    }
+                    className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-2xs flex items-center gap-1.5 cursor-pointer ${
+                      activeAction === "approve_spec"
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : activeAction === "reject_spec"
+                        ? "bg-rose-600 hover:bg-rose-700"
+                        : "bg-amber-500 hover:bg-amber-600"
+                    }`}
+                  >
+                    {activeAction === "approve_spec" && (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    )}
+                    {activeAction === "reject_spec" && (
+                      <XCircle className="w-3.5 h-3.5" />
+                    )}
+                    {activeAction === "revise_spec" && (
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      Konfirmasi{" "}
+                      {activeAction === "approve_spec"
+                        ? "Persetujuan"
+                        : activeAction === "reject_spec"
+                        ? "Tolak"
+                        : "Revisi"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =========================================================================
+            ALUR 2: REVIEW HASIL SURVEI HARGA LAPANGAN (STATUS PENDING_SB_SPECIALIST)
+            ========================================================================= */}
+        {isPendingSb && (
           <div className="space-y-6">
-            {/* Panel Keputusan Validasi Spesifikasi */}
+            {/* Tampilkan Hasil Survei Lapangan 3 Toko */}
+            <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 pb-3 border-b-2 border-slate-200">
+                <Store className="w-4 h-4 text-slate-600" />
+                <span>Review Hasil Survei Harga Lapangan</span>
+              </h3>
+
+              <RingkasanBiayaMaterial
+                surveiList={item.surveiTokoList || []}
+                namaMaterial={item.namaItem || item.item}
+              />
+
+              <div className="space-y-4 pt-2">
+                <RincianSurvei3TokoCard
+                  surveiList={item.surveiTokoList || []}
+                  materialName={item.namaItem || item.item}
+                  readonly={true}
+                />
+              </div>
+            </div>
+
+            {/* Panel Aksi Persetujuan Harga Survei (Layer 2) */}
             <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 tracking-wide uppercase">
-                      Langkah 1: Validasi Spesifikasi Usulan BM
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      Periksa kelayakan deskripsi material sebelum menyusun resep koefisien AHSP
-                    </p>
-                  </div>
-                </div>
-
-                {isSpekValid && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white font-extrabold text-xs rounded-lg">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Spesifikasi Disetujui</span>
-                  </span>
-                )}
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#005BAC]" />
+                  <span>Tinjauan &amp; Persetujuan Harga Survei (Layer 2)</span>
+                </h3>
               </div>
 
-              {!isSpekValid ? (
-                <div className="flex items-center gap-3 flex-wrap pt-1">
+              {activeAction === "none" ||
+              activeAction === "approve_spec" ||
+              activeAction === "reject_spec" ||
+              activeAction === "revise_spec" ? (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                   <button
                     type="button"
+                    onClick={() => router.push("/sb-specialist")}
+                    className="w-full sm:w-auto px-4 py-2 bg-white border-2 border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
                     disabled={isSubmitting}
-                    onClick={handleSetujuiSpek}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Setujui Spesifikasi &amp; Susun AHSP</span>
+                    Kembali
                   </button>
 
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => {
-                      setSelectedRevisiFields([]);
-                      setCatatanRevisi("");
-                      setIsRevisiModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Minta Revisi ke B&amp;M Manager</span>
-                  </button>
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveAction("reject_harga");
+                        setCatatan("");
+                      }}
+                      disabled={isSubmitting}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Kembalikan Survei ke BC</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={handleTolakSpek}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>Tolak Pengajuan</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveAction("approve_harga");
+                        setCatatan("");
+                      }}
+                      disabled={isSubmitting}
+                      className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Setujui Harga &amp; Teruskan ke Regional</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-3.5 text-xs text-emerald-900 font-medium">
-                  Spesifikasi pekerjaan telah divalidasi dan disetujui. Silakan koefisien di bawah ini, lalu klik tombol <strong>Simpan</strong> agar Building Coordinator dapat memulai survei pasar.
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                      <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>
+                        {activeAction === "approve_harga"
+                          ? "Catatan Persetujuan Harga (Opsional)"
+                          : "Alasan Pengembalian Harga ke BC (Wajib)"}
+                      </span>
+                    </label>
+                    <textarea
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      placeholder={
+                        activeAction === "approve_harga"
+                          ? "Tuliskan catatan persetujuan harga survei jika ada..."
+                          : "Tuliskan alasan spesifik kenapa harga survei ini dikembalikan..."
+                      }
+                      rows={3}
+                      className={`w-full text-xs font-medium bg-white border-2 ${
+                        activeAction === "reject_harga" && !catatan.trim()
+                          ? "border-rose-400"
+                          : "border-slate-300"
+                      } rounded-xl p-3 focus:border-[#005BAC] focus:outline-none`}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t-2 border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAction("none")}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer border border-slate-300"
+                    >
+                      Batal
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={
+                        activeAction === "approve_harga"
+                          ? handleApproveHarga
+                          : handleRejectHarga
+                      }
+                      className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-2xs flex items-center gap-1.5 cursor-pointer ${
+                        activeAction === "approve_harga"
+                          ? "bg-[#005BAC] hover:bg-blue-700"
+                          : "bg-amber-600 hover:bg-amber-700"
+                      }`}
+                    >
+                      {activeAction === "approve_harga" ? (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : (
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        Konfirmasi{" "}
+                        {activeAction === "approve_harga"
+                          ? "Setujui Harga"
+                          : "Kembalikan ke BC"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Section 2: Penyusunan Resep AHSP (Hanya Muncul Bila Spek Sudah Valid) */}
-            {isSpekValid && (
-              <div className="space-y-4">
-                <RincianKalkulasiKoefisien
-                  koefisienItems={koefisienList}
-                  mode="editable"
-                  liveMarginUpah={liveMarginUpah}
-                  liveMarginMaterial={liveMarginMaterial}
-                  liveMarginBongkaran={liveMarginBongkaran}
-                  onMarginChange={(u, m, b) => {
-                    setLiveMarginUpah(u);
-                    setLiveMarginMaterial(m);
-                    setLiveMarginBongkaran(b);
-                  }}
-                  onItemsChange={setKoefisienList}
-                  pustakaKoefisien={pustakaKoefisien}
-                  onTambahKoefisienBaru={handleTambahPustakaBaru}
-                />
-
-                {/* Tombol Terbitkan ke Cabang (SIAP_SURVEI) */}
-                <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">
-                      Langkah 2: Terbitkan Resep ke Cabang
-                    </h4>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                      Kunci resep AHSP dan otomatis teruskan ke Building Coordinator cabang untuk survei 3 toko fisik
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => handleSimpanResep(false)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border-2 border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
-                    >
-                      <Save className="w-4 h-4 text-slate-500" />
-                      <span>Simpan Draft</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => handleSimpanResep(true)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>Kunci &amp; Terbitkan ke Cabang</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* ================= SECTION KONDISI 2: STATUS PENDING_SB_SPECIALIST (PASCA-SURVEI) ================= */}
-        {isPendingSb && (
-          <div className="space-y-6">
-            {/* Tampilan Survei 3 Toko BC */}
-            <RincianSurvei3TokoCard
-              surveiList={item.surveiTokoList || []}
-              materialName={item.namaItem || item.item}
-              readonly={true}
-            />
-
-            {/* Ringkasan Biaya Material Survei */}
-            <RingkasanBiayaMaterial
-              surveiList={item.surveiTokoList || []}
-              namaMaterial={item.namaItem || item.item}
-            />
-
-            {/* Tabel AHSP dengan Kontrol Live Margin S&B */}
-            <RincianKalkulasiKoefisien
-              koefisienItems={koefisienList}
-              mode="editable"
-              liveMarginUpah={liveMarginUpah}
-              liveMarginMaterial={liveMarginMaterial}
-              liveMarginBongkaran={liveMarginBongkaran}
-              onMarginChange={(u, m, b) => {
-                setLiveMarginUpah(u);
-                setLiveMarginMaterial(m);
-                setLiveMarginBongkaran(b);
-              }}
-              onItemsChange={setKoefisienList}
-            />
-
-            {/* Panel Keputusan Rekomendasi Harga */}
-            <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase">
-                  Persetujuan Akhir S&amp;B Specialist (Layer 2)
-                </h4>
-                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                  Setujui rekomendasi harga satuan atau kembalikan ke Building Coordinator jika data survei toko diragukan
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={handleKembalikanSurveiKeBC}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Kembalikan Survei ke BC</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={handleSetujuiHargaPascaSurvei}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Setujui &amp; Teruskan ke Regional</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= SECTION KONDISI 3: STATUS USULAN_KONTRAKTOR ================= */}
+        {/* =========================================================================
+            ALUR 3: MONITORING & EVALUASI KUORUM REKANAN KONTRAKTOR
+            ========================================================= */}
         {isBanding && (
-          <div className="space-y-6">
-            <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b-2 border-slate-200">
-                <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-slate-900 tracking-wide uppercase">
-                    Evaluasi Usulan Banding Rekanan Kontraktor
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Rekanan kontraktor cabang mengajukan banding atas harga satuan yang ditawarkan
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-4 space-y-3">
-                <span className="text-xs font-bold text-slate-700 block">Daftar Voting &amp; Tanggapan Rekanan:</span>
-                {item.votingKontraktorList && item.votingKontraktorList.length > 0 ? (
-                  <div className="space-y-2">
-                    {item.votingKontraktorList.map((v, vIdx) => (
-                      <div
-                        key={v.id || vIdx}
-                        className="bg-white p-3 rounded-lg border-2 border-slate-200 flex items-center justify-between"
-                      >
-                        <div>
-                          <span className="text-xs font-black text-slate-900 block">
-                            {v.namaPerusahaan}
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-medium">
-                            Status: <strong>{v.statusVote}</strong>
-                            {v.catatanBanding ? ` &bull; "${v.catatanBanding}"` : ""}
-                          </span>
-                        </div>
-                        {v.hargaBanding && (
-                          <span className="text-xs font-black text-[#005BAC] font-mono">
-                            Usulan: {formatRupiah(v.hargaBanding)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">Belum ada rincian data voting kontraktor.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Rincian AHSP Readonly */}
-            <RincianKalkulasiKoefisien
-              koefisienItems={koefisienList}
-              mode="readonly"
-              liveMarginUpah={liveMarginUpah}
-              liveMarginMaterial={liveMarginMaterial}
-              liveMarginBongkaran={liveMarginBongkaran}
-            />
-          </div>
+          <VotingKontraktorMonitorCard
+            votingList={item.votingKontraktorList || []}
+            deadlineVoting={item.deadlineVoting}
+          />
         )}
 
-        {/* ================= SECTION KONDISI LAINNYA (READONLY) ================= */}
-        {!isDiajukan && !isPendingSb && !isBanding && (
-          <div className="space-y-6">
-            {item.surveiTokoList && item.surveiTokoList.length > 0 && (
-              <RincianSurvei3TokoCard
-                surveiList={item.surveiTokoList}
-                materialName={item.namaItem || item.item}
-                readonly={true}
-              />
-            )}
-
+        {/* =========================================================================
+            ALUR 4: RINCIAN KALKULASI KOEFISIEN AHSP & LIVE MARGIN INPUT
+            ========================================================================= */}
+        {showRincianKoefisien && (
+          <div className="space-y-4">
             <RincianKalkulasiKoefisien
+              item={item}
               koefisienItems={koefisienList}
-              mode="readonly"
+              mode={item.status === "RELEASED" ? "readonly" : "editable"}
               liveMarginUpah={liveMarginUpah}
               liveMarginMaterial={liveMarginMaterial}
               liveMarginBongkaran={liveMarginBongkaran}
+              onMarginChange={handleMarginChange}
+              onItemsChange={setKoefisienList}
+              pustakaKoefisien={pustakaKoefisien}
+              onTambahKoefisienBaru={handleTambahPustakaBaru}
+              onSave={handleSaveKoefisien}
             />
+            
           </div>
         )}
       </div>
-
-      {/* Modal Dialog Form Checklist Revisi Spesifikasi */}
-      {isRevisiModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 max-w-lg w-full shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
-              <h4 className="text-sm font-black text-slate-900 uppercase">
-                Catatan Revisi Spesifikasi ke B&amp;M Manager
-              </h4>
-              <button
-                type="button"
-                onClick={() => setIsRevisiModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 font-bold text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-800 block">
-                Centang Bagian yang Wajib Diperbaiki:
-              </span>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                {OPTIONS_REVISI.map((opt) => {
-                  const isChecked = selectedRevisiFields.includes(opt);
-                  return (
-                    <label
-                      key={opt}
-                      className={`flex items-center gap-2 p-2 rounded-lg border-2 text-xs font-bold transition-all cursor-pointer ${
-                        isChecked
-                          ? "bg-blue-50 border-[#005BAC] text-[#005BAC]"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          if (isChecked) {
-                            setSelectedRevisiFields(selectedRevisiFields.filter((f) => f !== opt));
-                          } else {
-                            setSelectedRevisiFields([...selectedRevisiFields, opt]);
-                          }
-                        }}
-                        className="rounded border-slate-300 accent-[#005BAC]"
-                      />
-                      <span className="truncate">{opt}</span>
-                    </label>
-                  );
-                })}
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Catatan Evaluasi / Petunjuk Perbaikan:
-                </label>
-                <textarea
-                  rows={3}
-                  value={catatanRevisi}
-                  onChange={(e) => setCatatanRevisi(e.target.value)}
-                  placeholder="Tuliskan alasan perbaikan secara jelas..."
-                  className="w-full bg-white border-2 border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 outline-none focus:border-[#005BAC]"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t-2 border-slate-200">
-              <button
-                type="button"
-                onClick={() => setIsRevisiModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border-2 border-slate-300 rounded-xl hover:bg-slate-100 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleKirimRevisiSpek}
-                className="px-4 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl cursor-pointer"
-              >
-                Kirim Revisi ke BM
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AppLayoutShell>
   );
 }
