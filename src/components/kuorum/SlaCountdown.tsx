@@ -43,28 +43,34 @@ export function SlaCountdown({ deadline, variant = "compact", className }: SlaCo
   const kritis = sisa !== null && sisa <= 6 * JAM;
   const mendesak = sisa !== null && sisa <= 24 * JAM;
 
-  const tone = habis || kritis
-    ? "bg-[#FDECEE] text-[#990F14] border-[#F7C1C5]"
+  const toneCompact = habis || kritis
+    ? "bg-rose-600 text-white"
     : mendesak
-      ? "bg-[#FFF8DB] text-[#6E4B00] border-[#F3D56B]"
-      : "bg-[#EAF3FB] text-[#003A70] border-[#B8D8F3]";
+      ? "bg-amber-600 text-white"
+      : "bg-[#005BAC] text-white";
+
+  const toneFull = habis || kritis
+    ? "bg-white border-2 border-rose-600 text-rose-950"
+    : mendesak
+      ? "bg-white border-2 border-amber-500 text-amber-950"
+      : "bg-white border-2 border-[#005BAC] text-slate-900";
 
   const label =
     sisa === null
       ? new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(target)
       : habis
-        ? "Waktu habis"
+        ? "Waktu Habis"
         : `Sisa ${formatSisa(sisa)}`;
 
   if (variant === "full") {
     return (
-      <div className={cn("rounded-lg border px-3 py-2.5", tone, className)}>
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide">
-          <Clock className="w-3.5 h-3.5" />
-          Batas respon SLA 3x24 jam
+      <div className={cn("rounded-xl p-3.5 shadow-2xs", toneFull, className)}>
+        <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide">
+          <Clock className="w-4 h-4" />
+          Batas Waktu Respon SLA 3x24 Jam
         </div>
-        <div className="mt-1 text-lg font-bold font-mono tabular-nums">{label}</div>
-        <div className="text-[11px] opacity-80">
+        <div className="mt-1 text-xl font-black font-mono tabular-nums">{label}</div>
+        <div className="text-xs font-medium text-slate-500 mt-0.5">
           {new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeStyle: "short" }).format(target)}
         </div>
       </div>
@@ -74,12 +80,12 @@ export function SlaCountdown({ deadline, variant = "compact", className }: SlaCo
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-semibold font-mono tabular-nums whitespace-nowrap",
-        tone,
+        "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black font-mono tabular-nums whitespace-nowrap shadow-2xs",
+        toneCompact,
         className
       )}
     >
-      <Clock className="w-3 h-3" />
+      <Clock className="w-3.5 h-3.5" />
       {label}
     </span>
   );

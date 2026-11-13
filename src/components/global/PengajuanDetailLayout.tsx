@@ -61,7 +61,7 @@ export function PengajuanDetailLayout({
         </Link>
 
         <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-          <span>SPARTA-HARGA</span>
+          <span>SPARTA-PRICING</span>
           <ChevronRight className="w-3 h-3" />
           <span>Pengajuan</span>
           <ChevronRight className="w-3 h-3" />

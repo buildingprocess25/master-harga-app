@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { StatusPengajuanHarga, RoleUser } from "@/types";
 
 /**
- * Matriks Transisi Status Resmi SPARTA-HARGA
+ * Matriks Transisi Status Resmi SPARTA-PRICING
  * Mencegah tiket melompat tahap tanpa melalui rantai persetujuan berjenjang.
  */
 export const VALID_STATUS_TRANSITIONS: Record<

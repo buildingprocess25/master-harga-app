@@ -1,5 +1,5 @@
 /**
- * Pustaka Komponen Global SPARTA-HARGA
+ * Pustaka Komponen Global SPARTA-PRICING
  * Single Source of Truth (SSOT) UI Kit untuk modul pengajuan harga, survei pasar,
  * kalkulasi koefisien AHSP, dan kuorum rekanan kontraktor.
  */

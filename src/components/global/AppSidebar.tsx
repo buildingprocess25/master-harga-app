@@ -290,7 +290,7 @@ export function AppSidebar({
           {!isCollapsed && (
             <div className="leading-tight">
               <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#005BAC] text-white inline-block">
-                HARGA
+                PRICING
               </span>
               <span className="block text-[11px] font-bold text-slate-900 mt-0.5">
                 SPARTA MODULE

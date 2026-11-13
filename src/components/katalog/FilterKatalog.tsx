@@ -11,7 +11,7 @@ export interface OpsiFilter {
 }
 
 const SELECT =
-  "px-2 py-1.5 rounded-md border border-slate-300 text-xs bg-white focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC] min-w-0";
+  "px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC] min-w-0";
 
 /** Filter katalog berbasis URL agar hasil filter bisa dibagikan dan dipakai untuk ekspor. */
 export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
@@ -42,15 +42,15 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
   const adaFilter = ["q", "cabang", "divisi", "kategori", "override"].some((k) => params.get(k));
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
       <div className="relative flex-1 min-w-48 sm:max-w-72">
-        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari nama item, kode master, merk"
+          placeholder="Cari nama item, kode master, merk..."
           aria-label="Cari item"
-          className="w-full pl-8 pr-3 py-1.5 rounded-md border border-slate-300 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC]"
+          className="w-full pl-9 pr-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-medium bg-white focus:outline-none focus:border-[#005BAC]"
         />
       </div>
       <select
@@ -62,7 +62,7 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
         <option value="">Semua cabang</option>
         {opsi.cabangList.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.namaCabang}
+            Cabang {c.namaCabang}
           </option>
         ))}
       </select>
@@ -92,12 +92,12 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
           </option>
         ))}
       </select>
-      <label className="inline-flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer select-none">
+      <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
         <input
           type="checkbox"
           checked={params.get("override") === "1"}
           onChange={(e) => terapkan({ override: e.target.checked ? "1" : null })}
-          className="accent-[#005BAC]"
+          className="accent-[#005BAC] w-3.5 h-3.5"
         />
         Hanya ada harga wilayah
       </label>
@@ -108,12 +108,12 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
             setQ("");
             startTransition(() => router.replace(pathname, { scroll: false }));
           }}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#ED1C24] cursor-pointer"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-rose-600 bg-white text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
         >
-          <X className="w-3.5 h-3.5" /> Reset
+          <X className="w-3.5 h-3.5" /> Reset Filter
         </button>
       )}
-      {pending && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#005BAC]" aria-label="Memuat" />}
+      {pending && <Loader2 className="w-4 h-4 animate-spin text-[#005BAC]" aria-label="Memuat" />}
     </div>
   );
 }

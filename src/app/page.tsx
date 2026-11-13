@@ -133,7 +133,7 @@ export default function HomePage() {
             <div className="border-l border-border pl-3.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-base font-bold tracking-tight text-alfa-blue sm:text-lg">
-                  SPARTA-HARGA
+                  SPARTA-PRICING
                 </h1>
                 <span className="rounded bg-pastel-blue px-2 py-0.5 font-mono text-[11px] font-semibold text-pastel-blue-ink border border-pastel-blue-border">
                   Building &amp; Maintenance

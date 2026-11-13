@@ -48,7 +48,7 @@ export default async function CetakKatalogPage({
       <div className="flex items-start justify-between gap-4 border-b-2 border-[#005BAC] pb-3 mb-4">
         <div>
           <div className="text-[11px] font-bold tracking-wider text-[#ED1C24] uppercase">PT Sumber Alfaria Trijaya Tbk</div>
-          <h1 className="text-base font-bold text-slate-900">Katalog Harga Satuan Resmi SPARTA-HARGA</h1>
+          <h1 className="text-base font-bold text-slate-900">Katalog Harga Satuan Resmi SPARTA-PRICING</h1>
           <p className="text-xs text-slate-600 mt-0.5">Filter: {deskripsi}</p>
         </div>
         <div className="text-right text-[11px] text-slate-600 shrink-0">
@@ -77,7 +77,7 @@ export default async function CetakKatalogPage({
       )}
       <p className="mt-4 text-[10px] text-slate-500">
         Harga berlaku sejak tanggal yang tercantum dan dapat diperbarui melalui pengajuan harga berikutnya.
-        Dokumen ini dihasilkan dari sistem SPARTA-HARGA.
+        Dokumen ini dihasilkan dari sistem SPARTA-PRICING.
       </p>
     </div>
   );

@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   Users,
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle,
-  ChevronRight,
-  Eye,
-  FileText,
   Building,
+  Scale,
 } from "lucide-react";
-import { VotingKontraktorItem, StatusVoteKontraktor } from "@/types";
+import Swal from "sweetalert2";
+import { VotingKontraktorItem } from "@/types";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
 
 export interface VotingKontraktorMonitorCardProps {
@@ -26,9 +24,6 @@ export function VotingKontraktorMonitorCard({
   deadlineVoting,
   className = "",
 }: VotingKontraktorMonitorCardProps) {
-  const [selectedBanding, setSelectedBanding] =
-    useState<VotingKontraktorItem | null>(null);
-
   const total = votingList.length;
   const setujuCount = votingList.filter((v) => v.statusVote === "SETUJU").length;
   const tolakCount = votingList.filter((v) => v.statusVote === "TOLAK").length;
@@ -41,42 +36,72 @@ export function VotingKontraktorMonitorCard({
   const persentaseSetuju = total > 0 ? Math.round((setujuCount / total) * 100) : 0;
   const isKuorumTercapai = setujuCount >= targetKuorum;
 
+  const handleLihatDetailBanding = (kontraktor: VotingKontraktorItem) => {
+    Swal.fire({
+      title: "Rincian Usulan Banding",
+      html: `
+        <div style="text-align: left; font-size: 13px; line-height: 1.5;">
+          <div style="font-weight: 800; font-size: 15px; color: #0f172a; margin-bottom: 8px;">
+            ${kontraktor.namaPerusahaan}
+          </div>
+          <div style="padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="color: #64748b; font-weight: 600;">Usulan Harga:</span>
+              <span style="font-family: monospace; font-weight: 900; font-size: 16px; color: #005BAC;">
+                ${formatRupiah(kontraktor.hargaBanding)}
+              </span>
+            </div>
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 8px;">
+              <span style="color: #64748b; font-weight: 700; display: block; margin-bottom: 4px;">Alasan Banding:</span>
+              <div style="color: #334155; font-style: italic;">
+                "${kontraktor.catatanBanding || "Tidak ada catatan."}"
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      icon: "info",
+      confirmButtonColor: "#005BAC",
+      confirmButtonText: "Tutup",
+    });
+  };
+
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden",
+        "bg-white rounded-2xl border-2 border-slate-300 shadow-2xs overflow-hidden",
         className
       )}
     >
       {/* Header Card */}
-      <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-slate-50 border-b-2 border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-[#005BAC]" />
-          <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">
+          <h3 className="text-xs font-black text-slate-800 tracking-wide uppercase">
             Penawaran Kontraktor
           </h3>
         </div>
 
         {/* SLA Timer */}
         {deadlineVoting && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white px-2.5 py-1 rounded border border-slate-200">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white px-3 py-1 rounded-lg border-2 border-slate-200">
             <Clock className="w-3.5 h-3.5 text-amber-600" />
             <span>Batas Respon: {formatTanggal(deadlineVoting)}</span>
           </div>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-4 space-y-4">
         {/* Progress Bar Kuorum */}
-        <div className="mb-4 bg-slate-50 p-3.5 rounded-lg border border-slate-100">
-          <div className="flex justify-between items-center mb-1.5 text-xs font-semibold">
+        <div className="bg-slate-50 p-3.5 rounded-xl border-2 border-slate-200">
+          <div className="flex justify-between items-center mb-1.5 text-xs font-bold">
             <span className="text-slate-700">
               Progres Persetujuan Kontraktor:
             </span>
             <span
               className={cn(
-                "font-bold",
-                isKuorumTercapai ? "text-[#008A00]" : "text-amber-700"
+                "font-black font-mono",
+                isKuorumTercapai ? "text-emerald-700" : "text-amber-700"
               )}
             >
               {setujuCount} dari {total} Kontraktor ({persentaseSetuju}%)
@@ -84,72 +109,72 @@ export function VotingKontraktorMonitorCard({
             </span>
           </div>
 
-          <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden border border-slate-300">
             <div
               className={cn(
-                "h-2.5 rounded-full transition-all duration-300",
-                isKuorumTercapai ? "bg-[#008A00]" : "bg-[#FFD100]"
+                "h-3 rounded-full transition-all duration-300",
+                isKuorumTercapai ? "bg-emerald-600" : "bg-[#FFD100]"
               )}
               style={{ width: `${Math.min(persentaseSetuju, 100)}%` }}
             />
           </div>
         </div>
 
-        {/* 4 Metrik Kotak */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-center">
-          <div className="bg-slate-50 border border-slate-200 p-2.5 rounded">
-            <span className="text-[11px] text-slate-400 block mb-0.5">
+        {/* 4 Metrik Kotak Solid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+          <div className="bg-white border-2 border-slate-300 p-3 rounded-xl shadow-2xs">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-0.5">
               Total Diundang
             </span>
-            <span className="text-lg font-bold text-slate-800 font-mono">
+            <span className="text-xl font-black text-slate-900 font-mono">
               {total}
             </span>
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded">
-            <span className="text-[11px] text-emerald-700 block mb-0.5 font-medium">
+          <div className="bg-white border-2 border-emerald-600 p-3 rounded-xl shadow-2xs">
+            <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider block mb-0.5">
               Setuju
             </span>
-            <span className="text-lg font-bold text-[#008A00] font-mono">
+            <span className="text-xl font-black text-emerald-600 font-mono">
               {setujuCount}
             </span>
           </div>
-          <div className="bg-red-50 border border-red-200 p-2.5 rounded">
-            <span className="text-[11px] text-red-700 block mb-0.5 font-medium">
+          <div className="bg-white border-2 border-rose-600 p-3 rounded-xl shadow-2xs">
+            <span className="text-[10px] text-rose-700 font-bold uppercase tracking-wider block mb-0.5">
               Tolak / Banding
             </span>
-            <span className="text-lg font-bold text-red-700 font-mono">
+            <span className="text-xl font-black text-rose-600 font-mono">
               {tolakCount}
             </span>
           </div>
-          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded">
-            <span className="text-[11px] text-amber-700 block mb-0.5 font-medium">
+          <div className="bg-white border-2 border-amber-500 p-3 rounded-xl shadow-2xs">
+            <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block mb-0.5">
               Menunggu Respon
             </span>
-            <span className="text-lg font-bold text-amber-800 font-mono">
+            <span className="text-xl font-black text-amber-600 font-mono">
               {menungguCount}
             </span>
           </div>
         </div>
 
         {/* Tabel Rekanan Kontraktor */}
-        <div className="overflow-x-auto border border-slate-200 rounded-md">
+        <div className="overflow-x-auto border-2 border-slate-200 rounded-xl">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold">
+            <thead className="bg-slate-100 border-b-2 border-slate-200 text-slate-700 font-bold">
               <tr>
                 <th className="py-2.5 pl-3 w-10">No</th>
                 <th className="py-2.5">Nama Kontraktor</th>
-                <th className="py-2.5 w-32">Status Respon</th>
+                <th className="py-2.5 w-36">Status Respon</th>
                 <th className="py-2.5 w-28">Tanggal Vote</th>
                 <th className="py-2.5 text-right w-36">Usulan Banding</th>
                 <th className="py-2.5 pr-3 text-center w-20">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800">
+            <tbody className="divide-y-2 divide-slate-100 text-slate-800">
               {votingList.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-4 text-center text-slate-400 italic"
+                    className="py-6 text-center text-slate-400 font-medium"
                   >
                     Belum ada penawaran kontraktor.
                   </td>
@@ -160,43 +185,48 @@ export function VotingKontraktorMonitorCard({
                   const isTolak = kontraktor.statusVote === "TOLAK";
 
                   return (
-                    <tr key={kontraktor.id || idx} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 pl-3 text-slate-400">{idx + 1}</td>
-                      <td className="py-2.5 font-semibold text-slate-900 flex items-center gap-1.5">
-                        <Building className="w-3.5 h-3.5 text-slate-400" />
-                        {kontraktor.namaPerusahaan}
+                    <tr key={kontraktor.id || idx} className="hover:bg-slate-50">
+                      <td className="py-3 pl-3 text-slate-500 font-mono">{idx + 1}</td>
+                      <td className="py-3 font-bold text-slate-900">
+                        <div className="flex items-center gap-1.5">
+                          <Building className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{kontraktor.namaPerusahaan}</span>
+                        </div>
                       </td>
-                      <td className="py-2.5">
+                      <td className="py-3">
                         {isSetuju ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-[#008A00] border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" /> Setuju
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Setuju</span>
                           </span>
                         ) : isTolak ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">
-                            <XCircle className="w-3 h-3" /> Usul Banding
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 text-white shadow-2xs">
+                            <Scale className="w-3.5 h-3.5" />
+                            <span>Usulan Banding</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600">
-                            <Clock className="w-3 h-3 text-slate-400" /> Menunggu
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-2xs">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Menunggu</span>
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 text-slate-600 font-mono">
+                      <td className="py-3 text-slate-600 font-mono font-medium">
                         {formatTanggal(kontraktor.tanggalVote)}
                       </td>
-                      <td className="py-2.5 text-right font-mono font-semibold tabular-nums">
+                      <td className="py-3 text-right font-mono font-black tabular-nums text-slate-900">
                         {kontraktor.hargaBanding
                           ? formatRupiah(kontraktor.hargaBanding)
                           : "-"}
                       </td>
-                      <td className="py-2.5 pr-3 text-center">
+                      <td className="py-3 pr-3 text-center">
                         {isTolak && (
                           <button
                             type="button"
-                            onClick={() => setSelectedBanding(kontraktor)}
-                            className="text-[11px] text-[#005BAC] hover:underline font-bold"
+                            onClick={() => handleLihatDetailBanding(kontraktor)}
+                            className="px-2.5 py-1 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold cursor-pointer transition-colors"
                           >
-                            Detail
+                            Rincian
                           </button>
                         )}
                       </td>
@@ -208,47 +238,6 @@ export function VotingKontraktorMonitorCard({
           </table>
         </div>
       </div>
-
-      {/* Modal Detail Usulan Banding */}
-      {selectedBanding && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-slate-200 p-5">
-            <h4 className="text-sm font-bold text-slate-900 mb-1">
-              Rincian Usulan Banding Rekanan
-            </h4>
-            <p className="text-xs text-slate-500 mb-3">
-              {selectedBanding.namaPerusahaan}
-            </p>
-
-            <div className="space-y-2 text-xs bg-slate-50 p-3 rounded border border-slate-200 mb-4">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Harga Usulan Baru:</span>
-                <span className="font-bold font-mono text-sm text-[#005BAC]">
-                  {formatRupiah(selectedBanding.hargaBanding)}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-0.5">
-                  Catatan Argumentasi Pasar:
-                </span>
-                <p className="text-slate-700 italic">
-                  &quot;{selectedBanding.catatanBanding || "Tidak ada catatan."}&quot;
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedBanding(null)}
-                className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

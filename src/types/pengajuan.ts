@@ -1,5 +1,5 @@
 /**
- * SPARTA-HARGA: Shared TypeScript Data Contracts
+ * SPARTA-PRICING: Shared TypeScript Data Contracts
  * Single Source of Truth (SSOT) untuk modul pengajuan harga, survei pasar 3 toko,
  * kalkulasi koefisien AHSP, live margin, dan kuorum rekanan kontraktor.
  */

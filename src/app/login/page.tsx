@@ -24,6 +24,7 @@ const SAMPLE_WHITELIST_ACCOUNTS = [
   { label: "S&B Specialist (HO)", email: "snb.specialist@alfamart.co.id", role: "SNB" },
   { label: "Regional Manager", email: "reg.manager1@alfamart.co.id", role: "RM" },
   { label: "Kontraktor (PT Cahaya)", email: "vendor.cahaya@rekanan.com", role: "Vendor" },
+  { label: "Admin HO", email: "admin.harga@alfamart.co.id", role: "Admin" },
 ];
 
 export default function LoginPage() {
@@ -63,7 +64,7 @@ export default function LoginPage() {
       if (!res.ok || !data.success) {
         setErrorMessage(
           data.message ||
-            "Akun belum terdaftar pada Whitelist SPARTA-HARGA. Silakan hubungi Tim S&B Controlling HO."
+            "Akun belum terdaftar pada Whitelist SPARTA-PRICING. Silakan hubungi Tim S&B Controlling HO."
         );
         setLoading(false);
         return;
@@ -77,8 +78,8 @@ export default function LoginPage() {
 
       // Redirect otomatis ke workspace peran
       setTimeout(() => {
-        router.push(data.targetUrl);
-      }, 600);
+        window.location.href = data.targetUrl;
+      }, 400);
     } catch {
       setErrorMessage("Terjadi kendala koneksi saat menghubungi server.");
       setLoading(false);
@@ -110,7 +111,7 @@ export default function LoginPage() {
             </div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#005BAC] text-[11px] font-bold uppercase tracking-wider mb-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>SPARTA-HARGA</span>
+              <span>SPARTA-PRICING</span>
             </div>
             <h1 className="text-base font-bold text-slate-900 leading-snug">
               Sistem Pengelolaan Master Harga

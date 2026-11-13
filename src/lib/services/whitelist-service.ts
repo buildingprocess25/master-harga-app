@@ -29,7 +29,7 @@ export async function verifyUserWhitelist(
     return {
       isWhitelisted: false,
       reason:
-        "Akun Anda belum didaftarkan di modul SPARTA-HARGA oleh Administrator. Silakan hubungi Tim S&B Controlling HO.",
+        "Akun Anda belum didaftarkan di modul SPARTA-PRICING oleh Administrator. Silakan hubungi Tim S&B Controlling HO.",
     };
   }
 
@@ -37,7 +37,7 @@ export async function verifyUserWhitelist(
     return {
       isWhitelisted: false,
       reason:
-        "Status akun Anda telah dinonaktifkan di modul SPARTA-HARGA. Silakan hubungi atasan atau Administrator HO.",
+        "Status akun Anda telah dinonaktifkan di modul SPARTA-PRICING. Silakan hubungi atasan atau Administrator HO.",
     };
   }
 

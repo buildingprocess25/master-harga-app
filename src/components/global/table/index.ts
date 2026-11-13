@@ -1,5 +1,5 @@
 /**
- * SPARTA-HARGA Table Component Kit
+ * SPARTA-PRICING Table Component Kit
  * Reusable Specification & Price Proposal Table (Atomic Design Pattern)
  */
 
