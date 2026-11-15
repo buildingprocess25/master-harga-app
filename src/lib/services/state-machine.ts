@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { TX_OPTIONS } from "@/lib/services/transisi-tiket";
 import { StatusPengajuanHarga, RoleUser } from "@/types";
 
 /**
@@ -107,5 +108,5 @@ export async function advanceTicketStatus({
     });
 
     return updated;
-  });
+  }, TX_OPTIONS);
 }

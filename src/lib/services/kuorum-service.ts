@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { DomainError, kunciTiket, Tx, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, Tx, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import {
   RoleUser,
   StatusPengajuanHarga,
@@ -418,7 +418,7 @@ export async function teruskanKeKontraktor({
       `Tiket berstatus ${tiket.status} tidak dapat diteruskan ke kontraktor.`,
       409
     );
-  });
+  }, TX_OPTIONS);
 }
 
 /** Evaluasi kuorum satu tiket (dipakai saat halaman dibuka atau oleh job terjadwal). */
@@ -429,7 +429,7 @@ export async function evaluasiKuorum(
   return prisma.$transaction(async (tx) => {
     await kunciTiket(tx, tiketId);
     return evaluasiPutaran(tx, tiketId, actor);
-  });
+  }, TX_OPTIONS);
 }
 
 /**
@@ -631,7 +631,7 @@ export async function submitVoteKontraktor(params: SubmitVoteParams) {
     });
 
     return { statusVote: keputusan, isBanding, diparkir, hasilKuorum };
-  });
+  }, TX_OPTIONS);
 }
 
 // ============================================================================

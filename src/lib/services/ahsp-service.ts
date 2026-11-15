@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { DomainError, kunciTiket, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import { KATEGORI_AHSP, marginDefaultKategori } from "@/lib/services/pengajuan-service";
 import { KategoriKoefisien } from "@/types";
 
@@ -249,7 +249,7 @@ export async function simpanWorksheetAhsp({ tiketId, userId, baris, terbitkan, c
       },
     });
     return { status: "DIAJUKAN" as const };
-  });
+  }, TX_OPTIONS);
 }
 
 // ============================================================================

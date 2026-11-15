@@ -383,9 +383,11 @@ export async function PATCH(
         });
       }
 
+      const isResubmittingRevision = existing.status === "PERLU_REVISI";
       const pUpdate = await tx.pengajuanHarga.update({
         where: { id: existing.id },
         data: {
+          ...(isResubmittingRevision ? { status: "DIAJUKAN" } : {}),
           cakupanHarga: cakupanHarga ?? existing.cakupanHarga,
           catatanReview: catatanReview ?? alasanPengajuan ?? existing.catatanReview,
         },
@@ -403,7 +405,7 @@ export async function PATCH(
           pengajuanHargaId: existing.id,
           userId: user.id,
           roleActor: user.role,
-          action: "UPDATE_SPESIFIKASI",
+          action: isResubmittingRevision ? "AJUKAN_ULANG_REVISI" : "UPDATE_SPESIFIKASI",
           catatan: catatanReview || `Spesifikasi material diperbarui oleh ${user.fullName}`,
         },
       });

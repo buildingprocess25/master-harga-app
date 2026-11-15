@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { DomainError, kunciTiket, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import {
   bulat2,
   hitungAhsp,
@@ -173,7 +173,7 @@ export async function simpanEvaluasiMargin({ tiketId, userId, margin, teruskan, 
     }
 
     return { hargaFinal: kalk.hargaFinal, marginEfektif: kalk.marginEfektif, status: teruskan ? "PENDING_REGIONAL_MGR" : "PENDING_SB_SPECIALIST" };
-  });
+  }, TX_OPTIONS);
 }
 
 /** Keputusan pasca-survei selain rekomendasi: minta revisi (PERLU_REVISI) atau tolak (DITOLAK). */

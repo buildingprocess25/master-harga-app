@@ -13,7 +13,10 @@ import {
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanHargaTable } from "@/components/global/table/PengajuanHargaTable";
-import { TambahPengajuanModal } from "@/components/bm-manager/TambahPengajuanModal";
+import {
+  TambahPengajuanModal,
+  BulkPengajuanPayloadItem,
+} from "@/components/bm-manager/TambahPengajuanModal";
 import { ReviewUlangSpesifikasiModal } from "@/components/bm-manager/ReviewUlangSpesifikasiModal";
 import { ModalCatatanReview } from "@/components/bm-manager/ModalCatatanReview";
 import {
@@ -362,6 +365,129 @@ export default function BMManagerPage() {
     });
   };
 
+  const handleBulkAddItems = async (bulkItems: BulkPengajuanPayloadItem[]) => {
+    const actualCabang = userCabang || "Cikokol";
+    const escapeHtml = (str: string) =>
+      String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    try {
+      const postRes = await fetch("/api/pengajuan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: bulkItems.map((entry) => ({
+            mode: "new",
+            divisiIds: entry.divisiIds,
+            isTermasukBongkaran: entry.isTermasukBongkaran,
+            item: entry.item,
+            namaItem: entry.namaItem,
+            kategori: entry.kategori,
+            merk: entry.merk,
+            ukuran: entry.ukuran,
+            tipe: entry.tipe,
+            warna: entry.warna,
+            permukaan: entry.permukaan,
+            tebal: entry.tebal,
+            toleransi: entry.toleransi,
+            lokasi: entry.lokasi,
+            satuan: entry.satuan,
+            cabang: entry.cabang || actualCabang,
+            kodeItem: entry.kodeItem,
+            kodeArea: entry.kodeArea,
+            kodeMaster: entry.kodeMaster,
+            informasiTambahan: entry.informasiTambahan,
+            alasanPengajuan: entry.informasiTambahan,
+            cakupanHarga: "INDUK_CABANG",
+          })),
+        }),
+      });
+
+      const postJson = await postRes.json();
+      if (!postRes.ok || !postJson.success) {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Mengajukan",
+          text: postJson.message || "Terjadi kesalahan saat mengirim pengajuan ke server.",
+          confirmButtonColor: "#ED1C24",
+        });
+        return;
+      }
+
+      const createdCount = Number(
+        postJson.createdCount ?? (Array.isArray(postJson.created) ? postJson.created.length : 0)
+      );
+      const skippedList: Array<{ itemName: string; divisiNama: string; reason: string }> = Array.isArray(
+        postJson.skipped
+      )
+        ? postJson.skipped
+        : [];
+      const skippedCount = Number(postJson.skippedCount ?? skippedList.length);
+
+      if (createdCount > 0) {
+        await fetchItems();
+      }
+
+      if (createdCount > 0 && skippedCount === 0) {
+        Swal.fire({
+          icon: "success",
+          title: "Pengajuan Berhasil",
+          text: postJson.message || `${createdCount} tiket pengajuan berhasil dibuat.`,
+          confirmButtonColor: "#005BAC",
+        });
+      } else if (createdCount > 0 && skippedCount > 0) {
+        const previewSkipped = skippedList
+          .slice(0, 5)
+          .map(
+            (s) =>
+              `<li><strong>${escapeHtml(s.itemName)}</strong> (${escapeHtml(s.divisiNama)}) — ${escapeHtml(s.reason)}</li>`
+          )
+          .join("");
+        const extraNote = skippedCount > 5 ? `<li>...dan ${skippedCount - 5} lainnya.</li>` : "";
+        Swal.fire({
+          icon: "info",
+          title: "Parsial Pintar: Sebagian Diajukan",
+          html: `<div style="text-align:left;font-size:13px;line-height:1.5;">
+            <p style="margin-bottom:8px;"><strong>${createdCount} tiket baru</strong> berhasil diajukan ke S&amp;B Specialist.</p>
+            <p style="margin-bottom:4px;color:#b45309;font-weight:700;">${skippedCount} item/divisi dilewati (sudah terdaftar):</p>
+            <ul style="padding-left:18px;margin:0;color:#475569;font-size:12px;">${previewSkipped}${extraNote}</ul>
+          </div>`,
+          confirmButtonColor: "#005BAC",
+          confirmButtonText: "Mengerti",
+        });
+      } else {
+        const previewSkipped = skippedList
+          .slice(0, 5)
+          .map(
+            (s) =>
+              `<li><strong>${escapeHtml(s.itemName)}</strong> (${escapeHtml(s.divisiNama)}) — ${escapeHtml(s.reason)}</li>`
+          )
+          .join("");
+        Swal.fire({
+          icon: "warning",
+          title: "Seluruh Pengajuan Dilewati",
+          html: `<div style="text-align:left;font-size:13px;line-height:1.5;">
+            <p style="margin-bottom:6px;">Semua item/divisi yang diajukan (${skippedCount}) sudah terdaftar di sistem:</p>
+            <ul style="padding-left:18px;margin:0;color:#475569;font-size:12px;">${previewSkipped}</ul>
+          </div>`,
+          confirmButtonColor: "#ED1C24",
+          confirmButtonText: "Tutup",
+        });
+      }
+    } catch (err) {
+      console.error("Bulk POST Pengajuan Error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Koneksi Gagal",
+        text: "Tidak dapat terhubung ke server saat mengirim pengajuan massal.",
+        confirmButtonColor: "#ED1C24",
+      });
+    }
+  };
+
   const handleResetFilters = () => {
     setFilters({
       search: "",
@@ -612,6 +738,7 @@ export default function BMManagerPage() {
         isOpen={isTambahModalOpen}
         onClose={() => setIsTambahModalOpen(false)}
         onSubmit={handleAddItem}
+        onBulkSubmit={handleBulkAddItems}
         nextIndex={items.length + 1}
         existingItems={items}
         itemToEdit={editingItem}

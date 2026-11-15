@@ -171,6 +171,51 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface PengajuanInputPayload {
+  mode?: string;
+  divisiId?: string;
+  divisiIds?: string[];
+  cakupanHarga?: string;
+  wilayahCabangId?: string | null;
+  alasanPengajuan?: string;
+  informasiTambahan?: string;
+  isTermasukBongkaran?: boolean;
+  masterItemId?: string;
+  kodeItem?: string;
+  kodeMaster?: string;
+  kodeArea?: string;
+  namaItem?: string;
+  item?: string;
+  kategori?: string;
+  merk?: string;
+  ukuran?: string;
+  tipe?: string;
+  warna?: string;
+  permukaan?: string;
+  tebal?: string;
+  toleransi?: string;
+  lokasi?: string;
+  satuan?: string;
+  cabang?: string;
+  cabangId?: string;
+}
+
+interface SkippedBulkEntry {
+  itemName: string;
+  kodeMaster: string;
+  divisiKode: string;
+  divisiNama: string;
+  existingNomorTiket: string | null;
+  reason: string;
+}
+
+const DIVISI_LABEL_ALIASES: Record<string, string[]> = {
+  "DIV-BLD": ["building", "sipil", "bld"],
+  "DIV-MNT": ["maintenance", "perawatan", "mnt"],
+  "DIV-ENG": ["engineering", "me", "m/e", "hvac", "eng"],
+  "DIV-DC": ["dc", "distribution center", "logistik"],
+};
+
 export async function POST(request: NextRequest) {
   try {
     let user = await getSessionUser();
@@ -199,169 +244,386 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const {
-      mode, // 'new' | 'existing'
-      divisiId,
-      cakupanHarga, // 'INDUK_CABANG' | 'KHUSUS_WILAYAH'
-      wilayahCabangId,
-      alasanPengajuan,
-      isTermasukBongkaran,
-      masterItemId,
-      kodeItem,
-      namaItem,
-      item,
-      kategori,
-      merk,
-      ukuran,
-      tipe,
-      warna,
-      permukaan,
-      tebal,
-      toleransi,
-      lokasi,
-      satuan,
-      cabang,
-    } = body;
+    const isBulkRequest = Array.isArray(body?.items);
+    const rawInputs: PengajuanInputPayload[] = isBulkRequest ? body.items : [body];
 
-    const actualItemName = (namaItem || item || "").trim();
-    if (!actualItemName) {
+    if (rawInputs.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Nama item material wajib diisi." },
+        { success: false, message: "Daftar pengajuan tidak boleh kosong." },
         { status: 400 }
       );
     }
 
-    // Resolve divisi
-    let resolvedDivisiId = divisiId || user.divisiId;
-    if (!resolvedDivisiId) {
-      const defaultDiv = await prisma.divisi.findFirst({ where: { isActive: true } });
-      resolvedDivisiId = defaultDiv?.id;
-    }
-    if (!resolvedDivisiId) {
+    const allDivisi = await prisma.divisi.findMany({
+      where: { isActive: true },
+      orderBy: { kodeDivisi: "asc" },
+    });
+
+    if (allDivisi.length === 0) {
       return NextResponse.json(
-        { success: false, message: "Divisi tidak ditemukan di sistem." },
+        { success: false, message: "Divisi aktif tidak ditemukan di sistem." },
         { status: 400 }
       );
     }
 
-    // Resolve cabang
-    let resolvedCabangId = user.cabangId;
-    if (!resolvedCabangId && cabang) {
-      const foundCabang = await prisma.cabang.findFirst({
-        where: { namaCabang: { contains: cabang, mode: "insensitive" } },
-      });
-      resolvedCabangId = foundCabang?.id;
-    }
-    if (!resolvedCabangId) {
-      const firstCabang = await prisma.cabang.findFirst();
-      resolvedCabangId = firstCabang?.id;
-    }
-    if (!resolvedCabangId) {
-      return NextResponse.json(
-        { success: false, message: "Cabang operasional tidak ditemukan di sistem." },
-        { status: 400 }
-      );
-    }
+    const resolveTargetDivisions = (entry: PengajuanInputPayload) => {
+      const requested = Array.isArray(entry.divisiIds) && entry.divisiIds.length > 0
+        ? entry.divisiIds
+        : entry.divisiId
+        ? [entry.divisiId]
+        : user.divisiId
+        ? [user.divisiId]
+        : [allDivisi[0].id];
 
-    // Eksekusi transaksional pembuatan tiket
-    const result = await prisma.$transaction(async (tx) => {
-      let resolvedItemId = masterItemId;
+      const matched: typeof allDivisi = [];
+      const seen = new Set<string>();
 
-      // 1. Jika mode === 'new' atau belum ada masterItemId, buat MasterItem
-      if (mode === "new" || !resolvedItemId) {
-        const cleanKodeItem = (kodeItem || `SIP-${Date.now().toString().slice(-3)}`).toUpperCase();
-        const cleanKodeMaster = `${cleanKodeItem}-01-${(kategori || "Umum").replace(/\s+/g, "")}`;
+      for (const rawKey of requested) {
+        const key = String(rawKey || "").trim();
+        if (!key) continue;
+        const lower = key.toLowerCase();
 
-        const autoDesc = [
-          actualItemName,
-          ukuran,
-          merk,
-          warna,
-          tipe ? `Tipe ${tipe}` : "",
-          tebal ? `Tebal ${tebal}` : "",
-          permukaan,
-          toleransi ? `Toleransi ${toleransi}` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-
-        const newItem = await tx.masterItem.create({
-          data: {
-            divisiId: resolvedDivisiId,
-            kodeItem: cleanKodeItem,
-            kodeVarian: "01",
-            kodeMaster: cleanKodeMaster,
-            kategori: kategori || "Pekerjaan Konstruksi",
-            namaItem: actualItemName,
-            ukuran: ukuran || "-",
-            merk: merk || "Standar Alfamart",
-            tipe: tipe || null,
-            warna: warna || null,
-            permukaan: permukaan || null,
-            tebal: tebal || null,
-            toleransi: toleransi || null,
-            lokasi: lokasi || "Area Toko",
-            satuan: (satuan || "m2").toUpperCase(),
-            deskripsiOtomatis: autoDesc,
-          },
+        const found = allDivisi.find((d) => {
+          if (d.id === key || d.kodeDivisi.toLowerCase() === lower || d.namaDivisi.toLowerCase() === lower) {
+            return true;
+          }
+          const aliases = DIVISI_LABEL_ALIASES[d.kodeDivisi.toUpperCase()] || [];
+          return aliases.some((alias) => lower === alias || lower.includes(alias));
         });
 
-        resolvedItemId = newItem.id;
+        if (found && !seen.has(found.id)) {
+          seen.add(found.id);
+          matched.push(found);
+        }
       }
 
-      // 2. Buat Nomor Tiket Unik (Format: REQ-2026-XXX)
-      const count = await tx.pengajuanHarga.count();
+      if (matched.length === 0) {
+        matched.push(allDivisi[0]);
+      }
+      return matched;
+    };
+
+    const cabangCache = new Map<string, string>();
+    const defaultCabangRecord = await prisma.cabang.findFirst({ where: { isActive: true } });
+
+    const resolveCabangId = async (entry: PengajuanInputPayload): Promise<string | null> => {
+      if (entry.cabangId) return entry.cabangId;
+      if (user.cabangId && !entry.cabang) return user.cabangId;
+
+      const cabangName = (entry.cabang || "").trim();
+      if (cabangName) {
+        const cacheKey = cabangName.toLowerCase();
+        if (cabangCache.has(cacheKey)) {
+          return cabangCache.get(cacheKey)!;
+        }
+        const foundCabang = await prisma.cabang.findFirst({
+          where: { namaCabang: { contains: cabangName, mode: "insensitive" } },
+        });
+        if (foundCabang) {
+          cabangCache.set(cacheKey, foundCabang.id);
+          return foundCabang.id;
+        }
+      }
+
+      return user.cabangId || defaultCabangRecord?.id || null;
+    };
+
+    // Validasi awal nama item & cabang untuk seluruh entry
+    const preparedEntries: Array<{
+      entry: PengajuanInputPayload;
+      actualItemName: string;
+      resolvedCabangId: string;
+      targetDivisions: typeof allDivisi;
+    }> = [];
+
+    for (const entry of rawInputs) {
+      const actualItemName = (entry.namaItem || entry.item || "").trim();
+      if (!actualItemName) {
+        return NextResponse.json(
+          { success: false, message: "Nama item material wajib diisi untuk seluruh baris." },
+          { status: 400 }
+        );
+      }
+
+      const resolvedCabangId = await resolveCabangId(entry);
+      if (!resolvedCabangId) {
+        return NextResponse.json(
+          { success: false, message: "Cabang operasional tidak ditemukan di sistem." },
+          { status: 400 }
+        );
+      }
+
+      preparedEntries.push({
+        entry,
+        actualItemName,
+        resolvedCabangId,
+        targetDivisions: resolveTargetDivisions(entry),
+      });
+    }
+
+    // Eksekusi transaksional pembuatan tiket (Parsial Pintar)
+    const txResult = await prisma.$transaction(async (tx) => {
       const currentYear = new Date().getFullYear();
-      let nomorTiket = `REQ-${currentYear}-${String(count + 1).padStart(3, "0")}`;
+      let nextSeq = (await tx.pengajuanHarga.count()) + 1;
 
-      const existingTiket = await tx.pengajuanHarga.findUnique({
-        where: { nomorTiket },
+      const existingCodes = await tx.masterItem.findMany({
+        select: { kodeItem: true },
       });
-      if (existingTiket) {
-        nomorTiket = `REQ-${currentYear}-${String(count + 1).padStart(3, "0")}-${Math.floor(10 + Math.random() * 90)}`;
+      let maxSipNum = 0;
+      for (const row of existingCodes) {
+        const m = row.kodeItem.match(/^SIP-(\d+)/i);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (n > maxSipNum) maxSipNum = n;
+        }
       }
 
-      // 3. Buat PengajuanHarga
-      const pengajuan = await tx.pengajuanHarga.create({
-        data: {
-          nomorTiket,
-          divisiId: resolvedDivisiId,
-          cabangId: resolvedCabangId,
-          wilayahCabangId: cakupanHarga === "KHUSUS_WILAYAH" ? wilayahCabangId : null,
-          masterItemId: resolvedItemId,
-          pembuatUserId: user.id,
-          cakupanHarga: (cakupanHarga as CakupanHarga) || "INDUK_CABANG",
-          status: "DIAJUKAN",
-          isTermasukBongkaran: Boolean(isTermasukBongkaran),
-          marginAwalPersen: 8.0,
-          catatanReview: alasanPengajuan || null,
-        },
-        include: {
-          masterItem: true,
-          divisi: true,
-          cabang: true,
-          wilayahCabang: true,
-        },
-      });
+      const allocateNomorTiket = async (): Promise<string> => {
+        let candidate = `REQ-${currentYear}-${String(nextSeq).padStart(3, "0")}`;
+        nextSeq++;
+        const existingTiket = await tx.pengajuanHarga.findUnique({
+          where: { nomorTiket: candidate },
+          select: { id: true },
+        });
+        if (existingTiket) {
+          candidate = `REQ-${currentYear}-${String(nextSeq).padStart(3, "0")}-${Math.floor(10 + Math.random() * 90)}`;
+        }
+        return candidate;
+      };
 
-      // 4. Catat Riwayat Audit
-      await tx.approvalAuditLog.create({
-        data: {
-          pengajuanHargaId: pengajuan.id,
-          userId: user.id,
-          roleActor: user.role,
-          action: "SUBMIT_PENGAJUAN",
-          catatan: alasanPengajuan || `Inisiasi spesifikasi material baru oleh ${user.fullName}`,
-        },
-      });
+      const created: any[] = [];
+      const skipped: SkippedBulkEntry[] = [];
+      const seenSubmissionKeys = new Set<string>();
+      const masterCache = new Map<string, { id: string; kodeMaster: string }>();
 
-      return pengajuan;
-    });
+      for (const { entry, actualItemName, resolvedCabangId, targetDivisions } of preparedEntries) {
+        const primaryDivisi = targetDivisions[0];
+        const cleanLokasi = (entry.lokasi || "Area Toko").trim();
+        const cleanMerk = (entry.merk || "Standar Alfamart").trim();
+        const cleanUkuran = (entry.ukuran || "-").trim();
+        const cleanKategori = (entry.kategori || "Pekerjaan Konstruksi").trim();
+        const cleanTipe = entry.tipe?.trim() || null;
+        const cleanWarna = entry.warna?.trim() || null;
+        const cleanPermukaan = entry.permukaan?.trim() || null;
+        const cleanTebal = entry.tebal?.trim() || null;
+        const cleanToleransi = entry.toleransi?.trim() || null;
+
+        const specSignature = [
+          actualItemName.toLowerCase(),
+          cleanUkuran.toLowerCase(),
+          cleanMerk.toLowerCase(),
+          (cleanWarna || "").toLowerCase(),
+          (cleanTipe || "").toLowerCase(),
+          (cleanPermukaan || "").toLowerCase(),
+          (cleanTebal || "").toLowerCase(),
+          cleanLokasi.toLowerCase(),
+        ].join("|");
+
+        let resolvedMaster: { id: string; kodeMaster: string } | null = null;
+
+        if (entry.mode !== "new" && entry.masterItemId) {
+          const existingById = await tx.masterItem.findUnique({
+            where: { id: entry.masterItemId },
+            select: { id: true, kodeMaster: true },
+          });
+          if (existingById) {
+            resolvedMaster = existingById;
+          }
+        }
+
+        if (!resolvedMaster && masterCache.has(specSignature)) {
+          resolvedMaster = masterCache.get(specSignature)!;
+        }
+
+        // Cek kecocokan fisik + lokasi eksisting di MasterItem DB
+        if (!resolvedMaster) {
+          const existingBySpec = await tx.masterItem.findFirst({
+            where: {
+              namaItem: { equals: actualItemName, mode: "insensitive" },
+              ukuran: { equals: cleanUkuran, mode: "insensitive" },
+              merk: { equals: cleanMerk, mode: "insensitive" },
+              lokasi: { equals: cleanLokasi, mode: "insensitive" },
+              warna: cleanWarna ? { equals: cleanWarna, mode: "insensitive" } : null,
+              tipe: cleanTipe ? { equals: cleanTipe, mode: "insensitive" } : null,
+              permukaan: cleanPermukaan ? { equals: cleanPermukaan, mode: "insensitive" } : null,
+              tebal: cleanTebal ? { equals: cleanTebal, mode: "insensitive" } : null,
+            },
+            select: { id: true, kodeMaster: true },
+          });
+          if (existingBySpec) {
+            resolvedMaster = existingBySpec;
+          }
+        }
+
+        if (!resolvedMaster) {
+          const cleanKatToken = (cleanKategori || "Umum").replace(/\s+/g, "");
+          let candidateKodeItem = (entry.kodeItem || "").trim().toUpperCase();
+          if (!candidateKodeItem) {
+            maxSipNum += 1;
+            candidateKodeItem = `SIP-${String(maxSipNum).padStart(3, "0")}`;
+          }
+          const candidateVarian = (entry.kodeArea || "01").trim().toUpperCase();
+          let candidateKodeMaster = (entry.kodeMaster || "").trim() || `${candidateKodeItem}-${candidateVarian}-${cleanKatToken}`;
+
+          // Hindari bentrok kodeMaster / (kodeItem, kodeVarian) dengan item fisik berbeda
+          let guard = 0;
+          while (guard < 50) {
+            const conflict = await tx.masterItem.findFirst({
+              where: {
+                OR: [
+                  { kodeMaster: candidateKodeMaster },
+                  { kodeItem: candidateKodeItem, kodeVarian: candidateVarian },
+                ],
+              },
+              select: { id: true },
+            });
+            if (!conflict) break;
+            maxSipNum += 1;
+            candidateKodeItem = `SIP-${String(maxSipNum).padStart(3, "0")}`;
+            candidateKodeMaster = `${candidateKodeItem}-${candidateVarian}-${cleanKatToken}`;
+            guard++;
+          }
+
+          const autoDesc = [
+            actualItemName,
+            cleanUkuran !== "-" ? cleanUkuran : "",
+            cleanMerk,
+            cleanWarna || "",
+            cleanTipe ? `Tipe ${cleanTipe}` : "",
+            cleanTebal ? `Tebal ${cleanTebal}` : "",
+            cleanPermukaan || "",
+            cleanToleransi ? `Toleransi ${cleanToleransi}` : "",
+            cleanLokasi ? `Lokasi ${cleanLokasi}` : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          const newItem = await tx.masterItem.create({
+            data: {
+              divisiId: primaryDivisi.id,
+              kodeItem: candidateKodeItem,
+              kodeVarian: candidateVarian,
+              kodeMaster: candidateKodeMaster,
+              kategori: cleanKategori,
+              namaItem: actualItemName,
+              ukuran: cleanUkuran,
+              merk: cleanMerk,
+              tipe: cleanTipe,
+              warna: cleanWarna,
+              permukaan: cleanPermukaan,
+              tebal: cleanTebal,
+              toleransi: cleanToleransi,
+              lokasi: cleanLokasi,
+              satuan: (entry.satuan || "m2").toUpperCase(),
+              deskripsiOtomatis: autoDesc,
+            },
+            select: { id: true, kodeMaster: true },
+          });
+
+          resolvedMaster = newItem;
+        }
+
+        masterCache.set(specSignature, resolvedMaster);
+
+        const catatanInput = (entry.alasanPengajuan || entry.informasiTambahan || "").trim() || null;
+        const resolvedCakupan = (entry.cakupanHarga as CakupanHarga) || "INDUK_CABANG";
+
+        // Buat 1 tiket PengajuanHarga untuk setiap divisi terpilih (dengan deteksi duplikat Parsial Pintar)
+        for (const divisi of targetDivisions) {
+          const batchKey = `${resolvedCabangId}::${divisi.id}::${resolvedMaster.id}`;
+          if (seenSubmissionKeys.has(batchKey)) {
+            skipped.push({
+              itemName: actualItemName,
+              kodeMaster: resolvedMaster.kodeMaster,
+              divisiKode: divisi.kodeDivisi,
+              divisiNama: divisi.namaDivisi,
+              existingNomorTiket: null,
+              reason: "Duplikat dalam daftar pengajuan yang sama.",
+            });
+            continue;
+          }
+
+          const existingTicket = await tx.pengajuanHarga.findFirst({
+            where: {
+              cabangId: resolvedCabangId,
+              divisiId: divisi.id,
+              masterItemId: resolvedMaster.id,
+              status: { notIn: ["DITOLAK"] },
+            },
+            select: { nomorTiket: true },
+          });
+
+          if (existingTicket) {
+            skipped.push({
+              itemName: actualItemName,
+              kodeMaster: resolvedMaster.kodeMaster,
+              divisiKode: divisi.kodeDivisi,
+              divisiNama: divisi.namaDivisi,
+              existingNomorTiket: existingTicket.nomorTiket,
+              reason: `Sudah terdaftar di cabang & divisi ini (${existingTicket.nomorTiket}).`,
+            });
+            continue;
+          }
+
+          const nomorTiket = await allocateNomorTiket();
+          const pengajuan = await tx.pengajuanHarga.create({
+            data: {
+              nomorTiket,
+              divisiId: divisi.id,
+              cabangId: resolvedCabangId,
+              wilayahCabangId: resolvedCakupan === "KHUSUS_WILAYAH" ? entry.wilayahCabangId : null,
+              masterItemId: resolvedMaster.id,
+              pembuatUserId: user.id,
+              cakupanHarga: resolvedCakupan,
+              status: "DIAJUKAN",
+              isTermasukBongkaran: Boolean(entry.isTermasukBongkaran),
+              marginAwalPersen: 8.0,
+              catatanReview: catatanInput,
+            },
+            include: {
+              masterItem: true,
+              divisi: true,
+              cabang: true,
+              wilayahCabang: true,
+            },
+          });
+
+          await tx.approvalAuditLog.create({
+            data: {
+              pengajuanHargaId: pengajuan.id,
+              userId: user.id,
+              roleActor: user.role,
+              action: "SUBMIT_PENGAJUAN",
+              catatan: catatanInput || `Inisiasi spesifikasi material oleh ${user.fullName} (${divisi.namaDivisi})`,
+            },
+          });
+
+          seenSubmissionKeys.add(batchKey);
+          created.push(pengajuan);
+        }
+      }
+
+      return { created, skipped };
+    }, { maxWait: 10000, timeout: 30000 });
+
+    const { created, skipped } = txResult;
+    const summaryMessage =
+      created.length > 0 && skipped.length > 0
+        ? `${created.length} tiket pengajuan berhasil dibuat, ${skipped.length} item/divisi dilewati karena sudah terdaftar.`
+        : created.length > 0
+        ? isBulkRequest || created.length > 1
+          ? `${created.length} tiket pengajuan berhasil diajukan ke server.`
+          : `Permohonan spesifikasi #${created[0].nomorTiket} berhasil diajukan ke server.`
+        : `Semua pengajuan (${skipped.length}) dilewati karena sudah terdaftar sebelumnya.`;
 
     return NextResponse.json({
       success: true,
-      message: `Permohonan spesifikasi #${result.nomorTiket} berhasil diajukan ke server.`,
-      data: result,
+      message: summaryMessage,
+      data: isBulkRequest ? created : created[0] ?? null,
+      created,
+      skipped,
+      createdCount: created.length,
+      skippedCount: skipped.length,
     });
   } catch (error: any) {
     console.error("POST Pengajuan Error:", error);

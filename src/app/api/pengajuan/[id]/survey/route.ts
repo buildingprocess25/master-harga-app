@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
 import { advanceTicketStatus } from "@/lib/services/state-machine";
+import { TX_OPTIONS } from "@/lib/services/transisi-tiket";
 
 interface StoreSurveyInput {
   noToko: number;
@@ -323,7 +324,7 @@ export async function POST(
       });
 
       return updatedTiket;
-    });
+    }, TX_OPTIONS);
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { DomainError, kunciTiket, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import { teruskanKeKontraktor } from "@/lib/services/kuorum-service";
 
 /** Jumlah rekanan AKTIF yang akan diundang kuorum (cabang + divisi tiket). */
@@ -108,7 +108,7 @@ export async function putuskanLayer3(params: {
       aksi: params.keputusan === "KEMBALI_SNB" ? "KEMBALIKAN_TINJAUAN_MARGIN" : "TOLAK_PENGAJUAN",
       catatan,
     });
-  });
+  }, TX_OPTIONS);
   return { status: keStatus };
 }
 
@@ -140,7 +140,7 @@ export async function putuskanKuorumGagal(params: {
       aksi: params.keputusan === "BUKA_ULANG" ? "BUKA_ULANG_SETELAH_MEDIASI" : "TOLAK_PENGAJUAN",
       catatan,
     });
-  });
+  }, TX_OPTIONS);
 
   if (params.keputusan === "TOLAK") return { status: "DITOLAK" as const };
 
