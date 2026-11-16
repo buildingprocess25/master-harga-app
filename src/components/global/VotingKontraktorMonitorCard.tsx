@@ -27,14 +27,14 @@ export function VotingKontraktorMonitorCard({
   const total = votingList.length;
   const setujuCount = votingList.filter((v) => v.statusVote === "SETUJU").length;
   const tolakCount = votingList.filter((v) => v.statusVote === "TOLAK").length;
-  const menungguCount = votingList.filter(
-    (v) => v.statusVote === "MENUNGGU" || v.statusVote === "TIMEOUT"
-  ).length;
+  const menungguCount = votingList.filter((v) => v.statusVote === "MENUNGGU").length;
+  const timeoutCount = votingList.filter((v) => v.statusVote === "TIMEOUT").length;
 
   // Rumus Kuorum Alfamart: Minimal 50% + 1 rekanan setuju
   const targetKuorum = total > 0 ? Math.floor(total / 2) + 1 : 1;
   const persentaseSetuju = total > 0 ? Math.round((setujuCount / total) * 100) : 0;
   const isKuorumTercapai = setujuCount >= targetKuorum;
+  const isKuorumGagal = total > 0 && !isKuorumTercapai && setujuCount + menungguCount < targetKuorum;
 
   const handleLihatDetailBanding = (kontraktor: VotingKontraktorItem) => {
     Swal.fire({
@@ -101,11 +101,19 @@ export function VotingKontraktorMonitorCard({
             <span
               className={cn(
                 "font-black font-mono",
-                isKuorumTercapai ? "text-emerald-700" : "text-amber-700"
+                isKuorumTercapai
+                  ? "text-emerald-700"
+                  : isKuorumGagal
+                  ? "text-rose-700"
+                  : "text-amber-700"
               )}
             >
               {setujuCount} dari {total} Kontraktor ({persentaseSetuju}%)
-              {isKuorumTercapai ? " • Kuorum Tercapai" : ` • Butuh ${targetKuorum} Setuju`}
+              {isKuorumTercapai
+                ? " • Kuorum Tercapai"
+                : isKuorumGagal
+                ? ` • Kuorum Gagal${timeoutCount > 0 ? ` (${timeoutCount} Timeout SLA)` : ""}`
+                : ` • Butuh ${targetKuorum} Setuju`}
             </span>
           </div>
 
@@ -148,11 +156,20 @@ export function VotingKontraktorMonitorCard({
           </div>
           <div className="bg-white border-2 border-amber-500 p-3 rounded-xl shadow-2xs">
             <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block mb-0.5">
-              Menunggu Respon
+              {timeoutCount > 0 && menungguCount === 0
+                ? "Timeout SLA"
+                : "Menunggu Respon"}
             </span>
             <span className="text-xl font-black text-amber-600 font-mono">
-              {menungguCount}
+              {timeoutCount > 0 && menungguCount === 0
+                ? timeoutCount
+                : menungguCount}
             </span>
+            {timeoutCount > 0 && menungguCount > 0 && (
+              <span className="text-[10px] font-bold text-slate-600 block">
+                +{timeoutCount} Timeout SLA
+              </span>
+            )}
           </div>
         </div>
 
@@ -183,6 +200,7 @@ export function VotingKontraktorMonitorCard({
                 votingList.map((kontraktor, idx) => {
                   const isSetuju = kontraktor.statusVote === "SETUJU";
                   const isTolak = kontraktor.statusVote === "TOLAK";
+                  const isTimeout = kontraktor.statusVote === "TIMEOUT";
 
                   return (
                     <tr key={kontraktor.id || idx} className="hover:bg-slate-50">
@@ -203,6 +221,11 @@ export function VotingKontraktorMonitorCard({
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 text-white shadow-2xs">
                             <Scale className="w-3.5 h-3.5" />
                             <span>Usulan Banding</span>
+                          </span>
+                        ) : isTimeout ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-600 text-white shadow-2xs">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Timeout SLA</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-2xs">

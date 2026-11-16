@@ -29,6 +29,7 @@ import {
   OpsiPustakaKoefisien,
 } from "@/components/global/RincianKalkulasiKoefisien";
 import { VotingKontraktorMonitorCard } from "@/components/global/VotingKontraktorMonitorCard";
+import { KeputusanBanding } from "@/components/sb-specialist/KeputusanBanding";
 import {
   PengajuanHargaItem,
   UserSessionProfile,
@@ -410,7 +411,7 @@ export default function SBSpecialistDetailPage() {
           action: "SETUJU_HARGA",
           catatan:
             catatan.trim() ||
-            "Disetujui S&B Specialist (Layer 2) dan diteruskan ke Regional Manager.",
+            "Disetujui S&B Specialist dan diteruskan ke Regional Manager.",
           liveMarginUpah,
           liveMarginMaterial,
           liveMarginBongkaran,
@@ -420,7 +421,7 @@ export default function SBSpecialistDetailPage() {
       const json = await res.json();
       if (json.success) {
         await Swal.fire({
-          title: "Harga Disetujui (Layer 2)",
+          title: "Harga Disetujui",
           text: "Rekomendasi harga satuan telah diteruskan ke Regional Manager untuk approval akhir.",
           icon: "success",
           confirmButtonColor: "#005BAC",
@@ -594,8 +595,28 @@ export default function SBSpecialistDetailPage() {
     isSpekDisetujui ||
     item.status === "SIAP_SURVEI" ||
     item.status === "PENDING_SB_SPECIALIST" ||
+    item.status === "PENDING_KONTRAKTOR" ||
     item.status === "USULAN_KONTRAKTOR" ||
+    item.status === "DITOLAK_KONTRAKTOR" ||
     item.status === "RELEASED";
+
+  const votesList = item.votingKontraktorList || [];
+  const totalVotes = votesList.length;
+  const targetKuorum = totalVotes > 0 ? Math.floor(totalVotes / 2) + 1 : 1;
+  const setujuVotes = votesList.filter((v) => v.statusVote === "SETUJU").length;
+  const menungguVotes = votesList.filter((v) => v.statusVote === "MENUNGGU").length;
+  const adaBandingVotes = votesList.some(
+    (v) => v.statusVote === "TOLAK" && typeof v.hargaBanding === "number"
+  );
+  const isKuorumTercapai = totalVotes > 0 && setujuVotes >= targetKuorum;
+  const isKuorumBelumFinal =
+    totalVotes === 0 ||
+    (!isKuorumTercapai && setujuVotes + menungguVotes >= targetKuorum);
+  const isKeputusanBandingTersedia =
+    item.status === "USULAN_KONTRAKTOR" ||
+    (item.status === "PENDING_KONTRAKTOR" && adaBandingVotes);
+  const isKeputusanBandingAktif =
+    item.status === "USULAN_KONTRAKTOR" && !isKuorumBelumFinal;
 
   return (
     <AppLayoutShell
@@ -901,9 +922,26 @@ export default function SBSpecialistDetailPage() {
               <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[#005BAC]" />
-                  <span>Tinjauan &amp; Persetujuan Harga Survei (Layer 2)</span>
+                  <span>
+                    {item.isRevisiMargin
+                      ? "Konfirmasi Revisi Margin & Teruskan ke Regional"
+                      : "Tinjauan & Persetujuan Harga Survei"}
+                  </span>
                 </h3>
+                {item.isRevisiMargin && (
+                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-600 text-white">
+                    Mode Revisi Margin
+                  </span>
+                )}
               </div>
+
+              {item.isRevisiMargin && (
+                <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-3 text-xs font-semibold text-amber-950">
+                  Silakan ubah persentase Margin (Upah, Material, atau Bongkaran) pada kartu{" "}
+                  <span className="font-black">Rincian Koefisien</span> di bawah. Penambahan atau pengubahan koefisien terkunci pada tahap revisi banding. Setelah sesuai, klik{" "}
+                  <span className="font-black">Setujui Harga &amp; Teruskan ke Regional</span>.
+                </div>
+              )}
 
               {activeAction === "none" ||
               activeAction === "approve_spec" ||
@@ -1021,10 +1059,39 @@ export default function SBSpecialistDetailPage() {
             ALUR 3: MONITORING & EVALUASI KUORUM REKANAN KONTRAKTOR
             ========================================================= */}
         {isBanding && (
-          <VotingKontraktorMonitorCard
-            votingList={item.votingKontraktorList || []}
-            deadlineVoting={item.deadlineVoting}
-          />
+          <div className="space-y-4">
+            <VotingKontraktorMonitorCard
+              votingList={item.votingKontraktorList || []}
+              deadlineVoting={item.deadlineVoting}
+            />
+            {isKeputusanBandingTersedia && (
+              <KeputusanBanding
+                tiketId={item.id}
+                hargaDitawarkan={item.totalHargaSatuan ?? null}
+                disabled={!isKeputusanBandingAktif}
+                onSukses={loadData}
+                alasanTerkunci={
+                  isKuorumBelumFinal
+                    ? `Progres kuorum saat ini (${setujuVotes} Setuju, ${menungguVotes} Menunggu dari ${totalVotes} Kontraktor, butuh ${targetKuorum} Setuju) belum menghasilkan keputusan final. Tombol keputusan banding akan aktif setelah kuorum mencapai keputusan valid.`
+                    : undefined
+                }
+                usulanRata={(() => {
+                  const usulans = (item.votingKontraktorList || [])
+                    .filter(
+                      (v) =>
+                        v.statusVote === "TOLAK" &&
+                        typeof v.hargaBanding === "number"
+                    )
+                    .map((v) => v.hargaBanding as number);
+                  return usulans.length > 0
+                    ? Math.round(
+                        usulans.reduce((a, b) => a + b, 0) / usulans.length
+                      )
+                    : null;
+                })()}
+              />
+            )}
+          </div>
         )}
 
         {/* =========================================================================
@@ -1035,7 +1102,13 @@ export default function SBSpecialistDetailPage() {
             <RincianKalkulasiKoefisien
               item={item}
               koefisienItems={koefisienList}
-              mode={item.status === "RELEASED" ? "readonly" : "editable"}
+              mode={
+                item.status === "DIAJUKAN"
+                  ? "editable"
+                  : item.isRevisiMargin
+                  ? "margin-only"
+                  : "readonly"
+              }
               liveMarginUpah={liveMarginUpah}
               liveMarginMaterial={liveMarginMaterial}
               liveMarginBongkaran={liveMarginBongkaran}
@@ -1043,7 +1116,7 @@ export default function SBSpecialistDetailPage() {
               onItemsChange={setKoefisienList}
               pustakaKoefisien={pustakaKoefisien}
               onTambahKoefisienBaru={handleTambahPustakaBaru}
-              onSave={handleSaveKoefisien}
+              onSave={item.status === "DIAJUKAN" ? handleSaveKoefisien : undefined}
             />
             
           </div>

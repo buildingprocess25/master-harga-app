@@ -18,7 +18,7 @@ import { SlaCountdown } from "@/components/kuorum/SlaCountdown";
 import { StatusVoteBadge, labelStatusTiket } from "../_components/StatusBadge";
 import { FormResponPenawaran } from "../_components/FormResponPenawaran";
 import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
-import { DetailSpesifikasiCard } from "@/components/global/DetailSpesifikasiCard";
+import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import { PengajuanHargaItem } from "@/types";
 
 export default async function DetailPenawaranPage({
@@ -44,19 +44,26 @@ export default async function DetailPenawaranPage({
     detail.statusTiket === "PENDING_KONTRAKTOR" &&
     voteAktif.statusVote === "MENUNGGU";
 
-  // Bentuk item untuk PengajuanTimelineBar dan DetailSpesifikasiCard
+  // Bentuk item untuk PengajuanTimelineBar dan DetailSpesifikasi
   const timelineItem: PengajuanHargaItem = {
     id: detail.tiketId,
     noTiket: detail.nomorTiket,
-    kodeItem: item?.kodeMaster || detail.nomorTiket,
+    kode: item?.kodeItem || item?.kodeMaster || detail.nomorTiket,
+    kodeItem: item?.kodeItem || item?.kodeMaster || detail.nomorTiket,
+    kodeMaster: item?.kodeMaster,
     namaItem: item?.namaItem || "Item Pekerjaan",
     kategori: item?.kategori || "Pekerjaan Standar",
     merk: item?.merk ?? undefined,
     tipe: item?.tipe ?? undefined,
     ukuran: item?.ukuran ?? undefined,
     warna: item?.warna ?? undefined,
+    permukaan: item?.permukaan ?? undefined,
+    tebal: item?.tebal ?? undefined,
+    toleransi: item?.toleransi ?? undefined,
     lokasi: item?.lokasi ?? undefined,
     satuan: item?.satuan ?? undefined,
+    deskripsiOtomatis: item?.deskripsi ?? undefined,
+    alasanPengajuan: detail.catatanReview ?? undefined,
     divisiId: "",
     namaDivisi: detail.namaDivisi,
     cabangId: "",
@@ -64,7 +71,7 @@ export default async function DetailPenawaranPage({
     cakupanHarga: detail.cakupanHarga as any,
     namaWilayah: detail.namaWilayah,
     status: detail.statusTiket,
-    tanggalPengajuan: "",
+    tanggalPengajuan: detail.tanggalPengajuan,
     surveiTokoList: [],
     koefisienItems: [],
     liveMarginUpah: 8,
@@ -147,7 +154,7 @@ export default async function DetailPenawaranPage({
       </div>
 
       {/* Detail Spesifikasi Pekerjaan */}
-      <DetailSpesifikasiCard item={timelineItem} />
+      <DetailSpesifikasi item={timelineItem} showDeskripsi={true} />
 
       {/* Panel Form Respon Perusahaan */}
       <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">

@@ -196,7 +196,7 @@ export interface OpsiPustakaKoefisien {
 export interface RincianKalkulasiKoefisienProps {
   item?: any;
   koefisienItems?: KoefisienDetailItem[];
-  mode?: "readonly" | "editable";
+  mode?: "readonly" | "editable" | "margin-only";
   isReadOnly?: boolean;
   liveMarginUpah?: number;
   liveMarginMaterial?: number;
@@ -248,6 +248,7 @@ export function RincianKalkulasiKoefisien({
   className = "",
 }: RincianKalkulasiKoefisienProps) {
   const isEditable = isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable";
+  const isMarginEditable = isEditable || mode === "margin-only";
 
   // State Margin Numerik Terpusat (Tanpa Slider)
   const [marginUpahState, setMarginUpahState] = useState<number>(
@@ -555,11 +556,11 @@ export function RincianKalkulasiKoefisien({
                     min="0"
                     max="100"
                     value={currentMargin}
-                    disabled={!isEditable}
+                    disabled={!isMarginEditable}
                     onChange={(e) =>
                       handleMarginInputChange(kategori, e.target.value)
                     }
-                    className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
+                    className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600"
                   />
                   <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-700 font-bold">
                     %
@@ -785,14 +786,18 @@ export function RincianKalkulasiKoefisien({
 
         <div className="flex items-center gap-2">
           {item?.status === "USULAN_KONTRAKTOR" && (
-            <span className="text-xs font-bold text-amber-900 bg-amber-100 border-2 border-amber-300 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-              <Percent className="w-3.5 h-3.5 text-amber-700" />
+            <span className="text-xs font-bold text-white bg-amber-600 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-2xs">
+              <Percent className="w-3.5 h-3.5" />
               <span>Mode Negosiasi Kontraktor</span>
             </span>
           )}
           {isEditable ? (
             <span className="text-xs font-bold text-white bg-[#005BAC] px-3 py-1 rounded-md shadow-2xs">
               Mode Edit
+            </span>
+          ) : mode === "margin-only" ? (
+            <span className="text-xs font-bold text-white bg-amber-600 px-3 py-1 rounded-md shadow-2xs">
+              Mode Revisi Margin
             </span>
           ) : (
             <span className="text-xs font-bold text-slate-700 bg-white border-2 border-slate-300 px-3 py-1 rounded-md">

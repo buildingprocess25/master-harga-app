@@ -41,10 +41,16 @@ export function KeputusanBanding({
   tiketId,
   hargaDitawarkan,
   usulanRata,
+  disabled = false,
+  alasanTerkunci,
+  onSukses,
 }: {
   tiketId: string;
   hargaDitawarkan: number | null;
   usulanRata: number | null;
+  disabled?: boolean;
+  alasanTerkunci?: string;
+  onSukses?: () => void | Promise<void>;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("REVISI_MARGIN");
@@ -54,6 +60,7 @@ export function KeputusanBanding({
   const aktif = OPSI.find((o) => o.m === mode)!;
 
   const kirim = async () => {
+    if (disabled) return;
     setError("");
     if (catatan.trim().length < 5) {
       setError("Catatan evaluasi wajib diisi (minimal 5 karakter).");
@@ -85,17 +92,35 @@ export function KeputusanBanding({
         return;
       }
       await notifikasi("sukses", hasil.message);
-      // Revisi tetap di halaman ini: status berubah dan workspace evaluasi margin tampil.
-      if (mode === "REVISI_MARGIN") router.refresh();
-      else router.push("/sb-specialist/banding-rekanan");
+      // Revisi tetap di halaman ini: status berubah dan mode revisi margin tampil.
+      if (mode === "REVISI_MARGIN") {
+        if (onSukses) await onSukses();
+        router.refresh();
+      } else {
+        router.push("/sb-specialist/banding-rekanan");
+      }
     });
   };
 
   return (
     <section className="bg-white border-2 border-slate-200 rounded-xl p-4 space-y-3" aria-labelledby="judul-keputusan-banding">
-      <h2 id="judul-keputusan-banding" className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-        Keputusan Evaluasi Banding
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="judul-keputusan-banding" className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+          Keputusan Evaluasi Banding
+        </h2>
+        {disabled && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-700 text-white">
+            <Lock className="w-3 h-3" />
+            Menunggu Keputusan Kuorum
+          </span>
+        )}
+      </div>
+      {disabled && (
+        <div className="text-xs font-medium text-amber-950 bg-amber-100 border-2 border-amber-400 rounded-lg px-3 py-2.5">
+          {alasanTerkunci ||
+            "Kuorum rekanan kontraktor masih menunggu respon yang tersisa. Keputusan Evaluasi Banding baru aktif setelah kuorum mencapai keputusan valid (Setuju atau Ditolak/Gagal Kuorum)."}
+        </div>
+      )}
       <div role="radiogroup" aria-label="Keputusan banding" className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl">
         {OPSI.map((o) => {
           const Icon = o.icon;
@@ -106,13 +131,18 @@ export function KeputusanBanding({
               type="button"
               role="radio"
               aria-checked={dipilih}
+              disabled={disabled || pending}
               onClick={() => {
                 setMode(o.m);
                 setError("");
               }}
               className={cn(
-                "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs transition-colors cursor-pointer",
-                dipilih ? `${o.aktif} font-bold` : "text-slate-600 hover:bg-slate-200/70 font-medium"
+                "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs transition-colors",
+                disabled
+                  ? "text-slate-400 bg-slate-200 font-medium cursor-not-allowed opacity-70"
+                  : dipilih
+                  ? `${o.aktif} font-bold cursor-pointer`
+                  : "text-slate-600 hover:bg-slate-200 font-medium cursor-pointer"
               )}
             >
               <Icon className="w-4 h-4" />
@@ -131,6 +161,7 @@ export function KeputusanBanding({
           id="catatan-banding"
           rows={3}
           value={catatan}
+          disabled={disabled || pending}
           onChange={(e) => setCatatan(e.target.value)}
           aria-invalid={!!error}
           placeholder={
@@ -141,7 +172,7 @@ export function KeputusanBanding({
                 : "Contoh: selisih usulan terlalu jauh dari pagu anggaran pekerjaan."
           }
           className={cn(
-            "w-full px-3 py-2 rounded-lg border text-xs placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC]",
+            "w-full px-3 py-2 rounded-lg border-2 bg-white text-xs placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#005BAC] focus:border-[#005BAC] disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed",
             error ? "border-[#D91920]" : "border-slate-300"
           )}
         />
@@ -152,8 +183,13 @@ export function KeputusanBanding({
         <button
           type="button"
           onClick={kirim}
-          disabled={pending}
-          className={cn("inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-xs font-bold disabled:opacity-60 cursor-pointer", aktif.tombol)}
+          disabled={disabled || pending}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-xs font-bold",
+            disabled
+              ? "bg-slate-400 cursor-not-allowed opacity-70"
+              : cn(aktif.tombol, "disabled:opacity-60 cursor-pointer")
+          )}
         >
           {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           {aktif.label}

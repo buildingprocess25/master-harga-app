@@ -51,11 +51,30 @@ export async function POST(
       });
     }
 
-    // Aksi APPROVE atau SIMPAN_DRAFT
-    const marginUpah = Number(margin.upah ?? margin.liveMarginUpah ?? 8);
-    const marginMaterial = Number(margin.material ?? margin.liveMarginMaterial ?? 8);
-    const marginBongkaran = Number(margin.bongkaran ?? margin.liveMarginBongkaran ?? 8);
-    const teruskan = action === "APPROVE" || body.teruskan === true;
+    // Aksi APPROVE / SETUJU_HARGA (approval pasca survei) atau SIMPAN_DRAFT
+    const teruskan =
+      action === "APPROVE" || action === "SETUJU_HARGA" || body.teruskan === true;
+
+    const tiketMargin = await prisma.pengajuanHarga.findUnique({
+      where: { id },
+      select: {
+        marginAwalPersen: true,
+        rincianAHSP: { select: { kategoriKomponen: true, marginPersen: true } },
+      },
+    });
+    const fallbackMargin = tiketMargin?.marginAwalPersen.toNumber() ?? 8;
+    const savedByKat = (kat: string) =>
+      tiketMargin?.rincianAHSP.find((r) => r.kategoriKomponen === kat)?.marginPersen.toNumber();
+
+    const marginUpah = Number(
+      margin.upah ?? body.liveMarginUpah ?? savedByKat("UPAH") ?? fallbackMargin
+    );
+    const marginMaterial = Number(
+      margin.material ?? body.liveMarginMaterial ?? savedByKat("MATERIAL") ?? fallbackMargin
+    );
+    const marginBongkaran = Number(
+      margin.bongkaran ?? body.liveMarginBongkaran ?? savedByKat("BONGKARAN") ?? fallbackMargin
+    );
 
     const res = await simpanEvaluasiMargin({
       tiketId: id,

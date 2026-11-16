@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import { KATEGORI_AHSP, marginDefaultKategori } from "@/lib/services/pengajuan-service";
+import { MarginKategori, marginUntuk, marginValid } from "@/lib/kalkulasi-ahsp";
 import { KategoriKoefisien } from "@/types";
 
 // ============================================================================
@@ -140,6 +141,8 @@ export interface SimpanWorksheetParams {
   tiketId: string;
   userId: string;
   baris: BarisWorksheet[];
+  /** Margin per kategori yang ditetapkan S&B Specialist saat menyusun AHSP. */
+  margin?: Partial<MarginKategori>;
   /** true: kunci resep dan terbitkan tiket ke Building Coordinator (SIAP_SURVEI). */
   terbitkan: boolean;
   catatan?: string;
@@ -148,11 +151,19 @@ export interface SimpanWorksheetParams {
 /**
  * Menyimpan resep AHSP tiket DIAJUKAN. Data komponen (nama, kategori, satuan) disalin
  * dari pustaka agar resep tiket tidak berubah bila pustaka diedit kemudian.
- * Subtotal = (koefisien x harga acuan) x (1 + margin%/100), margin awal per kategori.
+ * Subtotal = (koefisien x harga acuan) x (1 + margin%/100), margin ditetapkan S&B per kategori.
  */
-export async function simpanWorksheetAhsp({ tiketId, userId, baris, terbitkan, catatan }: SimpanWorksheetParams) {
+export async function simpanWorksheetAhsp({ tiketId, userId, baris, margin, terbitkan, catatan }: SimpanWorksheetParams) {
   if (baris.length === 0) throw new DomainError("Tambahkan minimal satu komponen AHSP.");
   if (baris.length > 100) throw new DomainError("Maksimal 100 komponen per tiket.");
+
+  if (margin) {
+    for (const [k, v] of Object.entries(margin)) {
+      if (v !== undefined && !marginValid(v)) {
+        throw new DomainError(`Margin ${k} harus 0 sampai 25% dengan kelipatan 0,5.`);
+      }
+    }
+  }
 
   const ids = baris.map((b) => b.masterKoefisienId);
   if (new Set(ids).size !== ids.length) {
@@ -194,12 +205,21 @@ export async function simpanWorksheetAhsp({ tiketId, userId, baris, terbitkan, c
     }
 
     const marginAwal = tiket.marginAwalPersen.toNumber();
+    const resolvedMargin: MarginKategori = {
+      upah: margin?.upah ?? marginAwal,
+      material: margin?.material ?? marginAwal,
+      bongkaran: margin?.bongkaran ?? marginAwal,
+    };
+
     await tx.rincianAhspPengajuan.deleteMany({ where: { pengajuanHargaId: tiketId } });
     await tx.rincianAhspPengajuan.createMany({
       data: baris.map((b) => {
         const m = peta.get(b.masterKoefisienId)!;
-        const margin = marginDefaultKategori(m.kategoriKomponen, marginAwal);
-        const subtotal = Math.round(b.nilaiKoefisien * b.hargaAcuanSatuan * (1 + margin / 100) * 100) / 100;
+        const marginKat =
+          margin !== undefined
+            ? marginUntuk(m.kategoriKomponen as KategoriKoefisien, resolvedMargin)
+            : marginDefaultKategori(m.kategoriKomponen, marginAwal);
+        const subtotal = Math.round(b.nilaiKoefisien * b.hargaAcuanSatuan * (1 + marginKat / 100) * 100) / 100;
         return {
           pengajuanHargaId: tiketId,
           masterKoefisienId: m.id,
@@ -208,7 +228,7 @@ export async function simpanWorksheetAhsp({ tiketId, userId, baris, terbitkan, c
           satuan: m.satuan,
           nilaiKoefisien: b.nilaiKoefisien,
           hargaAcuanSatuan: b.hargaAcuanSatuan,
-          marginPersen: margin,
+          marginPersen: marginKat,
           subtotal,
         };
       }),

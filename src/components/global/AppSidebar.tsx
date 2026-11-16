@@ -172,7 +172,7 @@ export function AppSidebar({
             title: "Persetujuan Regional",
             items: [
               {
-                label: "Approval Layer 3",
+                label: "Approval",
                 href: "/regional-manager",
                 icon: ShieldCheck,
                 badgeCount: 2,

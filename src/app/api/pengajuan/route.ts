@@ -612,8 +612,8 @@ export async function POST(request: NextRequest) {
         ? `${created.length} tiket pengajuan berhasil dibuat, ${skipped.length} item/divisi dilewati karena sudah terdaftar.`
         : created.length > 0
         ? isBulkRequest || created.length > 1
-          ? `${created.length} tiket pengajuan berhasil diajukan ke server.`
-          : `Permohonan spesifikasi #${created[0].nomorTiket} berhasil diajukan ke server.`
+          ? `${created.length} pengajuan berhasil diajukan.`
+          : `Permohonan spesifikasi #${created[0].nomorTiket} berhasil diajukan.`
         : `Semua pengajuan (${skipped.length}) dilewati karena sudah terdaftar sebelumnya.`;
 
     return NextResponse.json({

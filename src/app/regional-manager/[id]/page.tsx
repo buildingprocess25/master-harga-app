@@ -19,7 +19,7 @@ import {
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
-import { DetailSpesifikasiCard } from "@/components/global/DetailSpesifikasiCard";
+import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import { RincianKalkulasiKoefisien } from "@/components/global/RincianKalkulasiKoefisien";
@@ -339,7 +339,7 @@ export default function RegionalManagerDetailPage() {
         </div>
 
         {/* Detail Spesifikasi Material */}
-        <DetailSpesifikasiCard item={item} />
+        <DetailSpesifikasi item={item} showDeskripsi={true} />
 
         {/* Informasi Rencana Trial jika tipe trial */}
         {item.isTrial && (
@@ -509,7 +509,7 @@ export default function RegionalManagerDetailPage() {
                             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer"
                           >
                             <CheckCircle2 className="w-4 h-4" />
-                            <span>Setujui ke Kontraktor</span>
+                            <span>Setujui</span>
                           </button>
                         </>
                       )}

@@ -515,57 +515,41 @@ async function main() {
     },
   });
 
-  // Relasi KontraktorCabang (Aktif di Cikokol)
-  const relasiKtr1 = await prisma.kontraktorCabang.upsert({
-    where: {
-      kontraktorId_cabangId_divisiId: {
-        kontraktorId: kontraktor1.id,
-        cabangId: cabangCikokol.id,
-        divisiId: divisiBuilding.id,
-      },
-    },
-    update: { statusKeaktifan: "AKTIF" },
-    create: {
-      kontraktorId: kontraktor1.id,
-      cabangId: cabangCikokol.id,
-      divisiId: divisiBuilding.id,
-      statusKeaktifan: "AKTIF",
-    },
-  });
+  // Relasi KontraktorCabang (Aktif di Cikokol untuk seluruh 4 divisi resmi)
+  const cikokolDivisiList = [
+    divisiBuilding,
+    divisiEngineering,
+    divisiMaintenance,
+    divisiDC,
+  ];
+  const upsertRelasiCikokol = async (kontraktorId: string) => {
+    const hasil = [];
+    for (const div of cikokolDivisiList) {
+      hasil.push(
+        await prisma.kontraktorCabang.upsert({
+          where: {
+            kontraktorId_cabangId_divisiId: {
+              kontraktorId,
+              cabangId: cabangCikokol.id,
+              divisiId: div.id,
+            },
+          },
+          update: { statusKeaktifan: "AKTIF" },
+          create: {
+            kontraktorId,
+            cabangId: cabangCikokol.id,
+            divisiId: div.id,
+            statusKeaktifan: "AKTIF",
+          },
+        })
+      );
+    }
+    return hasil[0];
+  };
 
-  const relasiKtr2 = await prisma.kontraktorCabang.upsert({
-    where: {
-      kontraktorId_cabangId_divisiId: {
-        kontraktorId: kontraktor2.id,
-        cabangId: cabangCikokol.id,
-        divisiId: divisiBuilding.id,
-      },
-    },
-    update: { statusKeaktifan: "AKTIF" },
-    create: {
-      kontraktorId: kontraktor2.id,
-      cabangId: cabangCikokol.id,
-      divisiId: divisiBuilding.id,
-      statusKeaktifan: "AKTIF",
-    },
-  });
-
-  const relasiKtr3 = await prisma.kontraktorCabang.upsert({
-    where: {
-      kontraktorId_cabangId_divisiId: {
-        kontraktorId: kontraktor3.id,
-        cabangId: cabangCikokol.id,
-        divisiId: divisiBuilding.id,
-      },
-    },
-    update: { statusKeaktifan: "AKTIF" },
-    create: {
-      kontraktorId: kontraktor3.id,
-      cabangId: cabangCikokol.id,
-      divisiId: divisiBuilding.id,
-      statusKeaktifan: "AKTIF",
-    },
-  });
+  const relasiKtr1 = await upsertRelasiCikokol(kontraktor1.id);
+  const relasiKtr2 = await upsertRelasiCikokol(kontraktor2.id);
+  const relasiKtr3 = await upsertRelasiCikokol(kontraktor3.id);
 
   // Rekanan Parked (Nonaktif Sementara untuk menguji fitur Unpark)
   await prisma.kontraktorCabang.upsert({
@@ -720,6 +704,44 @@ async function main() {
       role: "KONTRAKTOR",
       branchName: "PT Cahaya Mandiri Perkasa",
       kontraktorId: kontraktor1.id,
+      isActive: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "vendor.sinar@rekanan.com" },
+    update: {
+      fullName: "Herry Gunawan (PT Sinar Mitra Konstruksi)",
+      role: "KONTRAKTOR",
+      branchName: "PT Sinar Mitra Konstruksi",
+      kontraktorId: kontraktor2.id,
+      isActive: true,
+    },
+    create: {
+      email: "vendor.sinar@rekanan.com",
+      fullName: "Herry Gunawan (PT Sinar Mitra Konstruksi)",
+      role: "KONTRAKTOR",
+      branchName: "PT Sinar Mitra Konstruksi",
+      kontraktorId: kontraktor2.id,
+      isActive: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "vendor.graha@rekanan.com" },
+    update: {
+      fullName: "Agus Pratama (CV Graha Indah Mandiri)",
+      role: "KONTRAKTOR",
+      branchName: "CV Graha Indah Mandiri",
+      kontraktorId: kontraktor3.id,
+      isActive: true,
+    },
+    create: {
+      email: "vendor.graha@rekanan.com",
+      fullName: "Agus Pratama (CV Graha Indah Mandiri)",
+      role: "KONTRAKTOR",
+      branchName: "CV Graha Indah Mandiri",
+      kontraktorId: kontraktor3.id,
       isActive: true,
     },
   });
@@ -1025,6 +1047,118 @@ async function main() {
       catatanReview:
         "Persetujuan berjenjang BM, S&B, dan Regional Mgr selesai. Tahap voting kuorum rekanan.",
     },
+  });
+
+  // Rincian AHSP & Survei Toko Tiket 4 agar rincian koefisien dan margin tetap lengkap saat evaluasi banding
+  await prisma.rincianAhspPengajuan.deleteMany({
+    where: { pengajuanHargaId: tiket4.id },
+  });
+
+  await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket4.id,
+      masterKoefisienId: "koef-uph-03",
+      namaKomponen: "Tukang Keramik",
+      kategoriKomponen: "UPAH",
+      satuan: "Oh",
+      nilaiKoefisien: 0.1875,
+      hargaAcuanSatuan: 120000,
+      marginPersen: 8.0,
+      subtotal: 24300,
+    },
+  });
+
+  const rincianMatTiket4 = await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket4.id,
+      masterKoefisienId: "koef-mat-01",
+      namaKomponen: "Keramik 60x60 Polish",
+      kategoriKomponen: "MATERIAL",
+      satuan: "M2",
+      nilaiKoefisien: 1.034,
+      hargaAcuanSatuan: 145000,
+      marginPersen: 8.0,
+      subtotal: 161924,
+    },
+  });
+
+  const rincianSemenTiket4 = await prisma.rincianAhspPengajuan.create({
+    data: {
+      pengajuanHargaId: tiket4.id,
+      masterKoefisienId: "koef-mat-02",
+      namaKomponen: "Semen Portland (PC)",
+      kategoriKomponen: "MATERIAL",
+      satuan: "Kg",
+      nilaiKoefisien: 9.327,
+      hargaAcuanSatuan: 1850,
+      marginPersen: 8.0,
+      subtotal: 18635,
+    },
+  });
+
+  await prisma.surveiTokoItem.createMany({
+    data: [
+      {
+        rincianAhspId: rincianMatTiket4.id,
+        masterTokoId: toko1.id,
+        urutanToko: 1,
+        namaToko: "TB Bintang Bangunan Cikokol",
+        alamatToko: "Jl. MH Thamrin No. 12, Kebon Nanas, Tangerang",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 148000,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        rincianAhspId: rincianMatTiket4.id,
+        masterTokoId: toko2.id,
+        urutanToko: 2,
+        namaToko: "Mitra 10 Gading Serpong",
+        alamatToko: "Jl. Boulevard Gading Serpong Kav. 22",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 142000,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        rincianAhspId: rincianMatTiket4.id,
+        masterTokoId: toko3.id,
+        urutanToko: 3,
+        namaToko: "Depo Bangunan Serpong",
+        alamatToko: "Jl. Raya Serpong KM 8, Tangerang Selatan",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 145000,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        rincianAhspId: rincianSemenTiket4.id,
+        masterTokoId: toko1.id,
+        urutanToko: 1,
+        namaToko: "TB Bintang Bangunan Cikokol",
+        alamatToko: "Jl. MH Thamrin No. 12, Kebon Nanas, Tangerang",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 1850,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        rincianAhspId: rincianSemenTiket4.id,
+        masterTokoId: toko2.id,
+        urutanToko: 2,
+        namaToko: "Mitra 10 Gading Serpong",
+        alamatToko: "Jl. Boulevard Gading Serpong Kav. 22",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 1850,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        rincianAhspId: rincianSemenTiket4.id,
+        masterTokoId: toko3.id,
+        urutanToko: 3,
+        namaToko: "Depo Bangunan Serpong",
+        alamatToko: "Jl. Raya Serpong KM 8, Tangerang Selatan",
+        volumeAcuan: 1.0,
+        hargaSatuanSurvei: 1850,
+        tanggalSurvei: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      },
+    ],
   });
 
   // Seed Voting Kuorum Kontraktor untuk Tiket 4

@@ -93,6 +93,7 @@ export interface KoefisienDetailItem {
   total?: number; // subtotal * (1 + marginPersen / 100)
   wajibSurveiToko?: boolean;
   isCustom?: boolean;
+  surveiTokoList?: SurveyTokoItem[];
 }
 
 // ============================================================================
@@ -190,6 +191,7 @@ export interface PengajuanHargaItem {
   tanggalPengajuan: string;
   alasanPengajuan?: string;
   catatanReviewTerakhir?: string;
+  isRevisiMargin?: boolean;
 
   // Survei 3 Toko Pasar
   surveiTokoList: SurveyTokoItem[];

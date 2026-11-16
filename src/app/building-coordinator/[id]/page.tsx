@@ -445,7 +445,7 @@ export default function BuildingCoordinatorSurveyDetailPage() {
         html: `
           <div class="text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border-2 border-slate-300 text-left space-y-1.5 font-medium">
             <p>Tiket <strong>#${item.noTiket || item.kode}</strong> kini berada dalam status <strong>PENDING_BM_MGR</strong>.</p>
-            <p class="text-slate-500">B&M Manager cabang akan melakukan verifikasi disparitas harga dan keabsahan nota 3 toko.</p>
+            <p class="text-slate-500">B&M Manager cabang akan melakukan verifikasi.</p>
           </div>
         `,
         confirmButtonText: "Kembali ke Daftar Antrean",

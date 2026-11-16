@@ -410,6 +410,8 @@ export default function BMManagerReviewDetailPage({
       if (!res.ok || !json.success) {
         console.warn("Server PATCH warning:", json.message);
       }
+      const nextStatus = json?.data?.status || updatedItem.status;
+      updatedItem.status = nextStatus;
     } catch (err) {
       console.warn("PATCH API error, fallback lokal:", err);
     }
@@ -465,8 +467,11 @@ export default function BMManagerReviewDetailPage({
     );
   }
 
-  // Tombol edit spesifikasi hanya tersedia jika tiket masih dalam tahap drafting / pengajuan awal
-  const isEditable = item.status === "DRAFT" || item.status === "DIAJUKAN";
+  // Tombol edit spesifikasi tersedia saat drafting, diajukan, atau diminta revisi oleh S&B
+  const isEditable =
+    item.status === "DRAFT" ||
+    item.status === "DIAJUKAN" ||
+    item.status === "PERLU_REVISI";
 
   // Tombol approval (Setujui / Revisi) HANYA boleh muncul saat tiket sedang menunggu persetujuan B&M Manager
   const isPendingBmApproval = item.status === "PENDING_BM_MGR";

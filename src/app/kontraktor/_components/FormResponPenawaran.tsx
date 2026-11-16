@@ -66,6 +66,8 @@ export function FormResponPenawaran({
       return "Harga usulan sama dengan harga penawaran. Pilih Setuju bila harga sudah sesuai.";
     if (pilihan !== "SETUJU" && !catatan.trim())
       return "Alasan wajib diisi.";
+    if (pilihan === "BANDING" && lampiranList.length === 0)
+      return "Unggah minimal satu berkas bukti pembanding pasar.";
     return null;
   };
 
@@ -295,10 +297,10 @@ export function FormResponPenawaran({
         <div className="space-y-2 p-4 bg-slate-50 border-2 border-slate-200 rounded-xl">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-800">
-              Bukti Pembanding Pasar (Opsional)
+              Bukti Pembanding Pasar <span className="text-red-500">*</span>
             </span>
             <span className="text-[10px] text-slate-500 font-medium">
-              PDF, JPG, PNG (Maks 5 MB)
+              Wajib min. 1 berkas (PDF, JPG, PNG · Maks 5 MB)
             </span>
           </div>
 

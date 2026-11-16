@@ -108,39 +108,40 @@ export async function GET(
       );
     }
 
-    // Ekstrak data survei 3 toko (diambil dari komponen material rincian AHSP atau survei yang ada)
+    // Ekstrak komponen AHSP sekaligus data survei 3 toko per komponen
     const allSurvei: SurveyTokoItem[] = [];
-    for (const rincian of pengajuan.rincianAHSP) {
-      for (const s of rincian.surveiTokoList) {
-        const lampiranList: LampiranSurveiItem[] = s.lampiranList.map((l) => ({
-          id: l.id,
-          tipe: (l.jenisLampiran as TipeLampiranSurvei) || "NOTA_PEMBELIAN",
-          namaFile: l.namaFile,
-          url: l.fileUrl,
-          keterangan: l.ukuranFile || undefined,
-        }));
-
-        allSurvei.push({
-          id: s.id,
-          noToko: s.urutanToko,
-          namaToko: s.namaToko,
-          alamat: s.alamatToko || "",
-          kota: "",
-          kontak: "",
-          tanggalSurvei: s.tanggalSurvei.toISOString(),
-          harga: Number(s.hargaSatuanSurvei),
-          catatan: s.catatanSurvei || "",
-          lampiranList,
-        });
-      }
-    }
-
-    // Ekstrak komponen AHSP
     let calcTotalHpp = 0;
     let calcTotalHargaSatuan = 0;
 
     const koefisienItems: KoefisienDetailItem[] = pengajuan.rincianAHSP.map(
       (r) => {
+        const componentSurvei: SurveyTokoItem[] = [...r.surveiTokoList]
+          .sort((a, b) => a.urutanToko - b.urutanToko)
+          .map((s) => {
+            const lampiranList: LampiranSurveiItem[] = s.lampiranList.map((l) => ({
+              id: l.id,
+              tipe: (l.jenisLampiran as TipeLampiranSurvei) || "NOTA_PEMBELIAN",
+              namaFile: l.namaFile,
+              url: l.fileUrl,
+              keterangan: l.ukuranFile || undefined,
+            }));
+
+            return {
+              id: s.id,
+              noToko: s.urutanToko,
+              namaToko: s.namaToko,
+              alamat: s.alamatToko || "",
+              kota: "",
+              kontak: "",
+              tanggalSurvei: s.tanggalSurvei.toISOString(),
+              harga: Number(s.hargaSatuanSurvei),
+              catatan: s.catatanSurvei || "",
+              lampiranList,
+            };
+          });
+
+        allSurvei.push(...componentSurvei);
+
         const koefisien = Number(r.nilaiKoefisien);
         const hargaAcuan = Number(r.hargaAcuanSatuan);
         const subtotal = koefisien * hargaAcuan;
@@ -152,6 +153,7 @@ export async function GET(
 
         return {
           id: r.id,
+          masterKoefisienId: r.masterKoefisienId,
           kodeKomponen: r.masterKoefisienId,
           kategori: (r.kategoriKomponen as KategoriKoefisien) || "MATERIAL",
           namaKomponen: r.namaKomponen,
@@ -161,33 +163,73 @@ export async function GET(
           subtotal,
           marginPersen,
           total,
+          surveiTokoList: componentSurvei,
         };
       }
     );
 
-    // Ekstrak voting kontraktor
-    const votingKontraktorList: VotingKontraktorItem[] =
-      pengajuan.votingKontraktorList.map((v) => {
-        const lampiranBandingList: LampiranBandingItem[] =
-          v.lampiranBandingList.map((l) => ({
-            id: l.id,
-            namaFile: l.namaFile,
-            url: l.fileUrl,
-            keterangan: l.ukuranFile || undefined,
-          }));
-
+    const koefisienMaterialItems = koefisienItems
+      .filter((k) => k.kategori === "MATERIAL")
+      .map((k) => {
+        const stores = k.surveiTokoList || [];
+        const validHarga = stores.map((s) => s.harga).filter((h) => h > 0);
+        const rataRata =
+          validHarga.length > 0
+            ? Math.round(validHarga.reduce((a, b) => a + b, 0) / validHarga.length)
+            : k.hargaAcuan;
         return {
-          id: v.id,
-          kontraktorId: v.kontraktorCabang.kontraktorId,
-          namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
-          email: v.kontraktorCabang.kontraktor.email,
-          statusVote: v.statusVote,
-          tanggalVote: v.tanggalRespon ? v.tanggalRespon.toISOString() : undefined,
-          hargaBanding: v.usulanHarga ? Number(v.usulanHarga) : undefined,
-          catatanBanding: v.catatanPenolakan || undefined,
-          lampiranBandingList,
+          id: k.id,
+          rincianAhspId: k.id,
+          label: k.namaKomponen,
+          unit: k.satuan,
+          value: String(k.koefisien),
+          koefisien: k.koefisien,
+          surveyToko: stores,
+          hargaSurveiRataRata: rataRata,
+          hargaAcuan: rataRata,
+          subtotal: Math.round(rataRata * k.koefisien),
         };
       });
+
+    // Ekstrak voting kontraktor pada putaran terakhir (jika ada)
+    const maxPutaran = pengajuan.votingKontraktorList.reduce(
+      (max, v) => Math.max(max, v.putaranVote),
+      0
+    );
+    const latestRoundVotes =
+      maxPutaran > 0
+        ? pengajuan.votingKontraktorList.filter((v) => v.putaranVote === maxPutaran)
+        : pengajuan.votingKontraktorList;
+
+    const votingKontraktorList: VotingKontraktorItem[] = latestRoundVotes.map((v) => {
+      const lampiranBandingList: LampiranBandingItem[] =
+        v.lampiranBandingList.map((l) => ({
+          id: l.id,
+          namaFile: l.namaFile,
+          url: l.fileUrl,
+          keterangan: l.ukuranFile || undefined,
+        }));
+
+      return {
+        id: v.id,
+        kontraktorId: v.kontraktorCabang.kontraktorId,
+        namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
+        email: v.kontraktorCabang.kontraktor.email,
+        statusVote: v.statusVote,
+        tanggalVote: v.tanggalRespon ? v.tanggalRespon.toISOString() : undefined,
+        hargaBanding: v.usulanHarga ? Number(v.usulanHarga) : undefined,
+        catatanBanding: v.catatanPenolakan || undefined,
+        lampiranBandingList,
+      };
+    });
+
+    const lastSignificantAuditLog = pengajuan.auditLogs.find(
+      (l) => l.action !== "SIMPAN_DRAFT_MARGIN"
+    );
+    const isRevisiMargin =
+      pengajuan.status === "PENDING_SB_SPECIALIST" &&
+      (lastSignificantAuditLog?.action === "BANDING_REVISI_MARGIN" ||
+        lastSignificantAuditLog?.action === "KEMBALIKAN_TINJAUAN_MARGIN");
 
     const setujuCount = votingKontraktorList.filter(
       (v) => v.statusVote === "SETUJU"
@@ -201,13 +243,19 @@ export async function GET(
       id: pengajuan.id,
       noTiket: pengajuan.nomorTiket,
       kodeItem: pengajuan.masterItem?.kodeItem || "ITEM-CUSTOM",
+      kodeMaster: pengajuan.masterItem?.kodeMaster || undefined,
       namaItem: pengajuan.masterItem?.namaItem || "Item Tidak Ditemukan",
       kategori: pengajuan.masterItem?.kategori || "Pekerjaan",
       merk: pengajuan.masterItem?.merk,
       tipe: pengajuan.masterItem?.tipe || undefined,
       ukuran: pengajuan.masterItem?.ukuran,
       warna: pengajuan.masterItem?.warna || undefined,
+      permukaan: pengajuan.masterItem?.permukaan || undefined,
+      tebal: pengajuan.masterItem?.tebal || undefined,
+      toleransi: pengajuan.masterItem?.toleransi || undefined,
       lokasi: pengajuan.masterItem?.lokasi,
+      satuan: pengajuan.masterItem?.satuan || undefined,
+      deskripsiOtomatis: pengajuan.masterItem?.deskripsiOtomatis || undefined,
 
       divisiId: pengajuan.divisiId,
       namaDivisi: pengajuan.divisi.namaDivisi,
@@ -226,6 +274,7 @@ export async function GET(
       alasanPengajuan: pengajuan.catatanReview || undefined,
       catatanReviewTerakhir:
         pengajuan.auditLogs[0]?.catatan || pengajuan.catatanReview || undefined,
+      isRevisiMargin,
 
       surveiTokoList: allSurvei,
       hargaAcuanPasar: pengajuan.rataRataSurveiMaterial
@@ -233,9 +282,16 @@ export async function GET(
         : undefined,
 
       koefisienItems,
-      liveMarginUpah: Number(pengajuan.marginAwalPersen) || 8.0,
-      liveMarginMaterial: Number(pengajuan.marginAwalPersen) || 8.0,
-      liveMarginBongkaran: Number(pengajuan.marginAwalPersen) || 8.0,
+      koefisienMaterialItems,
+      liveMarginUpah:
+        koefisienItems.find((k) => k.kategori === "UPAH")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
+      liveMarginMaterial:
+        koefisienItems.find((k) => k.kategori === "MATERIAL")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
+      liveMarginBongkaran:
+        koefisienItems.find((k) => k.kategori === "BONGKARAN")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
       totalHpp: calcTotalHpp,
       totalHargaSatuan: calcTotalHargaSatuan,
 

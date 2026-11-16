@@ -561,6 +561,9 @@ export async function submitVoteKontraktor(params: SubmitVoteParams) {
     if (isBanding && !(typeof usulanHarga === "number" && usulanHarga > 0)) {
       throw new KuorumError("Harga usulan banding wajib diisi dan lebih dari 0.");
     }
+    if (isBanding && (!lampiranList || lampiranList.length === 0)) {
+      throw new KuorumError("Bukti pembanding pasar wajib diunggah saat mengajukan banding.");
+    }
     if (keputusan === "TOLAK" && !isBanding && (usulanHarga || lampiranList?.length)) {
       throw new KuorumError(
         "Kesempatan banding sudah digunakan. Pada putaran ini hanya dapat Setuju atau Tolak."
@@ -805,6 +808,8 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
     tiketId: tiket.id,
     nomorTiket: tiket.nomorTiket,
     statusTiket: tiket.status as StatusPengajuanHarga,
+    tanggalPengajuan: tiket.tanggalPengajuan.toISOString().slice(0, 10),
+    catatanReview: tiket.catatanReview ?? null,
     namaDivisi: tiket.divisi.namaDivisi,
     namaCabang: tiket.cabang.namaCabang,
     cakupanHarga: tiket.cakupanHarga,
@@ -813,6 +818,7 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
     deadlineVoting: tiket.deadlineVoting?.toISOString() ?? null,
     item: m
       ? {
+          kodeItem: m.kodeItem,
           kodeMaster: m.kodeMaster,
           namaItem: m.namaItem,
           kategori: m.kategori,
@@ -820,6 +826,9 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
           ukuran: m.ukuran,
           tipe: m.tipe,
           warna: m.warna,
+          permukaan: m.permukaan,
+          tebal: m.tebal,
+          toleransi: m.toleransi,
           lokasi: m.lokasi,
           satuan: m.satuan,
           deskripsi: m.deskripsiOtomatis,

@@ -135,8 +135,6 @@ export function RingkasanBiayaMaterial({
   const highest = count > 0 ? Math.max(...validPrices) : 0;
   const average =
     count > 0 ? Math.round(validPrices.reduce((a, b) => a + b, 0) / count) : 0;
-  const disparityPercent =
-    lowest > 0 ? (((highest - lowest) / lowest) * 100).toFixed(1) : "0.0";
 
   return (
     <div
@@ -153,9 +151,6 @@ export function RingkasanBiayaMaterial({
             Ringkasan Harga Acuan Pasar ({namaMaterial})
           </h3>
         </div>
-        <span className="text-[11px] font-bold text-slate-500">
-          {count} dari 3 Toko Terinput
-        </span>
       </div>
 
       {/* Tabel Komparasi Dense */}
@@ -169,7 +164,6 @@ export function RingkasanBiayaMaterial({
                 <th className="pb-2">Toko 3</th>
                 <th className="pb-2 text-right">Harga Terendah</th>
                 <th className="pb-2 text-right">Harga Tertinggi</th>
-                <th className="pb-2 text-right">Disparitas</th>
                 <th className="pb-2 text-right font-extrabold text-[#005BAC]">
                   Rata-Rata Acuan
                 </th>
@@ -191,9 +185,6 @@ export function RingkasanBiayaMaterial({
                 </td>
                 <td className="py-2.5 text-right font-bold text-amber-700">
                   {formatRupiah(highest)}
-                </td>
-                <td className="py-2.5 text-right font-bold text-slate-600">
-                  {disparityPercent}%
                 </td>
                 <td className="py-2.5 text-right font-black text-base text-white bg-[#005BAC] px-2.5 rounded shadow-2xs">
                   {formatRupiah(average)}

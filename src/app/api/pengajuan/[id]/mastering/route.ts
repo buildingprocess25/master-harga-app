@@ -134,10 +134,27 @@ export async function POST(
       });
     }
 
+    const parsedMargin = {
+      upah:
+        liveMarginUpah !== undefined && Number.isFinite(Number(liveMarginUpah))
+          ? Number(liveMarginUpah)
+          : undefined,
+      material:
+        liveMarginMaterial !== undefined && Number.isFinite(Number(liveMarginMaterial))
+          ? Number(liveMarginMaterial)
+          : undefined,
+      bongkaran:
+        liveMarginBongkaran !== undefined && Number.isFinite(Number(liveMarginBongkaran))
+          ? Number(liveMarginBongkaran)
+          : undefined,
+    };
+    const hasMargin = Object.values(parsedMargin).some((v) => v !== undefined);
+
     const result = await simpanWorksheetAhsp({
       tiketId: id,
       userId: user.id,
       baris: formattedBaris,
+      margin: hasMargin ? parsedMargin : undefined,
       terbitkan: Boolean(terbitkan),
       catatan: catatan.trim() || undefined,
     });

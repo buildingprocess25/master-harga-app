@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronRight, FileText, ShieldCheck } from "lucide-react";
 import { PengajuanHargaItem, RoleUser } from "@/types";
 import { cn } from "@/lib/utils";
 import { PengajuanTimelineBar } from "./PengajuanTimelineBar";
-import { DetailSpesifikasiCard } from "./DetailSpesifikasiCard";
+import { DetailSpesifikasi } from "./DetailSpesifikasi";
 import { RincianSurvei3TokoCard } from "./RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "./RingkasanBiayaMaterial";
 import { RincianKalkulasiKoefisien } from "./RincianKalkulasiKoefisien";
@@ -75,7 +75,7 @@ export function PengajuanDetailLayout({
       <PengajuanTimelineBar item={item} />
 
       {/* 2. Kartu Spesifikasi Master Item */}
-      <DetailSpesifikasiCard item={item} />
+      <DetailSpesifikasi item={item} showDeskripsi={true} />
 
       {/* 3. Hasil Survei 3 Toko Pasar (Jika status sudah masuk tahap survei atau setelahnya) */}
       {(hasSurvei || item.status !== "DIAJUKAN") && (

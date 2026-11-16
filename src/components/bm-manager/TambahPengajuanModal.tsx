@@ -1707,7 +1707,7 @@ export function TambahPengajuanModal({
                     disabled={jenisPengajuan === "Hanya Jasa"}
                     placeholder="Nilai"
                     className="h-9 rounded-lg text-xs bg-white border-2 border-slate-300 px-2 font-bold text-slate-800 flex-1 min-w-0 focus:border-[#005BAC] focus:outline-none"
-                    required
+                    required={queuedItems.length === 0 && jenisPengajuan !== "Hanya Jasa"}
                   />
                   <div className="w-24 shrink-0">
                     <CreatableSelect

@@ -5,6 +5,7 @@
  */
 
 export * from "./PengajuanTimelineBar";
+export * from "./DetailSpesifikasi";
 export * from "./DetailSpesifikasiCard";
 export * from "./RincianSurvei3TokoCard";
 export * from "./RingkasanBiayaMaterial";
