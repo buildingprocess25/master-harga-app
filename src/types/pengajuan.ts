@@ -166,9 +166,11 @@ export interface UserSessionProfile {
 export interface PengajuanHargaItem {
   id: string;
   noTiket: string;
+  kodePaket?: string;
   kodeItem: string;
   namaItem: string;
   kategori: string;
+  jenisCor?: string;
   merk?: string;
   tipe?: string;
   ukuran?: string;
@@ -282,6 +284,7 @@ export const DAFTAR_CABANG_ALFAMART: string[] = [
 
 export function generateDeskripsiOtomatis(data: {
   item: string;
+  jenisCor?: string;
   ukuran: string;
   merk: string;
   warna: string;
@@ -296,6 +299,10 @@ export function generateDeskripsiOtomatis(data: {
   const parts: string[] = [];
 
   if (data.item?.trim()) parts.push(data.item.trim());
+  if (data.jenisCor?.trim()) {
+    const cleanJenis = data.jenisCor.trim();
+    parts.push(cleanJenis.toLowerCase().startsWith("jenis") ? cleanJenis : `Jenis ${cleanJenis}`);
+  }
   if (data.ukuran?.trim()) parts.push(data.ukuran.trim());
   if (data.merk?.trim()) parts.push(data.merk.trim());
   if (data.warna?.trim()) parts.push(data.warna.trim());

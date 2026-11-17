@@ -1,4 +1,5 @@
 import prisma from "../src/lib/prisma";
+import { buatKodePaket } from "../src/lib/utils";
 
 async function main() {
   console.log("🚀 Memulai seeding data resmi SPARTA-HARGA...");
@@ -1331,6 +1332,21 @@ async function main() {
       berlakuSejak: new Date(),
     },
   });
+
+  const semuaTiketSeed = await prisma.pengajuanHarga.findMany({
+    where: { kodePaket: null },
+    select: {
+      id: true,
+      tanggalPengajuan: true,
+      cabang: { select: { kodeCabang: true } },
+    },
+  });
+  for (const t of semuaTiketSeed) {
+    await prisma.pengajuanHarga.update({
+      where: { id: t.id },
+      data: { kodePaket: buatKodePaket(t.cabang.kodeCabang, t.tanggalPengajuan) },
+    });
+  }
 
   console.log("✅ 6 Sampel Tiket Siklus Lengkap & Rilis Harga berhasil diseed.");
   console.log("🎉 Seeding database SPARTA-HARGA selesai 100%!");

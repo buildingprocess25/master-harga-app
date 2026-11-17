@@ -36,6 +36,9 @@ export function DetailSpesifikasi({
     { label: "Cabang Pengaju", value: item.cabang || item.namaCabang },
     { label: "Tanggal Pengajuan", value: item.tanggalPengajuan },
     { label: "Kategori Pekerjaan", value: item.kategori },
+    ...(item.kategori?.toLowerCase().includes("cor") || item.jenisCor
+      ? [{ label: "Jenis Cor", value: item.jenisCor }]
+      : []),
     { label: "Nama Material", value: item.item || item.namaItem },
     { label: "Ukuran / Dimensi", value: item.ukuran },
     { label: "Merk / Brand", value: item.merk },

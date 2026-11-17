@@ -846,15 +846,33 @@ describe("Integration: Alur Lengkap SPARTA-PRICING (Database Test Terisolasi)", 
     );
     expect(bReg.status).toBe(200);
 
-    // Putaran #1: Dari 3 kontraktor (target kuorum = 2), saat K1 & K2 TOLAK (dengan usulan harga),
+    // Putaran #1: Banding wajib menyertakan bukti pembanding pasar (tanpa lampiran -> 400)
+    await actingAs(k1Profile);
+    const v1NoFile = await votePost(
+      makeRequest(`http://localhost/api/kuorum/${bandingTiketId}/vote`, "POST", {
+        keputusan: "TOLAK",
+        usulanHarga: 120000,
+        catatan: "Harga pasar teras lebih tinggi.",
+      }),
+      { params: Promise.resolve({ tiketId: bandingTiketId }) }
+    );
+    expect(v1NoFile.status).toBe(400);
+
+    // Putaran #1: Dari 3 kontraktor (target kuorum = 2), saat K1 & K2 TOLAK (dengan usulan harga & bukti),
     // kuorum mustahil tercapai (0 setuju + 1 menunggu < 2), sehingga putaran langsung ditutup
     // menjadi USULAN_KONTRAKTOR pada vote ke-2 dan vote ke-3 ditolak dengan 409.
-    await actingAs(k1Profile);
     const v1 = await votePost(
       makeRequest(`http://localhost/api/kuorum/${bandingTiketId}/vote`, "POST", {
         keputusan: "TOLAK",
         usulanHarga: 120000,
         catatan: "Harga pasar teras lebih tinggi.",
+        lampiranList: [
+          {
+            namaFile: "penawaran-supplier-1.pdf",
+            fileUrl: "/api/kuorum/lampiran/11111111-1111-4111-8111-111111111111.pdf",
+            ukuranFile: "120 KB",
+          },
+        ],
       }),
       { params: Promise.resolve({ tiketId: bandingTiketId }) }
     );
@@ -868,6 +886,13 @@ describe("Integration: Alur Lengkap SPARTA-PRICING (Database Test Terisolasi)", 
         keputusan: "TOLAK",
         usulanHarga: 122000,
         catatan: "Ongkos pasang area teras lebih besar.",
+        lampiranList: [
+          {
+            namaFile: "penawaran-supplier-2.pdf",
+            fileUrl: "/api/kuorum/lampiran/22222222-2222-4222-8222-222222222222.pdf",
+            ukuranFile: "95 KB",
+          },
+        ],
       }),
       { params: Promise.resolve({ tiketId: bandingTiketId }) }
     );

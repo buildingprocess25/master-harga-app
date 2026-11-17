@@ -1,20 +1,8 @@
 import prisma from "@/lib/prisma";
 import { DomainError } from "@/lib/services/transisi-tiket";
+import { buatDeskripsiOtomatis, type SpesifikasiItem } from "@/lib/utils";
 
-/** Kolom spesifikasi yang membentuk identitas item (urutan = urutan deskripsi otomatis). */
-export interface SpesifikasiItem {
-  kategori: string;
-  namaItem: string;
-  ukuran: string;
-  merk: string;
-  tipe?: string | null;
-  warna?: string | null;
-  permukaan?: string | null;
-  tebal?: string | null;
-  toleransi?: string | null;
-  lokasi: string;
-  satuan: string;
-}
+export { buatDeskripsiOtomatis, type SpesifikasiItem };
 
 export interface InputItemBaru extends SpesifikasiItem {
   divisiId: string;
@@ -23,25 +11,6 @@ export interface InputItemBaru extends SpesifikasiItem {
 }
 
 const rapikan = (s: string | null | undefined) => (s ?? "").trim().replace(/\s+/g, " ");
-
-/**
- * Deskripsi otomatis: nama item diikuti atribut spesifikasi yang terisi, dipisah koma.
- * Contoh: "Pasang Keramik Lantai, ukuran 60x60 cm, merk Granito, tipe Polish, warna Putih, lokasi Area Sales".
- */
-export function buatDeskripsiOtomatis(s: SpesifikasiItem) {
-  const bagian = [
-    rapikan(s.namaItem),
-    s.ukuran && `ukuran ${rapikan(s.ukuran)}`,
-    s.merk && `merk ${rapikan(s.merk)}`,
-    s.tipe && `tipe ${rapikan(s.tipe)}`,
-    s.warna && `warna ${rapikan(s.warna)}`,
-    s.permukaan && `permukaan ${rapikan(s.permukaan)}`,
-    s.tebal && `tebal ${rapikan(s.tebal)}`,
-    s.toleransi && `toleransi ${rapikan(s.toleransi)}`,
-    s.lokasi && `lokasi ${rapikan(s.lokasi)}`,
-  ].filter(Boolean);
-  return bagian.join(", ");
-}
 
 /** Kode master mengikuti konvensi seed: KODE_ITEM-KODE_VARIAN (mis. SIP-001-01). */
 export function buatKodeMaster(kodeItem: string, kodeVarian: string) {
@@ -70,6 +39,7 @@ function dataSpesifikasi(s: SpesifikasiItem) {
   const opsional = (v: string | null | undefined) => (rapikan(v) ? rapikan(v) : null);
   return {
     kategori: rapikan(s.kategori),
+    jenisCor: opsional(s.jenisCor),
     namaItem: rapikan(s.namaItem),
     ukuran: rapikan(s.ukuran),
     merk: rapikan(s.merk),
@@ -116,6 +86,7 @@ export async function daftarMasterItem(params: { divisiIds: string[]; divisiId?:
     kodeVarian: m.kodeVarian,
     kodeMaster: m.kodeMaster,
     kategori: m.kategori,
+    jenisCor: m.jenisCor,
     namaItem: m.namaItem,
     ukuran: m.ukuran,
     merk: m.merk,

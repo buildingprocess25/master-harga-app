@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
+import { buatDeskripsiOtomatis } from "@/lib/services/master-item-service";
+import { buatKodePaket } from "@/lib/utils";
 import {
   PengajuanHargaItem,
   SurveyTokoItem,
@@ -162,6 +164,7 @@ export async function GET(
           hargaAcuan,
           subtotal,
           marginPersen,
+          wajibSurveiToko: r.masterKoefisien?.wajibSurveiToko ?? false,
           total,
           surveiTokoList: componentSurvei,
         };
@@ -169,7 +172,7 @@ export async function GET(
     );
 
     const koefisienMaterialItems = koefisienItems
-      .filter((k) => k.kategori === "MATERIAL")
+      .filter((k) => k.kategori === "MATERIAL" || k.kategori === "ALAT")
       .map((k) => {
         const stores = k.surveiTokoList || [];
         const validHarga = stores.map((s) => s.harga).filter((h) => h > 0);
@@ -242,10 +245,14 @@ export async function GET(
     const formattedItem: PengajuanHargaItem = {
       id: pengajuan.id,
       noTiket: pengajuan.nomorTiket,
+      kodePaket:
+        pengajuan.kodePaket ||
+        buatKodePaket(pengajuan.cabang.kodeCabang, pengajuan.tanggalPengajuan),
       kodeItem: pengajuan.masterItem?.kodeItem || "ITEM-CUSTOM",
       kodeMaster: pengajuan.masterItem?.kodeMaster || undefined,
       namaItem: pengajuan.masterItem?.namaItem || "Item Tidak Ditemukan",
       kategori: pengajuan.masterItem?.kategori || "Pekerjaan",
+      jenisCor: pengajuan.masterItem?.jenisCor || undefined,
       merk: pengajuan.masterItem?.merk,
       tipe: pengajuan.masterItem?.tipe || undefined,
       ukuran: pengajuan.masterItem?.ukuran,
@@ -383,10 +390,21 @@ export async function PATCH(
       );
     }
 
+    if (user.role === "SB_SPECIALIST" && existing.status !== "DIAJUKAN") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "S&B Specialist hanya dapat mengubah redaksi spesifikasi saat tiket berstatus DIAJUKAN.",
+        },
+        { status: 409 }
+      );
+    }
+
     const {
       item,
       namaItem,
       kategori,
+      jenisCor,
       merk,
       ukuran,
       tipe,
@@ -402,20 +420,38 @@ export async function PATCH(
     } = body;
 
     const actualItemName = (namaItem || item || existing.masterItem?.namaItem || "").trim();
+    const resolvedKategori = (kategori ?? existing.masterItem?.kategori ?? "").trim();
+    const isKategoriCor = resolvedKategori.toLowerCase().includes("cor");
+    const resolvedJenisCor = isKategoriCor
+      ? jenisCor !== undefined
+        ? jenisCor?.trim() || null
+        : existing.masterItem?.jenisCor ?? null
+      : null;
+    const resolvedUkuran = ukuran ?? existing.masterItem?.ukuran ?? "-";
+    const resolvedMerk = merk ?? existing.masterItem?.merk ?? "-";
+    const resolvedTipe = tipe !== undefined ? tipe?.trim() || null : existing.masterItem?.tipe ?? null;
+    const resolvedWarna = warna !== undefined ? warna?.trim() || null : existing.masterItem?.warna ?? null;
+    const resolvedPermukaan = permukaan !== undefined ? permukaan?.trim() || null : existing.masterItem?.permukaan ?? null;
+    const resolvedTebal = tebal !== undefined ? tebal?.trim() || null : existing.masterItem?.tebal ?? null;
+    const resolvedToleransi = toleransi !== undefined ? toleransi?.trim() || null : existing.masterItem?.toleransi ?? null;
+    const resolvedLokasi = lokasi ?? existing.masterItem?.lokasi ?? "Area Toko";
+    const resolvedSatuan = satuan ? satuan.toUpperCase() : existing.masterItem?.satuan ?? "M2";
 
-    // Deskripsi otomatis terstandar
-    const autoDesc = [
-      actualItemName,
-      ukuran ?? existing.masterItem?.ukuran,
-      merk ?? existing.masterItem?.merk,
-      warna ?? existing.masterItem?.warna,
-      (tipe ?? existing.masterItem?.tipe) ? `Tipe ${tipe ?? existing.masterItem?.tipe}` : "",
-      (tebal ?? existing.masterItem?.tebal) ? `Tebal ${tebal ?? existing.masterItem?.tebal}` : "",
-      permukaan ?? existing.masterItem?.permukaan,
-      (toleransi ?? existing.masterItem?.toleransi) ? `Toleransi ${toleransi ?? existing.masterItem?.toleransi}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    // Deskripsi otomatis selalu dihasilkan dari kolom terstruktur (tidak boleh diedit bebas)
+    const autoDesc = buatDeskripsiOtomatis({
+      kategori: resolvedKategori,
+      jenisCor: resolvedJenisCor,
+      namaItem: actualItemName,
+      ukuran: resolvedUkuran,
+      merk: resolvedMerk,
+      tipe: resolvedTipe,
+      warna: resolvedWarna,
+      permukaan: resolvedPermukaan,
+      tebal: resolvedTebal,
+      toleransi: resolvedToleransi,
+      lokasi: resolvedLokasi,
+      satuan: resolvedSatuan,
+    });
 
     // Update MasterItem dan PengajuanHarga dalam transaksi
     const updated = await prisma.$transaction(async (tx) => {
@@ -424,16 +460,17 @@ export async function PATCH(
           where: { id: existing.masterItemId },
           data: {
             namaItem: actualItemName,
-            kategori: kategori ?? existing.masterItem?.kategori,
-            merk: merk ?? existing.masterItem?.merk,
-            ukuran: ukuran ?? existing.masterItem?.ukuran,
-            tipe: tipe ?? existing.masterItem?.tipe,
-            warna: warna ?? existing.masterItem?.warna,
-            permukaan: permukaan ?? existing.masterItem?.permukaan,
-            tebal: tebal ?? existing.masterItem?.tebal,
-            toleransi: toleransi ?? existing.masterItem?.toleransi,
-            lokasi: lokasi ?? existing.masterItem?.lokasi,
-            satuan: satuan ? satuan.toUpperCase() : existing.masterItem?.satuan,
+            kategori: resolvedKategori,
+            jenisCor: resolvedJenisCor,
+            merk: resolvedMerk,
+            ukuran: resolvedUkuran,
+            tipe: resolvedTipe,
+            warna: resolvedWarna,
+            permukaan: resolvedPermukaan,
+            tebal: resolvedTebal,
+            toleransi: resolvedToleransi,
+            lokasi: resolvedLokasi,
+            satuan: resolvedSatuan,
             deskripsiOtomatis: autoDesc || existing.masterItem?.deskripsiOtomatis,
           },
         });

@@ -4,6 +4,7 @@ import {
   getKodeData,
   PengajuanHargaItem,
 } from "@/types/pengajuan";
+import { buatDeskripsiOtomatis, buatKodePaket } from "@/lib/utils";
 
 function makeExistingItem(overrides: Partial<PengajuanHargaItem>): PengajuanHargaItem {
   return {
@@ -142,5 +143,42 @@ describe("Unit: Penomoran Kode Master & Deskripsi Terstandarisasi", () => {
     expect(desc).toContain("Lokasi Sales Area");
     expect(desc).toContain("Implementasi Lantai");
     expect(desc).toContain("(Anti slip R10)");
+  });
+
+  it("menyertakan jenisCor pada buatDeskripsiOtomatis dan generateDeskripsiOtomatis", () => {
+    const clientDesc = generateDeskripsiOtomatis({
+      item: "Pengecoran Lantai Gudang",
+      jenisCor: "Ready Mix K-225",
+      ukuran: "10 cm",
+      merk: "Holcim",
+      warna: "Grey",
+      tipe: "Structur",
+      permukaan: "Trowel",
+      lokasi: "Gudang",
+    });
+    expect(clientDesc).toContain("Pengecoran Lantai Gudang Jenis Ready Mix K-225");
+
+    const serverDesc = buatDeskripsiOtomatis({
+      kategori: "Pekerjaan Cor",
+      jenisCor: "Site Mix",
+      namaItem: "Cor Rabat Beton",
+      ukuran: "15 cm",
+      merk: "Lokal",
+      lokasi: "Area Parkir",
+      satuan: "M3",
+    });
+    expect(serverDesc).toBe(
+      "Cor Rabat Beton, jenis Site Mix, ukuran 15 cm, merk Lokal, lokasi Area Parkir"
+    );
+  });
+
+  it("menghasilkan kodePaket konsisten untuk cabang & tanggal Asia/Jakarta yang sama", () => {
+    const tglPagi = new Date("2026-11-17T01:00:00.000Z"); // 08:00 WIB
+    const tglSore = new Date("2026-11-17T11:30:00.000Z"); // 18:30 WIB
+    const tglBesok = new Date("2026-11-17T18:00:00.000Z"); // 2026-11-18 01:00 WIB
+
+    expect(buatKodePaket("CAB-CKL", tglPagi)).toBe("PKT-CKL-20261117");
+    expect(buatKodePaket("CKL", tglSore)).toBe("PKT-CKL-20261117");
+    expect(buatKodePaket("CAB-CKL", tglBesok)).toBe("PKT-CKL-20261118");
   });
 });

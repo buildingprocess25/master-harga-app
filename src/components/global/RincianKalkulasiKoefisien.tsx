@@ -196,7 +196,7 @@ export interface OpsiPustakaKoefisien {
 export interface RincianKalkulasiKoefisienProps {
   item?: any;
   koefisienItems?: KoefisienDetailItem[];
-  mode?: "readonly" | "editable" | "margin-only";
+  mode?: "readonly" | "editable" | "margin-only" | "bm-material-only";
   isReadOnly?: boolean;
   liveMarginUpah?: number;
   liveMarginMaterial?: number;
@@ -247,8 +247,12 @@ export function RincianKalkulasiKoefisien({
   onTambahKoefisienBaru,
   className = "",
 }: RincianKalkulasiKoefisienProps) {
-  const isEditable = isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable";
-  const isMarginEditable = isEditable || mode === "margin-only";
+  const isBmMaterialOnly = mode === "bm-material-only";
+  const isEditable =
+    isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable" || isBmMaterialOnly;
+  const isKoefisienEditable =
+    isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable";
+  const isMarginEditable = isKoefisienEditable || mode === "margin-only";
 
   // State Margin Numerik Terpusat (Tanpa Slider)
   const [marginUpahState, setMarginUpahState] = useState<number>(
@@ -330,6 +334,18 @@ export function RincianKalkulasiKoefisien({
       }));
   }, [pustakaKoefisien]);
 
+  const alatOptions: ComboBoxOption[] = useMemo(() => {
+    return pustakaKoefisien
+      .filter((p) => p.kategori === "ALAT")
+      .map((p) => ({
+        id: p.id,
+        label: p.namaKomponen,
+        unit: p.satuan,
+        defaultPrice: p.hargaAcuanDefault ?? undefined,
+        defaultKoefisien: p.nilaiKoefisienDefault,
+      }));
+  }, [pustakaKoefisien]);
+
   const bongkaranOptions: ComboBoxOption[] = useMemo(() => {
     return pustakaKoefisien
       .filter((p) => p.kategori === "BONGKARAN")
@@ -342,7 +358,7 @@ export function RincianKalkulasiKoefisien({
       }));
   }, [pustakaKoefisien]);
 
-  // Filter Items per Kategori (CATATAN: ALAT/Peralatan Kerja DITIADAKAN sesuai permintaan)
+  // Filter Items per Kategori (Bahan = MATERIAL, Peralatan = ALAT dalam satu grup sistem Material)
   const upahItems = useMemo(() => {
     if (koefisienItems && koefisienItems.length > 0) {
       return koefisienItems.filter((i) => i.kategori === "UPAH");
@@ -362,7 +378,7 @@ export function RincianKalkulasiKoefisien({
     return [];
   }, [koefisienItems, initialUpahItems]);
 
-  const materialItems = useMemo(() => {
+  const bahanItems = useMemo(() => {
     if (koefisienItems && koefisienItems.length > 0) {
       return koefisienItems
         .filter((i) => i.kategori === "MATERIAL")
@@ -383,6 +399,20 @@ export function RincianKalkulasiKoefisien({
     }
     return [];
   }, [koefisienItems, initialMaterialItems]);
+
+  const alatItems = useMemo(() => {
+    if (koefisienItems && koefisienItems.length > 0) {
+      return koefisienItems
+        .filter((i) => i.kategori === "ALAT")
+        .map((m) => ({ ...m, wajibSurveiToko: true }));
+    }
+    return [];
+  }, [koefisienItems]);
+
+  const materialCombinedItems = useMemo(
+    () => [...bahanItems, ...alatItems],
+    [bahanItems, alatItems],
+  );
 
   const bongkaranItems = useMemo(() => {
     if (koefisienItems && koefisienItems.length > 0) {
@@ -419,7 +449,10 @@ export function RincianKalkulasiKoefisien({
   };
 
   const upahTotals = calculateGroupTotals(upahItems, marginUpahState);
-  const materialTotals = calculateGroupTotals(materialItems, marginMaterialState);
+  const materialTotals = calculateGroupTotals(
+    materialCombinedItems,
+    marginMaterialState,
+  );
   const bongkaranTotals = calculateGroupTotals(
     bongkaranItems,
     marginBongkaranState,
@@ -461,8 +494,9 @@ export function RincianKalkulasiKoefisien({
     if (!modalKategori || !onItemsChange) return;
     if (!namaBaru.trim()) return;
 
-    const kVal = parseFloat(koefBaru) || 1;
-    const hVal = parseFloat(hargaBaru) || 0;
+    const isMatOrAlat = modalKategori === "MATERIAL" || modalKategori === "ALAT";
+    const kVal = isBmMaterialOnly ? 0 : parseFloat(koefBaru) || 1;
+    const hVal = isBmMaterialOnly ? 0 : parseFloat(hargaBaru) || 0;
 
     let pustakaId = "";
 
@@ -481,9 +515,9 @@ export function RincianKalkulasiKoefisien({
           kategori: modalKategori,
           namaKomponen: namaBaru.trim(),
           satuan: satuanBaru.trim() || "Oh",
-          nilaiKoefisienDefault: kVal,
-          hargaAcuanDefault: modalKategori === "MATERIAL" ? 0 : hVal,
-          wajibSurveiToko: modalKategori === "MATERIAL",
+          nilaiKoefisienDefault: kVal > 0 ? kVal : 1,
+          hargaAcuanDefault: isMatOrAlat ? 0 : hVal,
+          wajibSurveiToko: isMatOrAlat,
         });
         pustakaId = res?.data?.id || res?.id || "";
       } catch (e) {
@@ -492,14 +526,14 @@ export function RincianKalkulasiKoefisien({
     }
 
     const newItem: KoefisienDetailItem = {
-      id: pustakaId || `item_${Date.now()}`,
+      id: pustakaId || `item_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       masterKoefisienId: pustakaId || `item_${Date.now()}`,
       kategori: modalKategori,
       namaKomponen: namaBaru.trim(),
-      satuan: satuanBaru.trim() || "Oh",
+      satuan: satuanBaru.trim() || "Unit",
       koefisien: kVal,
-      hargaAcuan: modalKategori === "MATERIAL" ? 0 : hVal,
-      wajibSurveiToko: modalKategori === "MATERIAL",
+      hargaAcuan: isMatOrAlat ? 0 : hVal,
+      wajibSurveiToko: isMatOrAlat,
       isCustom: true,
     };
 
@@ -513,150 +547,84 @@ export function RincianKalkulasiKoefisien({
     setHargaBaru("0");
   };
 
-  // Render Tabel Grup Komponen (Gaya Solid master-harga-app)
-  const renderGroup = (
-    title: string,
+  // Helper Tabel Komponen (digunakan oleh Grup Upah, Sub-Bagian Bahan & Peralatan, dan Bongkaran)
+  const renderComponentTable = (
     items: KoefisienDetailItem[],
+    emptyLabel: string,
     currentMargin: number,
-    kategori: KategoriKoefisien,
-    totals: { hpp: number; nominalMargin: number; total: number },
-  ) => {
-    const isUpah = kategori === "UPAH" || kategori === "BONGKARAN";
-
-    return (
-      <div className="mb-4 bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
-        {/* Header Grup */}
-        <div className="bg-slate-100 px-4 py-3 border-b-2 border-slate-300 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div
-              className={`w-2.5 h-4 rounded-xs ${
-                kategori === "UPAH"
-                  ? "bg-[#005BAC]"
-                  : kategori === "MATERIAL"
-                  ? "bg-emerald-600"
-                  : "bg-amber-600"
-              }`}
-            />
-            <span className="text-xs font-black text-slate-900 tracking-wide uppercase">
-              {title}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Input Margin Numerik Langsung (Tanpa Slider) */}
-            {userRole === "S&B Specialist" && (
-              <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
-                <span className="text-[11px] font-bold text-amber-950">
-                  Margin {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}:
-                </span>
-                <div className="relative w-18">
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={currentMargin}
-                    disabled={!isMarginEditable}
-                    onChange={(e) =>
-                      handleMarginInputChange(kategori, e.target.value)
-                    }
-                    className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600"
-                  />
-                  <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-700 font-bold">
-                    %
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Tombol Tambah Komponen */}
-            {isEditable && (
-              <button
-                type="button"
-                onClick={() => {
-                  setModalKategori(kategori);
-                  setNamaBaru("");
-                  setSatuanBaru(isUpah ? "Oh" : item?.satuan || "Kg");
-                  setHargaBaru(isUpah ? "175000" : "0");
-                  setKoefBaru("1.0000");
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>
-                  Tambah {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Tabel Komponen */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead>
-              <tr className="border-b-2 border-slate-200 text-slate-700 font-bold text-[11px] bg-slate-50 uppercase tracking-wider">
-                <th className="py-2.5 pl-3 w-10 text-center">No</th>
-                <th className="py-2.5">Komponen Pekerjaan</th>
-                <th className="py-2.5 w-24">Satuan</th>
+  ) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs text-left">
+        <thead>
+          <tr className="border-b-2 border-slate-200 text-slate-700 font-bold text-[11px] bg-slate-50 uppercase tracking-wider">
+            <th className="py-2.5 pl-3 w-10 text-center">No</th>
+            <th className="py-2.5">Komponen Pekerjaan</th>
+            <th className="py-2.5 w-24">Satuan</th>
+            {!isBmMaterialOnly && (
+              <>
                 <th className="py-2.5 text-right w-28">Koefisien</th>
                 <th className="py-2.5 text-right w-36">Harga Acuan (Rp)</th>
                 <th className="py-2.5 text-right w-32">Subtotal Dasar</th>
                 <th className="py-2.5 pr-3 text-right w-36 font-black text-[#005BAC]">
                   Total (+{currentMargin}%)
                 </th>
-                {isEditable && (
-                  <th className="py-2.5 w-12 text-center pr-2">Aksi</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y-2 divide-slate-100 font-mono tabular-nums text-slate-900">
-              {items.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={isEditable ? 8 : 7}
-                    className="py-5 text-center text-slate-500 font-sans italic text-xs"
-                  >
-                    Belum ada komponen {title.toLowerCase()} yang ditambahkan.
+              </>
+            )}
+            {isEditable && (
+              <th className="py-2.5 w-12 text-center pr-2">Aksi</th>
+            )}
+          </tr>
+        </thead>
+        <tbody className="divide-y-2 divide-slate-100 font-mono tabular-nums text-slate-900">
+          {items.length === 0 ? (
+            <tr>
+              <td
+                colSpan={isBmMaterialOnly ? (isEditable ? 4 : 3) : isEditable ? 8 : 7}
+                className="py-5 text-center text-slate-500 font-sans italic text-xs"
+              >
+                {emptyLabel}
+              </td>
+            </tr>
+          ) : (
+            items.map((rowItem, idx) => {
+              const subtotal =
+                (Number(rowItem.koefisien) || 0) *
+                (Number(rowItem.hargaAcuan) || 0);
+              const totalRow =
+                subtotal + Math.round(subtotal * (currentMargin / 100));
+
+              return (
+                <tr
+                  key={rowItem.id || idx}
+                  className="hover:bg-slate-50 transition-colors"
+                >
+                  <td className="py-2.5 pl-3 text-center text-slate-500 font-sans font-semibold">
+                    {idx + 1}
                   </td>
-                </tr>
-              ) : (
-                items.map((rowItem, idx) => {
-                  const subtotal =
-                    (Number(rowItem.koefisien) || 0) *
-                    (Number(rowItem.hargaAcuan) || 0);
-                  const totalRow =
-                    subtotal + Math.round(subtotal * (currentMargin / 100));
+                  <td className="py-2.5 font-sans font-bold text-slate-900">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{rowItem.namaKomponen}</span>
+                      {!isBmMaterialOnly && rowItem.wajibSurveiToko && (
+                        <span className="text-[10px] bg-amber-600 text-white font-black px-1.5 py-0.5 rounded uppercase">
+                          Survei BC (3 Toko)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-2.5 text-slate-700 font-sans font-medium">
+                    {rowItem.satuan}
+                  </td>
 
-                  return (
-                    <tr
-                      key={rowItem.id || idx}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="py-2.5 pl-3 text-center text-slate-500 font-sans font-semibold">
-                        {idx + 1}
-                      </td>
-                      <td className="py-2.5 font-sans font-bold text-slate-900">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span>{rowItem.namaKomponen}</span>
-                          {rowItem.wajibSurveiToko && (
-                            <span className="text-[10px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded uppercase">
-                              Survei BC (3 Toko)
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-slate-700 font-sans font-medium">
-                        {rowItem.satuan}
-                      </td>
-
+                  {!isBmMaterialOnly && (
+                    <>
                       {/* Input Koefisien */}
                       <td className="py-2 text-right">
-                        {isEditable ? (
+                        {isKoefisienEditable ? (
                           <input
                             type="number"
                             step="0.0001"
                             min="0"
+                            placeholder="0.0000"
                             value={rowItem.koefisien || ""}
                             onChange={(e) =>
                               handleUbahNilai(
@@ -676,7 +644,7 @@ export function RincianKalkulasiKoefisien({
 
                       {/* Harga Acuan */}
                       <td className="py-2 text-right text-slate-700">
-                        {isEditable && !rowItem.wajibSurveiToko ? (
+                        {isKoefisienEditable && !rowItem.wajibSurveiToko ? (
                           <input
                             type="number"
                             step="500"
@@ -713,29 +681,108 @@ export function RincianKalkulasiKoefisien({
                       <td className="py-2.5 pr-3 text-right font-black text-slate-900">
                         {formatRupiah(totalRow)}
                       </td>
+                    </>
+                  )}
 
-                      {/* Tombol Hapus */}
-                      {isEditable && (
-                        <td className="py-2 text-center pr-2">
-                          <button
-                            type="button"
-                            title="Hapus baris"
-                            onClick={() => handleHapusBaris(rowItem.id)}
-                            className="p-1 rounded text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  {/* Tombol Hapus */}
+                  {isEditable && (
+                    <td className="py-2 text-center pr-2">
+                      <button
+                        type="button"
+                        title="Hapus baris"
+                        onClick={() => handleHapusBaris(rowItem.id)}
+                        className="p-1 rounded text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // Render Grup Standar (Upah & Bongkaran)
+  const renderGroup = (
+    title: string,
+    items: KoefisienDetailItem[],
+    currentMargin: number,
+    kategori: KategoriKoefisien,
+    totals: { hpp: number; nominalMargin: number; total: number },
+  ) => {
+    const isUpah = kategori === "UPAH" || kategori === "BONGKARAN";
+
+    return (
+      <div className="mb-4 bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
+        <div className="bg-slate-100 px-4 py-3 border-b-2 border-slate-300 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-2.5 h-4 rounded-xs ${
+                kategori === "UPAH" ? "bg-[#005BAC]" : "bg-amber-600"
+              }`}
+            />
+            <span className="text-xs font-black text-slate-900 tracking-wide uppercase">
+              {title}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {userRole === "S&B Specialist" && (
+              <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] font-bold text-amber-950">
+                  Margin {kategori === "UPAH" ? "Upah" : "Bongkaran"}:
+                </span>
+                <div className="relative w-18">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={currentMargin}
+                    disabled={!isMarginEditable}
+                    onChange={(e) =>
+                      handleMarginInputChange(kategori, e.target.value)
+                    }
+                    className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600"
+                  />
+                  <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-700 font-bold">
+                    %
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {isEditable && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalKategori(kategori);
+                  setNamaBaru("");
+                  setSatuanBaru(isUpah ? "Oh" : item?.satuan || "Kg");
+                  setHargaBaru(isUpah ? "175000" : "0");
+                  setKoefBaru("1.0000");
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>
+                  Tambah {kategori === "UPAH" ? "Upah" : "Bongkaran"}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Subtotal Grup Footer */}
+        {renderComponentTable(
+          items,
+          `Belum ada komponen ${title.toLowerCase()} yang ditambahkan.`,
+          currentMargin,
+        )}
+
         <div className="bg-slate-50 border-t-2 border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-800">
           <div className="flex items-center gap-4">
             <span>
@@ -751,7 +798,7 @@ export function RincianKalkulasiKoefisien({
             )}
           </div>
           <div className="font-bold text-slate-900">
-            Total {kategori === "UPAH" ? "Upah" : kategori === "MATERIAL" ? "Material" : "Bongkaran"}:{" "}
+            Total {kategori === "UPAH" ? "Upah" : "Bongkaran"}:{" "}
             <span className="text-[#005BAC] font-black font-mono text-sm">
               {formatRupiah(totals.total)}
             </span>
@@ -760,6 +807,144 @@ export function RincianKalkulasiKoefisien({
       </div>
     );
   };
+
+  // Render Grup Material Terpadu (Tampilan Bahan & Peralatan dipisah, sistem tetap 1 gabungan Material)
+  const renderMaterialUnifiedGroup = () => (
+    <div className="mb-4 bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
+      <div className="bg-slate-100 px-4 py-3 border-b-2 border-slate-300 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-4 rounded-xs bg-emerald-600" />
+          <span className="text-xs font-black text-slate-900 tracking-wide uppercase">
+            {isBmMaterialOnly
+              ? "Komponen Material (Bahan & Peralatan)"
+              : "B. Material (Gabungan Bahan & Peralatan)"}
+          </span>
+        </div>
+
+        {!isBmMaterialOnly && userRole === "S&B Specialist" && (
+          <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
+            <span className="text-[11px] font-bold text-amber-950">
+              Margin Material:
+            </span>
+            <div className="relative w-18">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={marginMaterialState}
+                disabled={!isMarginEditable}
+                onChange={(e) =>
+                  handleMarginInputChange("MATERIAL", e.target.value)
+                }
+                className="w-full bg-white border border-amber-400 rounded px-1.5 py-0.5 text-xs font-bold text-amber-950 text-center pr-4 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-600"
+              />
+              <span className="absolute right-1.5 top-0.5 text-[10px] text-amber-700 font-bold">
+                %
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sub-bagian 1: Bahan / Material */}
+      <div className="border-b-2 border-slate-300">
+        <div className="px-4 py-2.5 bg-emerald-50 border-b-2 border-emerald-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide">
+              Bahan
+            </span>
+            <span className="text-xs font-bold text-slate-900">
+              Komponen Bahan Material
+            </span>
+          </div>
+          {isEditable && (
+            <button
+              type="button"
+              onClick={() => {
+                setModalKategori("MATERIAL");
+                setNamaBaru("");
+                setSatuanBaru(item?.satuan || "Kg");
+                setHargaBaru("0");
+                setKoefBaru("1.0000");
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Bahan</span>
+            </button>
+          )}
+        </div>
+        {renderComponentTable(
+          bahanItems,
+          "Belum ada komponen bahan yang ditambahkan.",
+          marginMaterialState,
+        )}
+      </div>
+
+      {/* Sub-bagian 2: Peralatan Kerja */}
+      <div>
+        <div className="px-4 py-2.5 bg-blue-50 border-b-2 border-blue-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black uppercase tracking-wide">
+              Peralatan
+            </span>
+            <span className="text-xs font-bold text-slate-900">
+              Komponen Peralatan Kerja
+            </span>
+          </div>
+          {isEditable && (
+            <button
+              type="button"
+              onClick={() => {
+                setModalKategori("ALAT");
+                setNamaBaru("");
+                setSatuanBaru("Unit");
+                setHargaBaru("0");
+                setKoefBaru("1.0000");
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Peralatan</span>
+            </button>
+          )}
+        </div>
+        {renderComponentTable(
+          alatItems,
+          "Belum ada komponen peralatan yang ditambahkan.",
+          marginMaterialState,
+        )}
+      </div>
+
+      {!isBmMaterialOnly && (
+        <div className="bg-slate-50 border-t-2 border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-800">
+          <div className="flex items-center gap-4">
+            <span>
+              Dasar Gabungan:{" "}
+              <strong className="text-slate-900 font-mono font-bold">
+                {formatRupiah(materialTotals.hpp)}
+              </strong>
+            </span>
+            {marginMaterialState > 0 && (
+              <span>
+                + Margin ({marginMaterialState}%):{" "}
+                <strong className="text-amber-800 font-mono font-bold">
+                  {formatRupiah(materialTotals.nominalMargin)}
+                </strong>
+              </span>
+            )}
+          </div>
+          <div className="font-bold text-slate-900">
+            Total Material (Bahan + Peralatan):{" "}
+            <span className="text-[#005BAC] font-black font-mono text-sm">
+              {formatRupiah(materialTotals.total)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -776,10 +961,14 @@ export function RincianKalkulasiKoefisien({
           </div>
           <div>
             <h3 className="text-xs font-black text-slate-900 tracking-wide uppercase">
-              Rincian Koefisien
+              {isBmMaterialOnly
+                ? "Komponen Material Pengajuan (Bahan & Peralatan)"
+                : "Rincian Koefisien"}
             </h3>
             <p className="text-[11px] text-slate-500 font-medium">
-              Kalkulasi otomatis harga satuan standar berbasis koefisien resep (Tenaga Kerja, Bahan, dan Bongkaran)
+              {isBmMaterialOnly
+                ? "Pilih komponen Bahan Material dan Peralatan Kerja yang diperlukan dari Master Koefisien/Survei atau tambahkan baru."
+                : "Kalkulasi otomatis harga satuan standar berbasis koefisien resep (Tenaga Kerja, Material Bahan & Peralatan, dan Bongkaran)"}
             </p>
           </div>
         </div>
@@ -791,7 +980,11 @@ export function RincianKalkulasiKoefisien({
               <span>Mode Negosiasi Kontraktor</span>
             </span>
           )}
-          {isEditable ? (
+          {isBmMaterialOnly ? (
+            <span className="text-xs font-bold text-white bg-emerald-600 px-3 py-1 rounded-md shadow-2xs">
+              Input B&amp;M
+            </span>
+          ) : isKoefisienEditable ? (
             <span className="text-xs font-bold text-white bg-[#005BAC] px-3 py-1 rounded-md shadow-2xs">
               Mode Edit
             </span>
@@ -807,28 +1000,24 @@ export function RincianKalkulasiKoefisien({
         </div>
       </div>
 
-      {/* Rincian Grup Tabel Komponen (Peralatan Kerja TIDAK ADA) */}
+      {/* Rincian Grup Tabel Komponen */}
       <div className="p-4 sm:p-5 space-y-4">
         {/* A. Tenaga Kerja (Upah) */}
-        {renderGroup(
-          "A. Tenaga Kerja (Upah)",
-          upahItems,
-          marginUpahState,
-          "UPAH",
-          upahTotals,
-        )}
+        {!isBmMaterialOnly &&
+          renderGroup(
+            "A. Tenaga Kerja (Upah)",
+            upahItems,
+            marginUpahState,
+            "UPAH",
+            upahTotals,
+          )}
 
-        {/* B. Bahan / Material */}
-        {renderGroup(
-          "B. Bahan / Material",
-          materialItems,
-          marginMaterialState,
-          "MATERIAL",
-          materialTotals,
-        )}
+        {/* B. Material (Tampilan Bahan & Peralatan Terpisah, Sistem Gabungan) */}
+        {renderMaterialUnifiedGroup()}
 
         {/* C. Pekerjaan Bongkaran (Jika ada atau item mendukung bongkaran) */}
-        {(bongkaranItems.length > 0 || item?.isTermasukBongkaran) &&
+        {!isBmMaterialOnly &&
+          (bongkaranItems.length > 0 || item?.isTermasukBongkaran) &&
           renderGroup(
             "C. Pekerjaan Bongkaran",
             bongkaranItems,
@@ -838,28 +1027,30 @@ export function RincianKalkulasiKoefisien({
           )}
 
         {/* Ringkasan Total Akhir AHSP */}
-        <div className="mt-5 pt-3 border-t-2 border-slate-300 bg-slate-50 p-4 rounded-xl border-2 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <span className="text-xs text-slate-600 font-bold block">
-              Total HPP Murni (Sebelum Margin):
-            </span>
-            <span className="font-mono text-base font-bold text-slate-900">
-              {formatRupiah(grandTotalHpp)}
-            </span>
-          </div>
+        {!isBmMaterialOnly && (
+          <div className="mt-5 pt-3 border-t-2 border-slate-300 bg-slate-50 p-4 rounded-xl border-2 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+              <span className="text-xs text-slate-600 font-bold block">
+                Total HPP Murni (Sebelum Margin):
+              </span>
+              <span className="font-mono text-base font-bold text-slate-900">
+                {formatRupiah(grandTotalHpp)}
+              </span>
+            </div>
 
-          <div className="text-right">
-            <span className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-              Total Harga Satuan (+Margin):
-            </span>
-            <span className="font-mono text-2xl font-black text-[#005BAC] tabular-nums">
-              {formatRupiah(grandTotalAkhir)}
-            </span>
+            <div className="text-right">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wide block">
+                Total Harga Satuan (+Margin):
+              </span>
+              <span className="font-mono text-2xl font-black text-[#005BAC] tabular-nums">
+                {formatRupiah(grandTotalAkhir)}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Footer Tombol Simpan / Kembali jika prop disediakan */}
-        {(onSave || onBack) && (
+        {(onSave || onBack) && !isBmMaterialOnly && (
           <div className="pt-3 border-t-2 border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <span className="text-xs text-slate-500 italic">
               {item?.status === "PENDING_SB_SPECIALIST" || item?.status === "USULAN_KONTRAKTOR"
@@ -901,7 +1092,14 @@ export function RincianKalkulasiKoefisien({
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-4 bg-[#005BAC] rounded-xs" />
                 <h4 className="text-sm font-black text-slate-900 uppercase">
-                  Tambah Komponen {modalKategori}
+                  Tambah Komponen{" "}
+                  {modalKategori === "MATERIAL"
+                    ? "Bahan"
+                    : modalKategori === "ALAT"
+                    ? "Peralatan"
+                    : modalKategori === "UPAH"
+                    ? "Upah"
+                    : "Bongkaran"}
                 </h4>
               </div>
               <button
@@ -925,10 +1123,14 @@ export function RincianKalkulasiKoefisien({
                   onSelectOption={(opt) => {
                     setNamaBaru(opt.label);
                     setSatuanBaru(opt.unit);
-                    if (opt.defaultKoefisien) {
+                    if (opt.defaultKoefisien && !isBmMaterialOnly) {
                       setKoefBaru(String(opt.defaultKoefisien));
                     }
-                    if (opt.defaultPrice !== undefined && modalKategori !== "MATERIAL") {
+                    if (
+                      opt.defaultPrice !== undefined &&
+                      modalKategori !== "MATERIAL" &&
+                      modalKategori !== "ALAT"
+                    ) {
                       setHargaBaru(String(opt.defaultPrice));
                     }
                   }}
@@ -937,15 +1139,23 @@ export function RincianKalkulasiKoefisien({
                       ? upahOptions
                       : modalKategori === "MATERIAL"
                       ? materialOptions
+                      : modalKategori === "ALAT"
+                      ? alatOptions
                       : bongkaranOptions
                   }
-                  placeholder={`Pilih dari pustaka master atau ketik nama ${modalKategori.toLowerCase()}...`}
+                  placeholder={`Pilih dari pustaka master atau ketik nama ${
+                    modalKategori === "ALAT"
+                      ? "peralatan"
+                      : modalKategori === "MATERIAL"
+                      ? "bahan"
+                      : modalKategori.toLowerCase()
+                  }...`}
                   autoFocus
                 />
               </div>
 
-              {/* Satuan & Koefisien */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Satuan (& Koefisien bila bukan mode BNM) */}
+              <div className={cn("grid gap-3", isBmMaterialOnly ? "grid-cols-1" : "grid-cols-2")}>
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
                     Satuan <span className="text-red-500">*</span>
@@ -969,44 +1179,48 @@ export function RincianKalkulasiKoefisien({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Koefisien <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
-                    value={koefBaru}
-                    onChange={(e) => setKoefBaru(e.target.value)}
-                    placeholder="0.0000"
-                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
-                  />
-                </div>
+                {!isBmMaterialOnly && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Koefisien <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0.0001"
+                      value={koefBaru}
+                      onChange={(e) => setKoefBaru(e.target.value)}
+                      placeholder="0.0000"
+                      className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Harga Acuan & Keterangan Survei Material */}
-              {modalKategori !== "MATERIAL" ? (
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Harga Acuan Upah (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    step="1000"
-                    min="0"
-                    value={hargaBaru}
-                    onChange={(e) => setHargaBaru(e.target.value)}
-                    placeholder="0"
-                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
-                  />
-                </div>
-              ) : (
-                <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-start gap-2.5 text-xs text-blue-950 font-medium">
-                  <p>
-                  </p>
-                </div>
-              )}
+              {/* Harga Acuan (khusus Upah/Bongkaran) atau Info Survei (Bahan/Peralatan) */}
+              {!isBmMaterialOnly &&
+                (modalKategori === "UPAH" || modalKategori === "BONGKARAN" ? (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Harga Acuan Upah (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      step="1000"
+                      min="0"
+                      value={hargaBaru}
+                      onChange={(e) => setHargaBaru(e.target.value)}
+                      placeholder="0"
+                      className="border-2 border-slate-300 rounded-lg px-3 py-2 w-full text-xs bg-white font-mono font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-start gap-2.5 text-xs text-blue-950 font-medium">
+                    <p>
+                      Harga acuan komponen Bahan &amp; Peralatan akan dilengkapi berdasarkan hasil survei pasar 3 toko oleh Building Coordinator.
+                    </p>
+                  </div>
+                ))}
             </div>
 
             {/* Tombol Aksi Modal */}

@@ -16,7 +16,8 @@
     "db:test:push": "tsx scripts/push-test-db.ts",
     "test": "vitest run tests/unit",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run --config vitest.integration.config.ts tests/integration"
+    "test:integration": "vitest run --config vitest.integration.config.ts tests/integration",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -34,6 +35,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@prisma/compute-sdk": "latest",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.0.0",

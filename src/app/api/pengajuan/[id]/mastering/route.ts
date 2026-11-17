@@ -81,7 +81,7 @@ export async function POST(
       const kategori = (b.kategori || b.kategoriKomponen || "UPAH").toUpperCase();
       const nama = (b.namaKomponen || b.label || "Komponen").trim();
       const satuan = (b.satuan || b.unit || "Oh").trim();
-      const isMaterial = kategori === "MATERIAL";
+      const isMaterial = kategori === "MATERIAL" || kategori === "ALAT";
 
       let validMasterId = "";
 

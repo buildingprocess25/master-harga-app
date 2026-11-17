@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
           ...(q ? { namaKomponen: { contains: q, mode: "insensitive" } } : {}),
         },
         orderBy: [{ kategoriKomponen: "asc" }, { namaKomponen: "asc" }],
-        take: 150,
+        take: 300,
       });
 
       return NextResponse.json({

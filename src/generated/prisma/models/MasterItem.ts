@@ -31,6 +31,7 @@ export type MasterItemMinAggregateOutputType = {
   kodeVarian: string | null
   kodeMaster: string | null
   kategori: string | null
+  jenisCor: string | null
   namaItem: string | null
   ukuran: string | null
   merk: string | null
@@ -53,6 +54,7 @@ export type MasterItemMaxAggregateOutputType = {
   kodeVarian: string | null
   kodeMaster: string | null
   kategori: string | null
+  jenisCor: string | null
   namaItem: string | null
   ukuran: string | null
   merk: string | null
@@ -75,6 +77,7 @@ export type MasterItemCountAggregateOutputType = {
   kodeVarian: number
   kodeMaster: number
   kategori: number
+  jenisCor: number
   namaItem: number
   ukuran: number
   merk: number
@@ -99,6 +102,7 @@ export type MasterItemMinAggregateInputType = {
   kodeVarian?: true
   kodeMaster?: true
   kategori?: true
+  jenisCor?: true
   namaItem?: true
   ukuran?: true
   merk?: true
@@ -121,6 +125,7 @@ export type MasterItemMaxAggregateInputType = {
   kodeVarian?: true
   kodeMaster?: true
   kategori?: true
+  jenisCor?: true
   namaItem?: true
   ukuran?: true
   merk?: true
@@ -143,6 +148,7 @@ export type MasterItemCountAggregateInputType = {
   kodeVarian?: true
   kodeMaster?: true
   kategori?: true
+  jenisCor?: true
   namaItem?: true
   ukuran?: true
   merk?: true
@@ -238,6 +244,7 @@ export type MasterItemGroupByOutputType = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -281,6 +288,7 @@ export type MasterItemWhereInput = {
   kodeVarian?: Prisma.StringFilter<"MasterItem"> | string
   kodeMaster?: Prisma.StringFilter<"MasterItem"> | string
   kategori?: Prisma.StringFilter<"MasterItem"> | string
+  jenisCor?: Prisma.StringNullableFilter<"MasterItem"> | string | null
   namaItem?: Prisma.StringFilter<"MasterItem"> | string
   ukuran?: Prisma.StringFilter<"MasterItem"> | string
   merk?: Prisma.StringFilter<"MasterItem"> | string
@@ -306,6 +314,7 @@ export type MasterItemOrderByWithRelationInput = {
   kodeVarian?: Prisma.SortOrder
   kodeMaster?: Prisma.SortOrder
   kategori?: Prisma.SortOrder
+  jenisCor?: Prisma.SortOrderInput | Prisma.SortOrder
   namaItem?: Prisma.SortOrder
   ukuran?: Prisma.SortOrder
   merk?: Prisma.SortOrder
@@ -335,6 +344,7 @@ export type MasterItemWhereUniqueInput = Prisma.AtLeast<{
   kodeItem?: Prisma.StringFilter<"MasterItem"> | string
   kodeVarian?: Prisma.StringFilter<"MasterItem"> | string
   kategori?: Prisma.StringFilter<"MasterItem"> | string
+  jenisCor?: Prisma.StringNullableFilter<"MasterItem"> | string | null
   namaItem?: Prisma.StringFilter<"MasterItem"> | string
   ukuran?: Prisma.StringFilter<"MasterItem"> | string
   merk?: Prisma.StringFilter<"MasterItem"> | string
@@ -360,6 +370,7 @@ export type MasterItemOrderByWithAggregationInput = {
   kodeVarian?: Prisma.SortOrder
   kodeMaster?: Prisma.SortOrder
   kategori?: Prisma.SortOrder
+  jenisCor?: Prisma.SortOrderInput | Prisma.SortOrder
   namaItem?: Prisma.SortOrder
   ukuran?: Prisma.SortOrder
   merk?: Prisma.SortOrder
@@ -388,6 +399,7 @@ export type MasterItemScalarWhereWithAggregatesInput = {
   kodeVarian?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
   kodeMaster?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
   kategori?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
+  jenisCor?: Prisma.StringNullableWithAggregatesFilter<"MasterItem"> | string | null
   namaItem?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
   ukuran?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
   merk?: Prisma.StringWithAggregatesFilter<"MasterItem"> | string
@@ -409,6 +421,7 @@ export type MasterItemCreateInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -434,6 +447,7 @@ export type MasterItemUncheckedCreateInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -457,6 +471,7 @@ export type MasterItemUpdateInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -482,6 +497,7 @@ export type MasterItemUncheckedUpdateInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -506,6 +522,7 @@ export type MasterItemCreateManyInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -527,6 +544,7 @@ export type MasterItemUpdateManyMutationInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -549,6 +567,7 @@ export type MasterItemUncheckedUpdateManyInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -586,6 +605,7 @@ export type MasterItemCountOrderByAggregateInput = {
   kodeVarian?: Prisma.SortOrder
   kodeMaster?: Prisma.SortOrder
   kategori?: Prisma.SortOrder
+  jenisCor?: Prisma.SortOrder
   namaItem?: Prisma.SortOrder
   ukuran?: Prisma.SortOrder
   merk?: Prisma.SortOrder
@@ -608,6 +628,7 @@ export type MasterItemMaxOrderByAggregateInput = {
   kodeVarian?: Prisma.SortOrder
   kodeMaster?: Prisma.SortOrder
   kategori?: Prisma.SortOrder
+  jenisCor?: Prisma.SortOrder
   namaItem?: Prisma.SortOrder
   ukuran?: Prisma.SortOrder
   merk?: Prisma.SortOrder
@@ -630,6 +651,7 @@ export type MasterItemMinOrderByAggregateInput = {
   kodeVarian?: Prisma.SortOrder
   kodeMaster?: Prisma.SortOrder
   kategori?: Prisma.SortOrder
+  jenisCor?: Prisma.SortOrder
   namaItem?: Prisma.SortOrder
   ukuran?: Prisma.SortOrder
   merk?: Prisma.SortOrder
@@ -733,6 +755,7 @@ export type MasterItemCreateWithoutDivisiInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -756,6 +779,7 @@ export type MasterItemUncheckedCreateWithoutDivisiInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -809,6 +833,7 @@ export type MasterItemScalarWhereInput = {
   kodeVarian?: Prisma.StringFilter<"MasterItem"> | string
   kodeMaster?: Prisma.StringFilter<"MasterItem"> | string
   kategori?: Prisma.StringFilter<"MasterItem"> | string
+  jenisCor?: Prisma.StringNullableFilter<"MasterItem"> | string | null
   namaItem?: Prisma.StringFilter<"MasterItem"> | string
   ukuran?: Prisma.StringFilter<"MasterItem"> | string
   merk?: Prisma.StringFilter<"MasterItem"> | string
@@ -830,6 +855,7 @@ export type MasterItemCreateWithoutHargaPerCabangInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -854,6 +880,7 @@ export type MasterItemUncheckedCreateWithoutHargaPerCabangInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -892,6 +919,7 @@ export type MasterItemUpdateWithoutHargaPerCabangInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -916,6 +944,7 @@ export type MasterItemUncheckedUpdateWithoutHargaPerCabangInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -938,6 +967,7 @@ export type MasterItemCreateWithoutPengajuanHargaListInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -962,6 +992,7 @@ export type MasterItemUncheckedCreateWithoutPengajuanHargaListInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -1000,6 +1031,7 @@ export type MasterItemUpdateWithoutPengajuanHargaListInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1024,6 +1056,7 @@ export type MasterItemUncheckedUpdateWithoutPengajuanHargaListInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1046,6 +1079,7 @@ export type MasterItemCreateManyDivisiInput = {
   kodeVarian: string
   kodeMaster: string
   kategori: string
+  jenisCor?: string | null
   namaItem: string
   ukuran: string
   merk: string
@@ -1067,6 +1101,7 @@ export type MasterItemUpdateWithoutDivisiInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1090,6 +1125,7 @@ export type MasterItemUncheckedUpdateWithoutDivisiInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1113,6 +1149,7 @@ export type MasterItemUncheckedUpdateManyWithoutDivisiInput = {
   kodeVarian?: Prisma.StringFieldUpdateOperationsInput | string
   kodeMaster?: Prisma.StringFieldUpdateOperationsInput | string
   kategori?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisCor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   namaItem?: Prisma.StringFieldUpdateOperationsInput | string
   ukuran?: Prisma.StringFieldUpdateOperationsInput | string
   merk?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1175,6 +1212,7 @@ export type MasterItemSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   kodeVarian?: boolean
   kodeMaster?: boolean
   kategori?: boolean
+  jenisCor?: boolean
   namaItem?: boolean
   ukuran?: boolean
   merk?: boolean
@@ -1201,6 +1239,7 @@ export type MasterItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   kodeVarian?: boolean
   kodeMaster?: boolean
   kategori?: boolean
+  jenisCor?: boolean
   namaItem?: boolean
   ukuran?: boolean
   merk?: boolean
@@ -1224,6 +1263,7 @@ export type MasterItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   kodeVarian?: boolean
   kodeMaster?: boolean
   kategori?: boolean
+  jenisCor?: boolean
   namaItem?: boolean
   ukuran?: boolean
   merk?: boolean
@@ -1247,6 +1287,7 @@ export type MasterItemSelectScalar = {
   kodeVarian?: boolean
   kodeMaster?: boolean
   kategori?: boolean
+  jenisCor?: boolean
   namaItem?: boolean
   ukuran?: boolean
   merk?: boolean
@@ -1262,7 +1303,7 @@ export type MasterItemSelectScalar = {
   updatedAt?: boolean
 }
 
-export type MasterItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "divisiId" | "kodeItem" | "kodeVarian" | "kodeMaster" | "kategori" | "namaItem" | "ukuran" | "merk" | "warna" | "tipe" | "permukaan" | "tebal" | "toleransi" | "lokasi" | "satuan" | "deskripsiOtomatis" | "createdAt" | "updatedAt", ExtArgs["result"]["masterItem"]>
+export type MasterItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "divisiId" | "kodeItem" | "kodeVarian" | "kodeMaster" | "kategori" | "jenisCor" | "namaItem" | "ukuran" | "merk" | "warna" | "tipe" | "permukaan" | "tebal" | "toleransi" | "lokasi" | "satuan" | "deskripsiOtomatis" | "createdAt" | "updatedAt", ExtArgs["result"]["masterItem"]>
 export type MasterItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   hargaPerCabang?: boolean | Prisma.MasterItem$hargaPerCabangArgs<ExtArgs>
@@ -1290,6 +1331,7 @@ export type $MasterItemPayload<ExtArgs extends runtime.Types.Extensions.Internal
     kodeVarian: string
     kodeMaster: string
     kategori: string
+    jenisCor: string | null
     namaItem: string
     ukuran: string
     merk: string
@@ -1735,6 +1777,7 @@ export interface MasterItemFieldRefs {
   readonly kodeVarian: Prisma.FieldRef<"MasterItem", 'String'>
   readonly kodeMaster: Prisma.FieldRef<"MasterItem", 'String'>
   readonly kategori: Prisma.FieldRef<"MasterItem", 'String'>
+  readonly jenisCor: Prisma.FieldRef<"MasterItem", 'String'>
   readonly namaItem: Prisma.FieldRef<"MasterItem", 'String'>
   readonly ukuran: Prisma.FieldRef<"MasterItem", 'String'>
   readonly merk: Prisma.FieldRef<"MasterItem", 'String'>

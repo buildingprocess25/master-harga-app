@@ -17,11 +17,14 @@ import {
   Trash2,
   Save,
   Send,
+  Pencil,
+  X,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
 import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
+import { buatDeskripsiOtomatis } from "@/lib/utils";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import {
@@ -38,6 +41,7 @@ import {
 
 const OPTIONS_REVISI = [
   "Kategori Pekerjaan",
+  "Jenis Cor",
   "Nama Material",
   "Ukuran",
   "Merk",
@@ -141,6 +145,113 @@ export default function SBSpecialistDetailPage() {
     { field: string; note: string }[]
   >([{ field: "", note: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State Modal Edit Redaksi Spesifikasi (hanya kolom terstruktur, status DIAJUKAN)
+  const [isEditRedaksiOpen, setIsEditRedaksiOpen] = useState(false);
+  const [isSavingRedaksi, setIsSavingRedaksi] = useState(false);
+  const [redaksiForm, setRedaksiForm] = useState({
+    namaItem: "",
+    kategori: "",
+    jenisCor: "",
+    satuan: "",
+    ukuran: "",
+    merk: "",
+    tipe: "",
+    warna: "",
+    permukaan: "",
+    tebal: "",
+    toleransi: "",
+    lokasi: "",
+  });
+
+  const openEditRedaksiModal = () => {
+    if (!item) return;
+    setRedaksiForm({
+      namaItem: item.namaItem || item.item || "",
+      kategori: item.kategori || "",
+      jenisCor: item.jenisCor || "",
+      satuan: item.satuan || "m2",
+      ukuran: item.ukuran || "",
+      merk: item.merk || "",
+      tipe: item.tipe || "",
+      warna: item.warna || "",
+      permukaan: item.permukaan || "",
+      tebal: item.tebal || "",
+      toleransi: item.toleransi || "",
+      lokasi: Array.isArray(item.lokasi) ? item.lokasi.join(", ") : item.lokasi || "",
+    });
+    setIsEditRedaksiOpen(true);
+  };
+
+  const handleSaveRedaksi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!item) return;
+    const isCor = redaksiForm.kategori.toLowerCase().includes("cor");
+    if (
+      !redaksiForm.namaItem.trim() ||
+      !redaksiForm.kategori.trim() ||
+      !redaksiForm.satuan.trim() ||
+      !redaksiForm.ukuran.trim() ||
+      !redaksiForm.merk.trim() ||
+      !redaksiForm.lokasi.trim()
+    ) {
+      Swal.fire({
+        icon: "warning",
+        title: "Kolom Wajib Kosong",
+        text: "Nama Item, Kategori, Satuan, Ukuran, Merk, dan Lokasi wajib diisi.",
+        confirmButtonColor: "#005BAC",
+      });
+      return;
+    }
+    if (isCor && !redaksiForm.jenisCor.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Jenis Cor Wajib Diisi",
+        text: "Isi Jenis Cor karena kategori termasuk Pekerjaan Cor.",
+        confirmButtonColor: "#005BAC",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingRedaksi(true);
+      const res = await fetch(`/api/pengajuan/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          namaItem: redaksiForm.namaItem.trim(),
+          kategori: redaksiForm.kategori.trim(),
+          jenisCor: isCor ? redaksiForm.jenisCor.trim() : "",
+          satuan: redaksiForm.satuan.trim(),
+          ukuran: redaksiForm.ukuran.trim(),
+          merk: redaksiForm.merk.trim(),
+          tipe: redaksiForm.tipe.trim(),
+          warna: redaksiForm.warna.trim(),
+          permukaan: redaksiForm.permukaan.trim(),
+          tebal: redaksiForm.tebal.trim(),
+          toleransi: redaksiForm.toleransi.trim(),
+          lokasi: redaksiForm.lokasi.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setIsEditRedaksiOpen(false);
+        await loadData();
+        Swal.fire({
+          icon: "success",
+          title: "Redaksi Diperbarui",
+          text: "Spesifikasi terstruktur dan deskripsi otomatis berhasil diperbarui.",
+          confirmButtonColor: "#005BAC",
+        });
+      } else {
+        Swal.fire("Gagal", json.message || "Gagal memperbarui redaksi spesifikasi.", "error");
+      }
+    } catch (err: any) {
+      Swal.fire("Kesalahan", err.message || "Terjadi kesalahan koneksi.", "error");
+    } finally {
+      setIsSavingRedaksi(false);
+    }
+  };
 
   // Load Data Pengajuan & Master Koefisien
   const loadData = async () => {
@@ -355,6 +466,16 @@ export default function SBSpecialistDetailPage() {
       return;
     }
 
+    if (koefisienList.some((k) => Number(k.koefisien) <= 0)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Nilai Koefisien Belum Diisi",
+        text: "Lengkapi nilai koefisien (> 0) pada seluruh baris komponen (termasuk bahan/peralatan dari cabang) sebelum mengunci AHSP.",
+        confirmButtonColor: "#ED1C24",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const res = await fetch(`/api/pengajuan/${id}/mastering`, {
@@ -368,7 +489,7 @@ export default function SBSpecialistDetailPage() {
             namaKomponen: k.namaKomponen,
             satuan: k.satuan,
             kategori: k.kategori,
-            wajibSurveiToko: k.kategori === "MATERIAL",
+            wajibSurveiToko: k.kategori === "MATERIAL" || k.kategori === "ALAT",
           })),
           koefisienItems: koefisienList,
           liveMarginUpah,
@@ -593,6 +714,7 @@ export default function SBSpecialistDetailPage() {
     Boolean(item.votingKontraktorList?.length);
   const showRincianKoefisien =
     isSpekDisetujui ||
+    (item.status === "DIAJUKAN" && koefisienList.length > 0) ||
     item.status === "SIAP_SURVEI" ||
     item.status === "PENDING_SB_SPECIALIST" ||
     item.status === "PENDING_KONTRAKTOR" ||
@@ -650,11 +772,20 @@ export default function SBSpecialistDetailPage() {
             ========================================================================= */}
         {isDiajukan && (
           <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
+            <div className="flex items-center justify-between gap-2 pb-3 border-b-2 border-slate-200 flex-wrap">
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#005BAC]" />
                 <span>Tinjauan &amp; Validasi Spesifikasi</span>
               </h3>
+              <button
+                type="button"
+                onClick={openEditRedaksiModal}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Ubah Redaksi Spesifikasi</span>
+              </button>
             </div>
 
             {activeAction === "none" ||
@@ -1104,7 +1235,9 @@ export default function SBSpecialistDetailPage() {
               koefisienItems={koefisienList}
               mode={
                 item.status === "DIAJUKAN"
-                  ? "editable"
+                  ? isSpekDisetujui
+                    ? "editable"
+                    : "readonly"
                   : item.isRevisiMargin
                   ? "margin-only"
                   : "readonly"
@@ -1116,12 +1249,231 @@ export default function SBSpecialistDetailPage() {
               onItemsChange={setKoefisienList}
               pustakaKoefisien={pustakaKoefisien}
               onTambahKoefisienBaru={handleTambahPustakaBaru}
-              onSave={item.status === "DIAJUKAN" ? handleSaveKoefisien : undefined}
+              onSave={
+                item.status === "DIAJUKAN" && isSpekDisetujui
+                  ? handleSaveKoefisien
+                  : undefined
+              }
             />
             
           </div>
         )}
       </div>
+
+      {/* Modal Ubah Redaksi Spesifikasi (Hanya Kolom Terstruktur, Deskripsi Otomatis) */}
+      {isEditRedaksiOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden my-4">
+            <div className="px-5 py-4 border-b-2 border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                  Ubah Redaksi Spesifikasi Item
+                </h3>
+                <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                  Perubahan hanya dilakukan pada kolom terstruktur. Deskripsi otomatis tersusun ulang oleh sistem.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditRedaksiOpen(false)}
+                className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRedaksi} className="p-5 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Nama Item / Pekerjaan <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.namaItem}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, namaItem: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Kategori <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.kategori}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, kategori: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                {redaksiForm.kategori.toLowerCase().includes("cor") && (
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">
+                      Jenis Cor <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={redaksiForm.jenisCor}
+                      onChange={(e) => setRedaksiForm((p) => ({ ...p, jenisCor: e.target.value }))}
+                      placeholder="Site Mix / Ready Mix K-225..."
+                      className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Satuan <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.satuan}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, satuan: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Ukuran <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.ukuran}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, ukuran: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Merk <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.merk}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, merk: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Tipe</label>
+                  <input
+                    type="text"
+                    value={redaksiForm.tipe}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, tipe: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Warna</label>
+                  <input
+                    type="text"
+                    value={redaksiForm.warna}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, warna: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Permukaan</label>
+                  <input
+                    type="text"
+                    value={redaksiForm.permukaan}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, permukaan: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Tebal</label>
+                  <input
+                    type="text"
+                    value={redaksiForm.tebal}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, tebal: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Toleransi</label>
+                  <input
+                    type="text"
+                    value={redaksiForm.toleransi}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, toleransi: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Lokasi <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={redaksiForm.lokasi}
+                    onChange={(e) => setRedaksiForm((p) => ({ ...p, lokasi: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  />
+                </div>
+              </div>
+
+              {/* Pratinjau Deskripsi Otomatis (Read-Only) */}
+              <div className="bg-slate-100 border-2 border-slate-300 rounded-xl p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide">
+                    Pratinjau Deskripsi Otomatis
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-white text-[10px] font-bold">
+                    Otomatis (Read-Only)
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-900 leading-relaxed">
+                  {buatDeskripsiOtomatis({
+                    kategori: redaksiForm.kategori,
+                    jenisCor: redaksiForm.kategori.toLowerCase().includes("cor")
+                      ? redaksiForm.jenisCor
+                      : "",
+                    namaItem: redaksiForm.namaItem,
+                    ukuran: redaksiForm.ukuran,
+                    merk: redaksiForm.merk,
+                    tipe: redaksiForm.tipe,
+                    warna: redaksiForm.warna,
+                    permukaan: redaksiForm.permukaan,
+                    tebal: redaksiForm.tebal,
+                    toleransi: redaksiForm.toleransi,
+                    lokasi: redaksiForm.lokasi,
+                    satuan: redaksiForm.satuan,
+                  }) || "-"}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t-2 border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsEditRedaksiOpen(false)}
+                  disabled={isSavingRedaksi}
+                  className="px-4 py-2 bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingRedaksi}
+                  className="px-5 py-2 bg-[#005BAC] hover:bg-[#004585] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingRedaksi ? "Menyimpan..." : "Simpan Perubahan Redaksi"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppLayoutShell>
   );
 }

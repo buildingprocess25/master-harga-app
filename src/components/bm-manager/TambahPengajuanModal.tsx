@@ -21,6 +21,11 @@ import {
   generateDeskripsiOtomatis,
   getKodeData,
 } from "@/types/pengajuan";
+import { KoefisienDetailItem } from "@/types";
+import {
+  RincianKalkulasiKoefisien,
+  type OpsiPustakaKoefisien,
+} from "@/components/global/RincianKalkulasiKoefisien";
 
 export interface DivisiOption {
   id: string;
@@ -33,6 +38,7 @@ export interface BulkPengajuanPayloadItem {
   item: string;
   namaItem: string;
   kategori: string;
+  jenisCor: string;
   merk: string;
   ukuran: string;
   tipe: string;
@@ -52,6 +58,7 @@ export interface BulkPengajuanPayloadItem {
   divisiIds: string[];
   deskripsiOtomatis: string;
   jenisPengajuan: "Hanya Jasa" | "Material";
+  komponenMaterial: KoefisienDetailItem[];
 }
 
 interface QueuedPengajuanRow extends BulkPengajuanPayloadItem {
@@ -158,6 +165,7 @@ const SATUAN_TOLERANSI_OPTIONS = [
 
 const INITIAL_KATEGORI_OPTIONS = [
   "Pekerjaan Keramik",
+  "Pekerjaan Cor",
   "Area Terbuka",
   "Pekerjaan Finishing",
   "Pekerjaan Pasangan",
@@ -168,6 +176,14 @@ const INITIAL_KATEGORI_OPTIONS = [
   "Pekerjaan Elektrikal",
   "Pekerjaan Pengecatan",
   "Pekerjaan Pintu & Jendela",
+];
+
+const INITIAL_JENIS_COR_OPTIONS = [
+  "Site Mix",
+  "Ready Mix K-175",
+  "Ready Mix K-225",
+  "Ready Mix K-250",
+  "Ready Mix K-300",
 ];
 
 const INITIAL_UKURAN_OPTIONS = [
@@ -506,6 +522,7 @@ export function TambahPengajuanModal({
 
   // Form State
   const [kategori, setKategori] = useState("Pekerjaan Keramik");
+  const [jenisCor, setJenisCor] = useState("");
   const [item, setItem] = useState("");
 
   // Ukuran dipisah nilai & satuan
@@ -530,7 +547,14 @@ export function TambahPengajuanModal({
   const [lokasi, setLokasi] = useState<string>("");
 
   const [jenisPengajuan, setJenisPengajuan] = useState<"Hanya Jasa" | "Material">("Material");
+  const [komponenMaterialList, setKomponenMaterialList] = useState<KoefisienDetailItem[]>([]);
+  const [pustakaKoefisien, setPustakaKoefisien] = useState<OpsiPustakaKoefisien[]>([]);
   const [isTermasukBongkaran, setIsTermasukBongkaran] = useState(false);
+
+  const isKategoriCor = useMemo(
+    () => kategori.toLowerCase().includes("cor"),
+    [kategori]
+  );
   const [informasiTambahan, setInformasiTambahan] = useState("");
   const [cabang, setCabang] = useState(defaultCabang);
 
@@ -656,6 +680,7 @@ export function TambahPengajuanModal({
     if (selectedOption.data) {
       const target = selectedOption.data as PengajuanHargaItem;
       setKategori(target.kategori || "Pekerjaan Keramik");
+      setJenisCor(target.jenisCor || "");
 
       const parsedUkuran = parseNilaiDanSatuan(target.ukuran, "cm");
       setUkuranNilai(parsedUkuran.nilai);
@@ -716,6 +741,11 @@ export function TambahPengajuanModal({
   const kategoriOptions = useMemo(() => {
     const fromExisting = existingItems.map((i) => i.kategori).filter(Boolean) as string[];
     return Array.from(new Set([...INITIAL_KATEGORI_OPTIONS, ...fromExisting]));
+  }, [existingItems]);
+
+  const jenisCorOptions = useMemo(() => {
+    const fromExisting = existingItems.map((i) => i.jenisCor).filter(Boolean) as string[];
+    return Array.from(new Set([...INITIAL_JENIS_COR_OPTIONS, ...fromExisting]));
   }, [existingItems]);
 
   const ukuranOptions = useMemo(() => {
@@ -881,6 +911,7 @@ export function TambahPengajuanModal({
   useEffect(() => {
     const desc = generateDeskripsiOtomatis({
       item,
+      jenisCor: isKategoriCor ? jenisCor : "",
       ukuran: combinedUkuran,
       merk,
       warna,
@@ -895,6 +926,8 @@ export function TambahPengajuanModal({
     setDeskripsiOtomatis(desc);
   }, [
     item,
+    isKategoriCor,
+    jenisCor,
     combinedUkuran,
     merk,
     warna,
@@ -909,6 +942,7 @@ export function TambahPengajuanModal({
 
   const populateForm = (target: PengajuanHargaItem) => {
     setKategori(target.kategori || "Pekerjaan Keramik");
+    setJenisCor(target.jenisCor || "");
     setItem(target.item || target.namaItem || "");
 
     const parsedUkuran = parseNilaiDanSatuan(target.ukuran, "cm");
@@ -943,6 +977,11 @@ export function TambahPengajuanModal({
         : ""
     );
     setJenisPengajuan((target.satuan === "ls" ? "Hanya Jasa" : "Material"));
+    setKomponenMaterialList(
+      (target.koefisienItems || []).filter(
+        (k) => k.kategori === "MATERIAL" || k.kategori === "ALAT"
+      )
+    );
     setIsTermasukBongkaran(false);
     setInformasiTambahan(target.informasiTambahan || "");
     setCabang(target.cabang || target.namaCabang || defaultCabang);
@@ -1007,7 +1046,37 @@ export function TambahPengajuanModal({
     };
   }, [isOpen, itemToEdit]);
 
+  // Ambil pustaka Master Koefisien (Bahan & Peralatan) saat modal dibuka
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    fetch("/api/master-koefisien")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!active || !json?.success || !Array.isArray(json.data)) return;
+        const filtered: OpsiPustakaKoefisien[] = json.data
+          .filter((k: any) => k.kategori === "MATERIAL" || k.kategori === "ALAT")
+          .map((k: any) => ({
+            id: k.id,
+            namaKomponen: k.namaKomponen,
+            kategori: k.kategori,
+            satuan: k.satuan,
+            nilaiKoefisienDefault: Number(k.nilaiKoefisienDefault ?? 0),
+            hargaAcuanDefault: k.hargaAcuanDefault != null ? Number(k.hargaAcuanDefault) : null,
+            wajibSurveiToko: Boolean(k.wajibSurveiToko),
+          }));
+        setPustakaKoefisien(filtered);
+      })
+      .catch(() => {
+        // Fallback tanpa pustaka server — user masih bisa mengetik komponen kustom
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
+
   const clearItemFieldsForNext = () => {
+    setJenisCor("");
     setItem("");
     setUkuranNilai("");
     setUkuranSatuan("cm");
@@ -1021,6 +1090,7 @@ export function TambahPengajuanModal({
     setToleransiSatuan("mm");
     setLokasi("");
     setInformasiTambahan("");
+    setKomponenMaterialList([]);
   };
 
   const handleReset = () => {
@@ -1028,6 +1098,7 @@ export function TambahPengajuanModal({
     clearItemFieldsForNext();
     setImplementasi("Dinding Gerai");
     setJenisPengajuan("Material");
+    setKomponenMaterialList([]);
     setIsTermasukBongkaran(false);
     setCabang(defaultCabang);
     setQueuedItems([]);
@@ -1084,6 +1155,17 @@ export function TambahPengajuanModal({
       return false;
     }
 
+    if (isKategoriCor && !jenisCor.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Jenis Cor Wajib Diisi",
+        text: "Untuk kategori Pekerjaan Cor, pilih atau ketik Jenis Cor (misal Site Mix atau Ready Mix K-225).",
+        confirmButtonColor: "#ED1C24",
+        confirmButtonText: "Lengkapi Data",
+      });
+      return false;
+    }
+
     if (
       !kategori.trim() ||
       !item.trim() ||
@@ -1107,6 +1189,17 @@ export function TambahPengajuanModal({
       return false;
     }
 
+    if (jenisPengajuan === "Material" && komponenMaterialList.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Komponen Material Wajib Diisi",
+        text: "Untuk pengajuan Material, tambahkan minimal 1 komponen Bahan atau Peralatan sebelum mengajukan.",
+        confirmButtonColor: "#ED1C24",
+        confirmButtonText: "Tambahkan Komponen",
+      });
+      return false;
+    }
+
     return true;
   };
 
@@ -1117,6 +1210,7 @@ export function TambahPengajuanModal({
       item: item.trim(),
       namaItem: item.trim(),
       kategori: kategori.trim(),
+      jenisCor: isKategoriCor ? jenisCor.trim() : "",
       merk: merk.trim(),
       ukuran: combinedUkuran,
       tipe: tipe.trim(),
@@ -1136,6 +1230,7 @@ export function TambahPengajuanModal({
       divisiIds: [...selectedDivisiIds],
       deskripsiOtomatis,
       jenisPengajuan,
+      komponenMaterial: jenisPengajuan === "Material" ? [...komponenMaterialList] : [],
     };
   };
 
@@ -1176,6 +1271,7 @@ export function TambahPengajuanModal({
 
   const handleCopyRowToForm = (row: QueuedPengajuanRow) => {
     setKategori(row.kategori);
+    setJenisCor(row.jenisCor || "");
     setItem(row.item);
     const parsedU = parseNilaiDanSatuan(row.ukuran, "cm");
     setUkuranNilai(parsedU.nilai);
@@ -1193,14 +1289,22 @@ export function TambahPengajuanModal({
     setImplementasi(row.implementasi);
     setLokasi(row.lokasi);
     setJenisPengajuan(row.jenisPengajuan);
+    setKomponenMaterialList(row.komponenMaterial ? [...row.komponenMaterial] : []);
     setIsTermasukBongkaran(row.isTermasukBongkaran);
     setInformasiTambahan(row.informasiTambahan || "");
     setSelectedDivisiIds(row.divisiIds);
   };
 
   const hasDraftInput = useMemo(() => {
-    return Boolean(item.trim() || merk.trim() || tipe.trim() || lokasi.trim() || ukuranNilai.trim());
-  }, [item, merk, tipe, lokasi, ukuranNilai]);
+    return Boolean(
+      item.trim() ||
+        merk.trim() ||
+        tipe.trim() ||
+        lokasi.trim() ||
+        ukuranNilai.trim() ||
+        komponenMaterialList.length > 0
+    );
+  }, [item, merk, tipe, lokasi, ukuranNilai, komponenMaterialList.length]);
 
   const totalQueuedTickets = useMemo(() => {
     return queuedItems.reduce((sum, row) => sum + row.divisiIds.length, 0);
@@ -1288,6 +1392,7 @@ export function TambahPengajuanModal({
       kodeItem: finalKodeItem,
       namaItem: item.trim(),
       kategori: kategori.trim(),
+      jenisCor: isKategoriCor ? jenisCor.trim() : "",
       merk: merk.trim(),
       tipe: tipe.trim(),
       ukuran: combinedUkuran,
@@ -1303,7 +1408,10 @@ export function TambahPengajuanModal({
       tanggalPengajuan: itemToEdit?.tanggalPengajuan || today,
 
       surveiTokoList: itemToEdit?.surveiTokoList || [],
-      koefisienItems: itemToEdit?.koefisienItems || [],
+      koefisienItems:
+        jenisPengajuan === "Material"
+          ? [...komponenMaterialList]
+          : itemToEdit?.koefisienItems || [],
       liveMarginUpah: itemToEdit?.liveMarginUpah ?? 8,
       liveMarginMaterial: itemToEdit?.liveMarginMaterial ?? 8,
       liveMarginBongkaran: itemToEdit?.liveMarginBongkaran ?? 8,
@@ -1560,7 +1668,13 @@ export function TambahPengajuanModal({
                 </label>
                 <CreatableSelect
                   value={kategori ? { label: kategori, value: kategori } : null}
-                  onChange={(opt: any) => setKategori(opt ? opt.value : "")}
+                  onChange={(opt: any) => {
+                    const nextKat = opt ? opt.value : "";
+                    setKategori(nextKat);
+                    if (!nextKat.toLowerCase().includes("cor")) {
+                      setJenisCor("");
+                    }
+                  }}
                   options={kategoriOptions.map((opt) => ({ label: opt, value: opt }))}
                   isDisabled={jenisPengajuan === "Hanya Jasa"}
                   placeholder="Pilih / ketik kategori..."
@@ -1572,6 +1686,28 @@ export function TambahPengajuanModal({
                 />
                 <span className="text-[10px] text-slate-400">Lingkup kelompok pekerjaan</span>
               </div>
+
+              {isKategoriCor && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700">
+                    Jenis Cor <span className="text-red-500">*</span>
+                  </label>
+                  <CreatableSelect
+                    value={jenisCor ? { label: jenisCor, value: jenisCor } : null}
+                    onChange={(opt: any) => setJenisCor(opt ? opt.value : "")}
+                    options={jenisCorOptions.map((opt) => ({ label: opt, value: opt }))}
+                    placeholder="Site Mix / Ready Mix..."
+                    formatCreateLabel={(val) => `Tambah "${val}"`}
+                    styles={solidComboboxStyles}
+                    menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+                    maxMenuHeight={200}
+                    isClearable
+                  />
+                  <span className="text-[10px] text-amber-700 font-semibold">
+                    Wajib diisi untuk Pekerjaan Cor
+                  </span>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">
@@ -1913,6 +2049,28 @@ export function TambahPengajuanModal({
               </div>
             )}
 
+            {/* Komponen Material (Bahan & Peralatan) — Wajib untuk Mode Material */}
+            {jenisPengajuan === "Material" && (
+              <div className="space-y-2 pt-2 border-t-2 border-slate-200">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
+                    4. Komponen Material (Bahan &amp; Peralatan){" "}
+                    <span className="text-red-500">*</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-blue-700 text-white text-[10px] font-bold">
+                    {komponenMaterialList.length} Komponen Terpilih
+                  </span>
+                </div>
+                <RincianKalkulasiKoefisien
+                  mode="bm-material-only"
+                  koefisienItems={komponenMaterialList}
+                  onItemsChange={setKomponenMaterialList}
+                  pustakaKoefisien={pustakaKoefisien}
+                  userRole="B&M Manager"
+                />
+              </div>
+            )}
+
             {/* Live Deskripsi Otomatis */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -2000,7 +2158,7 @@ export function TambahPengajuanModal({
                             <td className="px-3 py-2.5 align-top">
                               <div className="font-black text-slate-900">{row.namaItem}</div>
                               <div className="text-[11px] text-slate-600 font-medium">
-                                {[row.merk, row.ukuran, row.warna, row.tipe].filter(Boolean).join(" · ")}
+                                {[row.jenisCor, row.merk, row.ukuran, row.warna, row.tipe].filter(Boolean).join(" · ")}
                               </div>
                               <div className="mt-1 flex flex-wrap gap-1">
                                 <span className="px-2 py-0.5 rounded bg-slate-800 text-white text-[10px] font-bold">
@@ -2009,6 +2167,11 @@ export function TambahPengajuanModal({
                                 <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold uppercase">
                                   {row.satuan}
                                 </span>
+                                {row.komponenMaterial?.length > 0 && (
+                                  <span className="px-2 py-0.5 rounded bg-blue-700 text-white text-[10px] font-bold">
+                                    {row.komponenMaterial.length} Material
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="px-3 py-2.5 align-top">

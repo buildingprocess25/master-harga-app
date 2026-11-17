@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
+import { buatDeskripsiOtomatis } from "@/lib/services/master-item-service";
+import { buatKodePaket } from "@/lib/utils";
 import { CakupanHarga, StatusPengajuanHarga, PengajuanHargaItem } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -114,9 +116,13 @@ export async function GET(request: NextRequest) {
       return {
         id: t.id,
         noTiket: t.nomorTiket,
+        kodePaket:
+          t.kodePaket ||
+          buatKodePaket(t.cabang?.kodeCabang, t.tanggalPengajuan),
         kodeItem: t.masterItem?.kodeItem || "ITEM",
         namaItem: t.masterItem?.namaItem || "Material",
         kategori: t.masterItem?.kategori || "Pekerjaan",
+        jenisCor: t.masterItem?.jenisCor || undefined,
         merk: t.masterItem?.merk || "",
         tipe: t.masterItem?.tipe || "",
         ukuran: t.masterItem?.ukuran || "",
@@ -171,8 +177,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface KomponenMaterialPayload {
+  masterKoefisienId?: string;
+  kategori?: string;
+  namaKomponen: string;
+  satuan: string;
+}
+
 interface PengajuanInputPayload {
   mode?: string;
+  jenisPengajuan?: string;
   divisiId?: string;
   divisiIds?: string[];
   cakupanHarga?: string;
@@ -187,6 +201,7 @@ interface PengajuanInputPayload {
   namaItem?: string;
   item?: string;
   kategori?: string;
+  jenisCor?: string;
   merk?: string;
   ukuran?: string;
   tipe?: string;
@@ -198,6 +213,7 @@ interface PengajuanInputPayload {
   satuan?: string;
   cabang?: string;
   cabangId?: string;
+  komponenMaterial?: KomponenMaterialPayload[];
 }
 
 interface SkippedBulkEntry {
@@ -303,12 +319,29 @@ export async function POST(request: NextRequest) {
       return matched;
     };
 
-    const cabangCache = new Map<string, string>();
-    const defaultCabangRecord = await prisma.cabang.findFirst({ where: { isActive: true } });
+    const cabangCache = new Map<string, { id: string; kodeCabang: string }>();
+    const defaultCabangRecord = await prisma.cabang.findFirst({
+      where: { isActive: true },
+      select: { id: true, kodeCabang: true },
+    });
 
-    const resolveCabangId = async (entry: PengajuanInputPayload): Promise<string | null> => {
-      if (entry.cabangId) return entry.cabangId;
-      if (user.cabangId && !entry.cabang) return user.cabangId;
+    const resolveCabangInfo = async (
+      entry: PengajuanInputPayload
+    ): Promise<{ id: string; kodeCabang: string } | null> => {
+      if (entry.cabangId) {
+        const found = await prisma.cabang.findUnique({
+          where: { id: entry.cabangId },
+          select: { id: true, kodeCabang: true },
+        });
+        if (found) return found;
+      }
+      if (user.cabangId && !entry.cabang) {
+        const found = await prisma.cabang.findUnique({
+          where: { id: user.cabangId },
+          select: { id: true, kodeCabang: true },
+        });
+        if (found) return found;
+      }
 
       const cabangName = (entry.cabang || "").trim();
       if (cabangName) {
@@ -318,21 +351,30 @@ export async function POST(request: NextRequest) {
         }
         const foundCabang = await prisma.cabang.findFirst({
           where: { namaCabang: { contains: cabangName, mode: "insensitive" } },
+          select: { id: true, kodeCabang: true },
         });
         if (foundCabang) {
-          cabangCache.set(cacheKey, foundCabang.id);
-          return foundCabang.id;
+          cabangCache.set(cacheKey, foundCabang);
+          return foundCabang;
         }
       }
 
-      return user.cabangId || defaultCabangRecord?.id || null;
+      if (user.cabangId) {
+        const found = await prisma.cabang.findUnique({
+          where: { id: user.cabangId },
+          select: { id: true, kodeCabang: true },
+        });
+        if (found) return found;
+      }
+      return defaultCabangRecord || null;
     };
 
-    // Validasi awal nama item & cabang untuk seluruh entry
+    // Validasi awal nama item, komponen material, & cabang untuk seluruh entry
     const preparedEntries: Array<{
       entry: PengajuanInputPayload;
       actualItemName: string;
       resolvedCabangId: string;
+      resolvedKodeCabang: string;
       targetDivisions: typeof allDivisi;
     }> = [];
 
@@ -345,8 +387,22 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const resolvedCabangId = await resolveCabangId(entry);
-      if (!resolvedCabangId) {
+      if (
+        entry.jenisPengajuan !== "Hanya Jasa" &&
+        Array.isArray(entry.komponenMaterial) &&
+        entry.komponenMaterial.length === 0
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Item "${actualItemName}" wajib mencantumkan minimal 1 komponen Material (Bahan atau Peralatan).`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const cabangInfo = await resolveCabangInfo(entry);
+      if (!cabangInfo) {
         return NextResponse.json(
           { success: false, message: "Cabang operasional tidak ditemukan di sistem." },
           { status: 400 }
@@ -356,7 +412,8 @@ export async function POST(request: NextRequest) {
       preparedEntries.push({
         entry,
         actualItemName,
-        resolvedCabangId,
+        resolvedCabangId: cabangInfo.id,
+        resolvedKodeCabang: cabangInfo.kodeCabang,
         targetDivisions: resolveTargetDivisions(entry),
       });
     }
@@ -396,20 +453,31 @@ export async function POST(request: NextRequest) {
       const seenSubmissionKeys = new Set<string>();
       const masterCache = new Map<string, { id: string; kodeMaster: string }>();
 
-      for (const { entry, actualItemName, resolvedCabangId, targetDivisions } of preparedEntries) {
+      for (const {
+        entry,
+        actualItemName,
+        resolvedCabangId,
+        resolvedKodeCabang,
+        targetDivisions,
+      } of preparedEntries) {
         const primaryDivisi = targetDivisions[0];
         const cleanLokasi = (entry.lokasi || "Area Toko").trim();
         const cleanMerk = (entry.merk || "Standar Alfamart").trim();
         const cleanUkuran = (entry.ukuran || "-").trim();
         const cleanKategori = (entry.kategori || "Pekerjaan Konstruksi").trim();
+        const isKategoriCor = cleanKategori.toLowerCase().includes("cor");
+        const cleanJenisCor = isKategoriCor ? entry.jenisCor?.trim() || null : null;
         const cleanTipe = entry.tipe?.trim() || null;
         const cleanWarna = entry.warna?.trim() || null;
         const cleanPermukaan = entry.permukaan?.trim() || null;
         const cleanTebal = entry.tebal?.trim() || null;
         const cleanToleransi = entry.toleransi?.trim() || null;
+        const cleanSatuan = (entry.satuan || "m2").toUpperCase();
 
         const specSignature = [
           actualItemName.toLowerCase(),
+          cleanKategori.toLowerCase(),
+          (cleanJenisCor || "").toLowerCase(),
           cleanUkuran.toLowerCase(),
           cleanMerk.toLowerCase(),
           (cleanWarna || "").toLowerCase(),
@@ -443,6 +511,7 @@ export async function POST(request: NextRequest) {
               ukuran: { equals: cleanUkuran, mode: "insensitive" },
               merk: { equals: cleanMerk, mode: "insensitive" },
               lokasi: { equals: cleanLokasi, mode: "insensitive" },
+              jenisCor: cleanJenisCor ? { equals: cleanJenisCor, mode: "insensitive" } : null,
               warna: cleanWarna ? { equals: cleanWarna, mode: "insensitive" } : null,
               tipe: cleanTipe ? { equals: cleanTipe, mode: "insensitive" } : null,
               permukaan: cleanPermukaan ? { equals: cleanPermukaan, mode: "insensitive" } : null,
@@ -484,19 +553,20 @@ export async function POST(request: NextRequest) {
             guard++;
           }
 
-          const autoDesc = [
-            actualItemName,
-            cleanUkuran !== "-" ? cleanUkuran : "",
-            cleanMerk,
-            cleanWarna || "",
-            cleanTipe ? `Tipe ${cleanTipe}` : "",
-            cleanTebal ? `Tebal ${cleanTebal}` : "",
-            cleanPermukaan || "",
-            cleanToleransi ? `Toleransi ${cleanToleransi}` : "",
-            cleanLokasi ? `Lokasi ${cleanLokasi}` : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
+          const autoDesc = buatDeskripsiOtomatis({
+            kategori: cleanKategori,
+            jenisCor: cleanJenisCor,
+            namaItem: actualItemName,
+            ukuran: cleanUkuran,
+            merk: cleanMerk,
+            tipe: cleanTipe,
+            warna: cleanWarna,
+            permukaan: cleanPermukaan,
+            tebal: cleanTebal,
+            toleransi: cleanToleransi,
+            lokasi: cleanLokasi,
+            satuan: cleanSatuan,
+          });
 
           const newItem = await tx.masterItem.create({
             data: {
@@ -505,6 +575,7 @@ export async function POST(request: NextRequest) {
               kodeVarian: candidateVarian,
               kodeMaster: candidateKodeMaster,
               kategori: cleanKategori,
+              jenisCor: cleanJenisCor,
               namaItem: actualItemName,
               ukuran: cleanUkuran,
               merk: cleanMerk,
@@ -514,7 +585,7 @@ export async function POST(request: NextRequest) {
               tebal: cleanTebal,
               toleransi: cleanToleransi,
               lokasi: cleanLokasi,
-              satuan: (entry.satuan || "m2").toUpperCase(),
+              satuan: cleanSatuan,
               deskripsiOtomatis: autoDesc,
             },
             select: { id: true, kodeMaster: true },
@@ -566,9 +637,11 @@ export async function POST(request: NextRequest) {
           }
 
           const nomorTiket = await allocateNomorTiket();
+          const kodePaket = buatKodePaket(resolvedKodeCabang, new Date());
           const pengajuan = await tx.pengajuanHarga.create({
             data: {
               nomorTiket,
+              kodePaket,
               divisiId: divisi.id,
               cabangId: resolvedCabangId,
               wilayahCabangId: resolvedCakupan === "KHUSUS_WILAYAH" ? entry.wilayahCabangId : null,
@@ -587,6 +660,100 @@ export async function POST(request: NextRequest) {
               wilayahCabang: true,
             },
           });
+
+          // Simpan komponen material awal (Bahan / Peralatan) yang diajukan B&M (koefisien 0 sampai dilengkapi S&B)
+          if (Array.isArray(entry.komponenMaterial) && entry.komponenMaterial.length > 0) {
+            const seenKoef = new Set<string>();
+            for (const comp of entry.komponenMaterial) {
+              const compKat =
+                String(comp.kategori || "MATERIAL").toUpperCase() === "ALAT"
+                  ? "ALAT"
+                  : "MATERIAL";
+              const compNama = (comp.namaKomponen || "").trim();
+              const compSatuan = (comp.satuan || "Unit").trim();
+              if (!compNama) continue;
+
+              let targetKoef = null as {
+                id: string;
+                namaKomponen: string;
+                satuan: string;
+                hargaAcuanDefault: any;
+              } | null;
+
+              if (comp.masterKoefisienId) {
+                const byId = await tx.masterKoefisien.findUnique({
+                  where: { id: comp.masterKoefisienId },
+                  select: {
+                    id: true,
+                    divisiId: true,
+                    namaKomponen: true,
+                    satuan: true,
+                    hargaAcuanDefault: true,
+                    isActive: true,
+                  },
+                });
+                if (byId && byId.isActive && byId.divisiId === divisi.id) {
+                  targetKoef = byId;
+                }
+              }
+
+              if (!targetKoef) {
+                const byName = await tx.masterKoefisien.findFirst({
+                  where: {
+                    divisiId: divisi.id,
+                    kategoriKomponen: compKat,
+                    namaKomponen: { equals: compNama, mode: "insensitive" },
+                    isActive: true,
+                  },
+                  select: {
+                    id: true,
+                    namaKomponen: true,
+                    satuan: true,
+                    hargaAcuanDefault: true,
+                  },
+                });
+                if (byName) targetKoef = byName;
+              }
+
+              if (!targetKoef) {
+                targetKoef = await tx.masterKoefisien.create({
+                  data: {
+                    divisiId: divisi.id,
+                    kategoriKomponen: compKat,
+                    namaKomponen: compNama,
+                    satuan: compSatuan,
+                    nilaiKoefisienDefault: 1,
+                    hargaAcuanDefault: null,
+                    wajibSurveiToko: true,
+                    isActive: true,
+                  },
+                  select: {
+                    id: true,
+                    namaKomponen: true,
+                    satuan: true,
+                    hargaAcuanDefault: true,
+                  },
+                });
+              }
+
+              if (seenKoef.has(targetKoef.id)) continue;
+              seenKoef.add(targetKoef.id);
+
+              await tx.rincianAhspPengajuan.create({
+                data: {
+                  pengajuanHargaId: pengajuan.id,
+                  masterKoefisienId: targetKoef.id,
+                  namaKomponen: targetKoef.namaKomponen,
+                  kategoriKomponen: compKat,
+                  satuan: compSatuan || targetKoef.satuan,
+                  nilaiKoefisien: 0,
+                  hargaAcuanSatuan: targetKoef.hargaAcuanDefault ?? 0,
+                  marginPersen: 8.0,
+                  subtotal: 0,
+                },
+              });
+            }
+          }
 
           await tx.approvalAuditLog.create({
             data: {

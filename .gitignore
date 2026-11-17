@@ -13,9 +13,16 @@ node_modules
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/playwright.config.ts
+/tests/e2e/
+/scripts/start-e2e-server.ts
+/scripts/test-env.ts
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
 
 # production

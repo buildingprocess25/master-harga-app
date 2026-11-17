@@ -2006,6 +2006,7 @@ export const MasterItemScalarFieldEnum = {
   kodeVarian: 'kodeVarian',
   kodeMaster: 'kodeMaster',
   kategori: 'kategori',
+  jenisCor: 'jenisCor',
   namaItem: 'namaItem',
   ukuran: 'ukuran',
   merk: 'merk',
@@ -2075,6 +2076,7 @@ export type MasterHargaWilayahScalarFieldEnum = (typeof MasterHargaWilayahScalar
 export const PengajuanHargaScalarFieldEnum = {
   id: 'id',
   nomorTiket: 'nomorTiket',
+  kodePaket: 'kodePaket',
   divisiId: 'divisiId',
   cabangId: 'cabangId',
   wilayahCabangId: 'wilayahCabangId',

@@ -25,13 +25,13 @@ describe("Unit: Kalkulasi AHSP, Survei & Margin", () => {
     expect(marginValid(Number.NaN)).toBe(false);
   });
 
-  it("menerapkan margin pada UPAH, MATERIAL, BONGKARAN dan mengecualikan ALAT (0%)", () => {
+  it("menerapkan margin pada UPAH, MATERIAL (Bahan & Peralatan), dan BONGKARAN", () => {
     const m = { upah: 10, material: 8, bongkaran: 12 };
     expect(marginUntuk("UPAH", m)).toBe(10);
     expect(marginUntuk("MATERIAL", m)).toBe(8);
     expect(marginUntuk("BONGKARAN", m)).toBe(12);
-    expect(marginUntuk("ALAT", m)).toBe(0);
-    expect(marginDefaultKategori("ALAT", 8)).toBe(0);
+    expect(marginUntuk("ALAT", m)).toBe(8);
+    expect(marginDefaultKategori("ALAT", 8)).toBe(8);
     expect(marginDefaultKategori("MATERIAL", 8)).toBe(8);
   });
 
@@ -40,7 +40,7 @@ describe("Unit: Kalkulasi AHSP, Survei & Margin", () => {
       [
         { kategori: "UPAH", koefisien: 0.5, hargaAcuan: 120000 }, // HPP 60,000 -> +10% = 66,000
         { kategori: "MATERIAL", koefisien: 1.05, hargaAcuan: 100000 }, // HPP 105,000 -> +8% = 113,400
-        { kategori: "ALAT", koefisien: 1, hargaAcuan: 10000 }, // HPP 10,000 -> +0% = 10,000
+        { kategori: "ALAT", koefisien: 1, hargaAcuan: 10000 }, // HPP 10,000 -> +8% = 10,800
         { kategori: "BONGKARAN", koefisien: 0.25, hargaAcuan: 40000 }, // HPP 10,000 -> +12% = 11,200
       ],
       { upah: 10, material: 8, bongkaran: 12 }
@@ -49,12 +49,12 @@ describe("Unit: Kalkulasi AHSP, Survei & Margin", () => {
     expect(res.perKategori.UPAH).toEqual({ hpp: 60000, total: 66000 });
     expect(res.perKategori.MATERIAL.hpp).toBe(105000);
     expect(res.perKategori.MATERIAL.total).toBeCloseTo(113400, 5);
-    expect(res.perKategori.ALAT).toEqual({ hpp: 10000, total: 10000 });
+    expect(res.perKategori.ALAT).toEqual({ hpp: 10000, total: 10800 });
     expect(res.perKategori.BONGKARAN.hpp).toBe(10000);
     expect(res.perKategori.BONGKARAN.total).toBeCloseTo(11200, 5);
     expect(res.hpp).toBe(185000);
-    expect(res.hargaFinal).toBe(200600);
-    expect(res.marginEfektif).toBe(bulat2((200600 / 185000 - 1) * 100));
+    expect(res.hargaFinal).toBe(201400);
+    expect(res.marginEfektif).toBe(bulat2((201400 / 185000 - 1) * 100));
   });
 
   it("menghasilkan marginEfektif 0 jika total HPP adalah 0", () => {

@@ -47,3 +47,62 @@ export function formatTanggal(dateStr?: string | null): string {
     return dateStr;
   }
 }
+
+/**
+ * Menghasilkan Kode Paket pengajuan harian per cabang: PKT-<KODE_CABANG>-YYYYMMDD (zona Asia/Jakarta).
+ */
+export function buatKodePaket(kodeCabang?: string | null, tanggal: Date = new Date()): string {
+  const cleanCabang = (kodeCabang || "CBG")
+    .toUpperCase()
+    .replace(/^CAB[-_]?/i, "")
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 6) || "CBG";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(tanggal);
+  const y = parts.find((p) => p.type === "year")?.value ?? "2026";
+  const m = parts.find((p) => p.type === "month")?.value ?? "01";
+  const d = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `PKT-${cleanCabang}-${y}${m}${d}`;
+}
+
+/** Kolom spesifikasi yang membentuk identitas item (urutan = urutan deskripsi otomatis). */
+export interface SpesifikasiItem {
+  kategori: string;
+  jenisCor?: string | null;
+  namaItem: string;
+  ukuran: string;
+  merk: string;
+  tipe?: string | null;
+  warna?: string | null;
+  permukaan?: string | null;
+  tebal?: string | null;
+  toleransi?: string | null;
+  lokasi: string;
+  satuan: string;
+}
+
+const rapikanSpec = (s: string | null | undefined) => (s ?? "").trim().replace(/\s+/g, " ");
+
+/**
+ * Deskripsi otomatis: nama item diikuti atribut spesifikasi yang terisi, dipisah koma.
+ * Dipakai bersama oleh Client Component (preview redaksi) & Server Service (persisten DB).
+ */
+export function buatDeskripsiOtomatis(s: SpesifikasiItem): string {
+  const bagian = [
+    rapikanSpec(s.namaItem),
+    s.jenisCor && `jenis ${rapikanSpec(s.jenisCor)}`,
+    s.ukuran && `ukuran ${rapikanSpec(s.ukuran)}`,
+    s.merk && `merk ${rapikanSpec(s.merk)}`,
+    s.tipe && `tipe ${rapikanSpec(s.tipe)}`,
+    s.warna && `warna ${rapikanSpec(s.warna)}`,
+    s.permukaan && `permukaan ${rapikanSpec(s.permukaan)}`,
+    s.tebal && `tebal ${rapikanSpec(s.tebal)}`,
+    s.toleransi && `toleransi ${rapikanSpec(s.toleransi)}`,
+    s.lokasi && `lokasi ${rapikanSpec(s.lokasi)}`,
+  ].filter(Boolean);
+  return bagian.join(", ");
+}

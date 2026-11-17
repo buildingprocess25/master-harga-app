@@ -254,6 +254,7 @@ model MasterItem {
   kodeVarian        String   @map("kode_varian")
   kodeMaster        String   @unique(map: "uq_master_item_kode_master") @map("kode_master")
   kategori          String   @map("kategori")
+  jenisCor          String?  @map("jenis_cor")
   namaItem          String   @map("nama_item")
   ukuran            String   @map("ukuran")
   merk              String   @map("merk")
@@ -350,6 +351,7 @@ model MasterHargaWilayah {
 model PengajuanHarga {
   id                     String               @id(map: "pk_pengajuan_harga") @default(cuid()) @map("id")
   nomorTiket             String               @unique(map: "uq_pengajuan_harga_nomor_tiket") @map("nomor_tiket")
+  kodePaket              String?              @map("kode_paket")
   divisiId               String               @map("divisi_id")
   cabangId               String               @map("cabang_id")
   wilayahCabangId        String?              @map("wilayah_cabang_id")
@@ -381,6 +383,7 @@ model PengajuanHarga {
 
   @@index([cabangId, status], map: "idx_pengajuan_harga_cabang_status")
   @@index([status], map: "idx_pengajuan_harga_status")
+  @@index([kodePaket], map: "idx_pengajuan_harga_kode_paket")
   @@map("pengajuan_harga")
 }
 

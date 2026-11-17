@@ -43,6 +43,7 @@ export type PengajuanHargaSumAggregateOutputType = {
 export type PengajuanHargaMinAggregateOutputType = {
   id: string | null
   nomorTiket: string | null
+  kodePaket: string | null
   divisiId: string | null
   cabangId: string | null
   wilayahCabangId: string | null
@@ -65,6 +66,7 @@ export type PengajuanHargaMinAggregateOutputType = {
 export type PengajuanHargaMaxAggregateOutputType = {
   id: string | null
   nomorTiket: string | null
+  kodePaket: string | null
   divisiId: string | null
   cabangId: string | null
   wilayahCabangId: string | null
@@ -87,6 +89,7 @@ export type PengajuanHargaMaxAggregateOutputType = {
 export type PengajuanHargaCountAggregateOutputType = {
   id: number
   nomorTiket: number
+  kodePaket: number
   divisiId: number
   cabangId: number
   wilayahCabangId: number
@@ -125,6 +128,7 @@ export type PengajuanHargaSumAggregateInputType = {
 export type PengajuanHargaMinAggregateInputType = {
   id?: true
   nomorTiket?: true
+  kodePaket?: true
   divisiId?: true
   cabangId?: true
   wilayahCabangId?: true
@@ -147,6 +151,7 @@ export type PengajuanHargaMinAggregateInputType = {
 export type PengajuanHargaMaxAggregateInputType = {
   id?: true
   nomorTiket?: true
+  kodePaket?: true
   divisiId?: true
   cabangId?: true
   wilayahCabangId?: true
@@ -169,6 +174,7 @@ export type PengajuanHargaMaxAggregateInputType = {
 export type PengajuanHargaCountAggregateInputType = {
   id?: true
   nomorTiket?: true
+  kodePaket?: true
   divisiId?: true
   cabangId?: true
   wilayahCabangId?: true
@@ -278,6 +284,7 @@ export type PengajuanHargaGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 export type PengajuanHargaGroupByOutputType = {
   id: string
   nomorTiket: string
+  kodePaket: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId: string | null
@@ -323,6 +330,7 @@ export type PengajuanHargaWhereInput = {
   NOT?: Prisma.PengajuanHargaWhereInput | Prisma.PengajuanHargaWhereInput[]
   id?: Prisma.StringFilter<"PengajuanHarga"> | string
   nomorTiket?: Prisma.StringFilter<"PengajuanHarga"> | string
+  kodePaket?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
   divisiId?: Prisma.StringFilter<"PengajuanHarga"> | string
   cabangId?: Prisma.StringFilter<"PengajuanHarga"> | string
   wilayahCabangId?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
@@ -355,6 +363,7 @@ export type PengajuanHargaWhereInput = {
 export type PengajuanHargaOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   nomorTiket?: Prisma.SortOrder
+  kodePaket?: Prisma.SortOrderInput | Prisma.SortOrder
   divisiId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
   wilayahCabangId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -390,6 +399,7 @@ export type PengajuanHargaWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.PengajuanHargaWhereInput | Prisma.PengajuanHargaWhereInput[]
   OR?: Prisma.PengajuanHargaWhereInput[]
   NOT?: Prisma.PengajuanHargaWhereInput | Prisma.PengajuanHargaWhereInput[]
+  kodePaket?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
   divisiId?: Prisma.StringFilter<"PengajuanHarga"> | string
   cabangId?: Prisma.StringFilter<"PengajuanHarga"> | string
   wilayahCabangId?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
@@ -422,6 +432,7 @@ export type PengajuanHargaWhereUniqueInput = Prisma.AtLeast<{
 export type PengajuanHargaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   nomorTiket?: Prisma.SortOrder
+  kodePaket?: Prisma.SortOrderInput | Prisma.SortOrder
   divisiId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
   wilayahCabangId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -452,6 +463,7 @@ export type PengajuanHargaScalarWhereWithAggregatesInput = {
   NOT?: Prisma.PengajuanHargaScalarWhereWithAggregatesInput | Prisma.PengajuanHargaScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"PengajuanHarga"> | string
   nomorTiket?: Prisma.StringWithAggregatesFilter<"PengajuanHarga"> | string
+  kodePaket?: Prisma.StringNullableWithAggregatesFilter<"PengajuanHarga"> | string | null
   divisiId?: Prisma.StringWithAggregatesFilter<"PengajuanHarga"> | string
   cabangId?: Prisma.StringWithAggregatesFilter<"PengajuanHarga"> | string
   wilayahCabangId?: Prisma.StringNullableWithAggregatesFilter<"PengajuanHarga"> | string | null
@@ -474,6 +486,7 @@ export type PengajuanHargaScalarWhereWithAggregatesInput = {
 export type PengajuanHargaCreateInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -501,6 +514,7 @@ export type PengajuanHargaCreateInput = {
 export type PengajuanHargaUncheckedCreateInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -528,6 +542,7 @@ export type PengajuanHargaUncheckedCreateInput = {
 export type PengajuanHargaUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -555,6 +570,7 @@ export type PengajuanHargaUpdateInput = {
 export type PengajuanHargaUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -582,6 +598,7 @@ export type PengajuanHargaUncheckedUpdateInput = {
 export type PengajuanHargaCreateManyInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -604,6 +621,7 @@ export type PengajuanHargaCreateManyInput = {
 export type PengajuanHargaUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -621,6 +639,7 @@ export type PengajuanHargaUpdateManyMutationInput = {
 export type PengajuanHargaUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -658,6 +677,7 @@ export type PengajuanHargaNullableScalarRelationFilter = {
 export type PengajuanHargaCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nomorTiket?: Prisma.SortOrder
+  kodePaket?: Prisma.SortOrder
   divisiId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
   wilayahCabangId?: Prisma.SortOrder
@@ -687,6 +707,7 @@ export type PengajuanHargaAvgOrderByAggregateInput = {
 export type PengajuanHargaMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nomorTiket?: Prisma.SortOrder
+  kodePaket?: Prisma.SortOrder
   divisiId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
   wilayahCabangId?: Prisma.SortOrder
@@ -709,6 +730,7 @@ export type PengajuanHargaMaxOrderByAggregateInput = {
 export type PengajuanHargaMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   nomorTiket?: Prisma.SortOrder
+  kodePaket?: Prisma.SortOrder
   divisiId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
   wilayahCabangId?: Prisma.SortOrder
@@ -1035,6 +1057,7 @@ export type PengajuanHargaUpdateOneRequiredWithoutAuditLogsNestedInput = {
 export type PengajuanHargaCreateWithoutDivisiInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1061,6 +1084,7 @@ export type PengajuanHargaCreateWithoutDivisiInput = {
 export type PengajuanHargaUncheckedCreateWithoutDivisiInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cabangId: string
   wilayahCabangId?: string | null
   masterItemId?: string | null
@@ -1116,6 +1140,7 @@ export type PengajuanHargaScalarWhereInput = {
   NOT?: Prisma.PengajuanHargaScalarWhereInput | Prisma.PengajuanHargaScalarWhereInput[]
   id?: Prisma.StringFilter<"PengajuanHarga"> | string
   nomorTiket?: Prisma.StringFilter<"PengajuanHarga"> | string
+  kodePaket?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
   divisiId?: Prisma.StringFilter<"PengajuanHarga"> | string
   cabangId?: Prisma.StringFilter<"PengajuanHarga"> | string
   wilayahCabangId?: Prisma.StringNullableFilter<"PengajuanHarga"> | string | null
@@ -1138,6 +1163,7 @@ export type PengajuanHargaScalarWhereInput = {
 export type PengajuanHargaCreateWithoutCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1164,6 +1190,7 @@ export type PengajuanHargaCreateWithoutCabangInput = {
 export type PengajuanHargaUncheckedCreateWithoutCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   wilayahCabangId?: string | null
   masterItemId?: string | null
@@ -1216,6 +1243,7 @@ export type PengajuanHargaUpdateManyWithWhereWithoutCabangInput = {
 export type PengajuanHargaCreateWithoutWilayahCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1242,6 +1270,7 @@ export type PengajuanHargaCreateWithoutWilayahCabangInput = {
 export type PengajuanHargaUncheckedCreateWithoutWilayahCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   masterItemId?: string | null
@@ -1294,6 +1323,7 @@ export type PengajuanHargaUpdateManyWithWhereWithoutWilayahCabangInput = {
 export type PengajuanHargaCreateWithoutPembuatUserInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1320,6 +1350,7 @@ export type PengajuanHargaCreateWithoutPembuatUserInput = {
 export type PengajuanHargaUncheckedCreateWithoutPembuatUserInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1372,6 +1403,7 @@ export type PengajuanHargaUpdateManyWithWhereWithoutPembuatUserInput = {
 export type PengajuanHargaCreateWithoutMasterItemInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1398,6 +1430,7 @@ export type PengajuanHargaCreateWithoutMasterItemInput = {
 export type PengajuanHargaUncheckedCreateWithoutMasterItemInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1450,6 +1483,7 @@ export type PengajuanHargaUpdateManyWithWhereWithoutMasterItemInput = {
 export type PengajuanHargaCreateWithoutHargaCabangListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1476,6 +1510,7 @@ export type PengajuanHargaCreateWithoutHargaCabangListInput = {
 export type PengajuanHargaUncheckedCreateWithoutHargaCabangListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1518,6 +1553,7 @@ export type PengajuanHargaUpdateToOneWithWhereWithoutHargaCabangListInput = {
 export type PengajuanHargaUpdateWithoutHargaCabangListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1544,6 +1580,7 @@ export type PengajuanHargaUpdateWithoutHargaCabangListInput = {
 export type PengajuanHargaUncheckedUpdateWithoutHargaCabangListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1570,6 +1607,7 @@ export type PengajuanHargaUncheckedUpdateWithoutHargaCabangListInput = {
 export type PengajuanHargaCreateWithoutHargaWilayahListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1596,6 +1634,7 @@ export type PengajuanHargaCreateWithoutHargaWilayahListInput = {
 export type PengajuanHargaUncheckedCreateWithoutHargaWilayahListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1638,6 +1677,7 @@ export type PengajuanHargaUpdateToOneWithWhereWithoutHargaWilayahListInput = {
 export type PengajuanHargaUpdateWithoutHargaWilayahListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1664,6 +1704,7 @@ export type PengajuanHargaUpdateWithoutHargaWilayahListInput = {
 export type PengajuanHargaUncheckedUpdateWithoutHargaWilayahListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1690,6 +1731,7 @@ export type PengajuanHargaUncheckedUpdateWithoutHargaWilayahListInput = {
 export type PengajuanHargaCreateWithoutRincianAHSPInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1716,6 +1758,7 @@ export type PengajuanHargaCreateWithoutRincianAHSPInput = {
 export type PengajuanHargaUncheckedCreateWithoutRincianAHSPInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1758,6 +1801,7 @@ export type PengajuanHargaUpdateToOneWithWhereWithoutRincianAHSPInput = {
 export type PengajuanHargaUpdateWithoutRincianAHSPInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1784,6 +1828,7 @@ export type PengajuanHargaUpdateWithoutRincianAHSPInput = {
 export type PengajuanHargaUncheckedUpdateWithoutRincianAHSPInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1810,6 +1855,7 @@ export type PengajuanHargaUncheckedUpdateWithoutRincianAHSPInput = {
 export type PengajuanHargaCreateWithoutVotingKontraktorListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1836,6 +1882,7 @@ export type PengajuanHargaCreateWithoutVotingKontraktorListInput = {
 export type PengajuanHargaUncheckedCreateWithoutVotingKontraktorListInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1878,6 +1925,7 @@ export type PengajuanHargaUpdateToOneWithWhereWithoutVotingKontraktorListInput =
 export type PengajuanHargaUpdateWithoutVotingKontraktorListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1904,6 +1952,7 @@ export type PengajuanHargaUpdateWithoutVotingKontraktorListInput = {
 export type PengajuanHargaUncheckedUpdateWithoutVotingKontraktorListInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1930,6 +1979,7 @@ export type PengajuanHargaUncheckedUpdateWithoutVotingKontraktorListInput = {
 export type PengajuanHargaCreateWithoutAuditLogsInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cakupanHarga?: $Enums.CakupanHarga
   status?: $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: boolean
@@ -1956,6 +2006,7 @@ export type PengajuanHargaCreateWithoutAuditLogsInput = {
 export type PengajuanHargaUncheckedCreateWithoutAuditLogsInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -1998,6 +2049,7 @@ export type PengajuanHargaUpdateToOneWithWhereWithoutAuditLogsInput = {
 export type PengajuanHargaUpdateWithoutAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2024,6 +2076,7 @@ export type PengajuanHargaUpdateWithoutAuditLogsInput = {
 export type PengajuanHargaUncheckedUpdateWithoutAuditLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2050,6 +2103,7 @@ export type PengajuanHargaUncheckedUpdateWithoutAuditLogsInput = {
 export type PengajuanHargaCreateManyDivisiInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   cabangId: string
   wilayahCabangId?: string | null
   masterItemId?: string | null
@@ -2071,6 +2125,7 @@ export type PengajuanHargaCreateManyDivisiInput = {
 export type PengajuanHargaUpdateWithoutDivisiInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2097,6 +2152,7 @@ export type PengajuanHargaUpdateWithoutDivisiInput = {
 export type PengajuanHargaUncheckedUpdateWithoutDivisiInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2123,6 +2179,7 @@ export type PengajuanHargaUncheckedUpdateWithoutDivisiInput = {
 export type PengajuanHargaUncheckedUpdateManyWithoutDivisiInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2144,6 +2201,7 @@ export type PengajuanHargaUncheckedUpdateManyWithoutDivisiInput = {
 export type PengajuanHargaCreateManyCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   wilayahCabangId?: string | null
   masterItemId?: string | null
@@ -2165,6 +2223,7 @@ export type PengajuanHargaCreateManyCabangInput = {
 export type PengajuanHargaUpdateWithoutCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2191,6 +2250,7 @@ export type PengajuanHargaUpdateWithoutCabangInput = {
 export type PengajuanHargaUncheckedUpdateWithoutCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2217,6 +2277,7 @@ export type PengajuanHargaUncheckedUpdateWithoutCabangInput = {
 export type PengajuanHargaUncheckedUpdateManyWithoutCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2238,6 +2299,7 @@ export type PengajuanHargaUncheckedUpdateManyWithoutCabangInput = {
 export type PengajuanHargaCreateManyWilayahCabangInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   masterItemId?: string | null
@@ -2259,6 +2321,7 @@ export type PengajuanHargaCreateManyWilayahCabangInput = {
 export type PengajuanHargaUpdateWithoutWilayahCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2285,6 +2348,7 @@ export type PengajuanHargaUpdateWithoutWilayahCabangInput = {
 export type PengajuanHargaUncheckedUpdateWithoutWilayahCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2311,6 +2375,7 @@ export type PengajuanHargaUncheckedUpdateWithoutWilayahCabangInput = {
 export type PengajuanHargaUncheckedUpdateManyWithoutWilayahCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2332,6 +2397,7 @@ export type PengajuanHargaUncheckedUpdateManyWithoutWilayahCabangInput = {
 export type PengajuanHargaCreateManyPembuatUserInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -2353,6 +2419,7 @@ export type PengajuanHargaCreateManyPembuatUserInput = {
 export type PengajuanHargaUpdateWithoutPembuatUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2379,6 +2446,7 @@ export type PengajuanHargaUpdateWithoutPembuatUserInput = {
 export type PengajuanHargaUncheckedUpdateWithoutPembuatUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2405,6 +2473,7 @@ export type PengajuanHargaUncheckedUpdateWithoutPembuatUserInput = {
 export type PengajuanHargaUncheckedUpdateManyWithoutPembuatUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2426,6 +2495,7 @@ export type PengajuanHargaUncheckedUpdateManyWithoutPembuatUserInput = {
 export type PengajuanHargaCreateManyMasterItemInput = {
   id?: string
   nomorTiket: string
+  kodePaket?: string | null
   divisiId: string
   cabangId: string
   wilayahCabangId?: string | null
@@ -2447,6 +2517,7 @@ export type PengajuanHargaCreateManyMasterItemInput = {
 export type PengajuanHargaUpdateWithoutMasterItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cakupanHarga?: Prisma.EnumCakupanHargaFieldUpdateOperationsInput | $Enums.CakupanHarga
   status?: Prisma.EnumStatusPengajuanHargaFieldUpdateOperationsInput | $Enums.StatusPengajuanHarga
   isTermasukBongkaran?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2473,6 +2544,7 @@ export type PengajuanHargaUpdateWithoutMasterItemInput = {
 export type PengajuanHargaUncheckedUpdateWithoutMasterItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2499,6 +2571,7 @@ export type PengajuanHargaUncheckedUpdateWithoutMasterItemInput = {
 export type PengajuanHargaUncheckedUpdateManyWithoutMasterItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   nomorTiket?: Prisma.StringFieldUpdateOperationsInput | string
+  kodePaket?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
   wilayahCabangId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2587,6 +2660,7 @@ export type PengajuanHargaCountOutputTypeCountHargaWilayahListArgs<ExtArgs exten
 export type PengajuanHargaSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   nomorTiket?: boolean
+  kodePaket?: boolean
   divisiId?: boolean
   cabangId?: boolean
   wilayahCabangId?: boolean
@@ -2620,6 +2694,7 @@ export type PengajuanHargaSelect<ExtArgs extends runtime.Types.Extensions.Intern
 export type PengajuanHargaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   nomorTiket?: boolean
+  kodePaket?: boolean
   divisiId?: boolean
   cabangId?: boolean
   wilayahCabangId?: boolean
@@ -2647,6 +2722,7 @@ export type PengajuanHargaSelectCreateManyAndReturn<ExtArgs extends runtime.Type
 export type PengajuanHargaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   nomorTiket?: boolean
+  kodePaket?: boolean
   divisiId?: boolean
   cabangId?: boolean
   wilayahCabangId?: boolean
@@ -2674,6 +2750,7 @@ export type PengajuanHargaSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
 export type PengajuanHargaSelectScalar = {
   id?: boolean
   nomorTiket?: boolean
+  kodePaket?: boolean
   divisiId?: boolean
   cabangId?: boolean
   wilayahCabangId?: boolean
@@ -2693,7 +2770,7 @@ export type PengajuanHargaSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PengajuanHargaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nomorTiket" | "divisiId" | "cabangId" | "wilayahCabangId" | "masterItemId" | "pembuatUserId" | "cakupanHarga" | "status" | "isTermasukBongkaran" | "rataRataSurveiMaterial" | "marginAwalPersen" | "isHasilNegosiasi" | "marginSNBPersen" | "hargaDitetapkanSNB" | "catatanReview" | "deadlineVoting" | "tanggalPengajuan" | "updatedAt", ExtArgs["result"]["pengajuanHarga"]>
+export type PengajuanHargaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nomorTiket" | "kodePaket" | "divisiId" | "cabangId" | "wilayahCabangId" | "masterItemId" | "pembuatUserId" | "cakupanHarga" | "status" | "isTermasukBongkaran" | "rataRataSurveiMaterial" | "marginAwalPersen" | "isHasilNegosiasi" | "marginSNBPersen" | "hargaDitetapkanSNB" | "catatanReview" | "deadlineVoting" | "tanggalPengajuan" | "updatedAt", ExtArgs["result"]["pengajuanHarga"]>
 export type PengajuanHargaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
@@ -2739,6 +2816,7 @@ export type $PengajuanHargaPayload<ExtArgs extends runtime.Types.Extensions.Inte
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     nomorTiket: string
+    kodePaket: string | null
     divisiId: string
     cabangId: string
     wilayahCabangId: string | null
@@ -3191,6 +3269,7 @@ export interface Prisma__PengajuanHargaClient<T, Null = never, ExtArgs extends r
 export interface PengajuanHargaFieldRefs {
   readonly id: Prisma.FieldRef<"PengajuanHarga", 'String'>
   readonly nomorTiket: Prisma.FieldRef<"PengajuanHarga", 'String'>
+  readonly kodePaket: Prisma.FieldRef<"PengajuanHarga", 'String'>
   readonly divisiId: Prisma.FieldRef<"PengajuanHarga", 'String'>
   readonly cabangId: Prisma.FieldRef<"PengajuanHarga", 'String'>
   readonly wilayahCabangId: Prisma.FieldRef<"PengajuanHarga", 'String'>
