@@ -354,6 +354,7 @@ export function generateDeskripsiOtomatis(data: {
 
 export function getKodeData(data: {
   kategori?: string;
+  jenisCor?: string;
   item: string;
   implementasi?: string | string[];
   lokasi: string | string[];
@@ -382,6 +383,7 @@ export function getKodeData(data: {
   const nextIndex = data.nextIndex || (existingItems.length + 1);
 
   const cItem = norm(data.item);
+  const cJenisCor = norm(data.jenisCor);
   const cUkuran = normUkuran(data.ukuran);
   const cMerk = norm(data.merk);
   const cWarna = norm(data.warna);
@@ -404,6 +406,7 @@ export function getKodeData(data: {
     if (!cItem || !iItem) return false;
     return (
       norm(iItem) === cItem &&
+      norm(i.jenisCor) === cJenisCor &&
       normUkuran(i.ukuran) === cUkuran &&
       norm(i.merk) === cMerk &&
       norm(i.warna) === cWarna &&

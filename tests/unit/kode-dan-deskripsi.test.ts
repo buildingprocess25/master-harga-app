@@ -189,4 +189,56 @@ describe("Unit: Penomoran Kode Master & Deskripsi Terstandarisasi", () => {
     expect(parseNilaiDanSatuan("60x60", "cm")).toEqual({ nilai: "60x60", satuan: "cm" });
     expect(parseNilaiDanSatuan("-", "LS")).toEqual({ nilai: "-", satuan: "LS" });
   });
+
+  it("membedakan getKodeData ketika jenisCor berbeda pada item Pekerjaan Cor", () => {
+    const existing = [
+      makeExistingItem({
+        kodeItem: "SIP-001",
+        kodeMaster: "SIP-001-A-PekerjaanCor",
+        namaItem: "Cor Lantai",
+        item: "Cor Lantai",
+        kategori: "Pekerjaan Cor",
+        jenisCor: "Ready Mix K-225",
+        ukuran: "10 cm",
+        merk: "Holcim",
+        warna: "Grey",
+        tipe: "Cor",
+        permukaan: "Trowel",
+        tebal: "100 mm",
+        lokasi: "Gudang",
+      }),
+    ];
+
+    const diffJenis = getKodeData({
+      kategori: "Pekerjaan Cor",
+      jenisCor: "Ready Mix K-300",
+      item: "Cor Lantai",
+      ukuran: "10 cm",
+      merk: "Holcim",
+      warna: "Grey",
+      tipe: "Cor",
+      permukaan: "Trowel",
+      tebal: "100 mm",
+      lokasi: "Gudang",
+      existingItems: existing,
+    });
+    expect(diffJenis.isDuplicate).toBe(false);
+    expect(diffJenis.kodeItem).toBe("SIP-002");
+
+    const sameJenis = getKodeData({
+      kategori: "Pekerjaan Cor",
+      jenisCor: "Ready Mix K-225",
+      item: "Cor Lantai",
+      ukuran: "10 cm",
+      merk: "Holcim",
+      warna: "Grey",
+      tipe: "Cor",
+      permukaan: "Trowel",
+      tebal: "100 mm",
+      lokasi: "Gudang",
+      existingItems: existing,
+    });
+    expect(sameJenis.isDuplicate).toBe(true);
+    expect(sameJenis.kodeItem).toBe("SIP-001");
+  });
 });

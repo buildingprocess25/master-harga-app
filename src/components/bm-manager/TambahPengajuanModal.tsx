@@ -577,6 +577,7 @@ export function TambahPengajuanModal({
       namaItem: q.namaItem,
       item: q.item,
       kategori: q.kategori,
+      jenisCor: q.jenisCor,
       merk: q.merk,
       tipe: q.tipe,
       ukuran: q.ukuran,
@@ -755,6 +756,7 @@ export function TambahPengajuanModal({
   const kodeData = useMemo(() => {
     return getKodeData({
       kategori,
+      jenisCor: isKategoriCor ? jenisCor : "",
       item,
       implementasi,
       lokasi,
@@ -770,6 +772,8 @@ export function TambahPengajuanModal({
     });
   }, [
     kategori,
+    isKategoriCor,
+    jenisCor,
     item,
     implementasi,
     lokasi,
@@ -812,6 +816,7 @@ export function TambahPengajuanModal({
     const isSamePhysicalAndLocation = (candidate: {
       item?: string;
       namaItem?: string;
+      jenisCor?: string;
       ukuran?: string;
       merk?: string;
       warna?: string;
@@ -826,6 +831,7 @@ export function TambahPengajuanModal({
         : norm(candidate.lokasi);
       return (
         cName === norm(item) &&
+        norm(candidate.jenisCor) === norm(isKategoriCor ? jenisCor : "") &&
         normUkuran(candidate.ukuran) === normUkuran(combinedUkuran) &&
         norm(candidate.merk) === norm(merk) &&
         norm(candidate.warna) === norm(warna) &&
@@ -866,6 +872,8 @@ export function TambahPengajuanModal({
   }, [
     itemToEdit,
     item,
+    isKategoriCor,
+    jenisCor,
     combinedUkuran,
     merk,
     warna,
@@ -1226,7 +1234,16 @@ export function TambahPengajuanModal({
         queueId: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       },
     ]);
-    clearItemFieldsForNext();
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Ditambahkan ke Antrean",
+      text: `"${payloadRow.namaItem}" (${payloadRow.lokasi}) siap ditambah varian lain.`,
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true,
+    });
   };
 
   const handleToggleRowDivisi = (queueId: string, divId: string) => {
@@ -1313,19 +1330,25 @@ export function TambahPengajuanModal({
       if (itemsToSubmit.length === 0) {
         if (!validateCurrentFormFields()) return;
         itemsToSubmit = [buildCurrentBulkRow()];
-      } else if (hasDraftInput) {
-        // Jika masih ada data setengah terisi di form selain antrean, konfirmasi apakah ikut ditambahkan atau hanya antrean
-        const confirmDraft = await Swal.fire({
+      } else {
+        const hasUnsavedVariantDraft = hasDraftInput && !duplicateAnalysis.allBlocked;
+        const confirmSubmit = await Swal.fire({
           icon: "question",
-          title: "Masih Ada Draft di Form",
-          text: `Anda memiliki ${itemsToSubmit.length} item di antrean dan draft "${item.trim() || "material baru"}" yang belum ditambahkan ke antrean. Lanjutkan mengirim ${itemsToSubmit.length} item di antrean saja?`,
+          title: hasUnsavedVariantDraft
+            ? "Masih Ada Draft Varian di Form"
+            : "Konfirmasi Pengajuan Massal",
+          text: hasUnsavedVariantDraft
+            ? `Anda memiliki ${itemsToSubmit.length} item di antrean dan perubahan draft "${item.trim() || "material baru"}" yang belum diklik Tambahkan ke Daftar. Lanjutkan mengirim ${itemsToSubmit.length} item di antrean saja?`
+            : `Kirim ${itemsToSubmit.length} item (${totalQueuedTickets} tiket divisi) dari antrean pengajuan massal sekarang?`,
           showCancelButton: true,
           confirmButtonColor: "#ED1C24",
           cancelButtonColor: "#475569",
-          confirmButtonText: `Ya, Ajukan ${itemsToSubmit.length} Item di Antrean`,
-          cancelButtonText: "Kembali Lengkapi Antrean",
+          confirmButtonText: hasUnsavedVariantDraft
+            ? `Ya, Ajukan ${itemsToSubmit.length} Item di Antrean`
+            : `Ya, Ajukan ${itemsToSubmit.length} Item Sekarang`,
+          cancelButtonText: hasUnsavedVariantDraft ? "Kembali Lengkapi Antrean" : "Batal",
         });
-        if (!confirmDraft.isConfirmed) return;
+        if (!confirmSubmit.isConfirmed) return;
       }
 
       setIsSubmittingBulk(true);
@@ -2006,12 +2029,30 @@ export function TambahPengajuanModal({
                 />
                 <div className="space-y-0.5">
                   {duplicateAnalysis.allBlocked ? (
-                    <>
-                      <span className="font-bold">Seluruh Divisi Terpilih Sudah Terdaftar / Antre: </span>
-                      <span>
-                        Spesifikasi <span className="font-mono font-bold">{kodeData.kodeMaster}</span> pada lokasi ini sudah ada di sistem atau antrean. Pilih divisi lain atau ubah lokasi/spesifikasi.
-                      </span>
-                    </>
+                    duplicateAnalysis.queuedDivs.length > 0 &&
+                    duplicateAnalysis.duplicatedDivs.length === 0 ? (
+                      <>
+                        <span className="font-bold">
+                          Sudah di Antrean:{" "}
+                        </span>
+                        <span>
+                          Spesifikasi{" "}
+                          <span className="font-mono font-bold">{kodeData.kodeMaster}</span>{" "}
+                          sudah masuk antrean
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold">
+                          Seluruh Divisi Terpilih Sudah Terdaftar:{" "}
+                        </span>
+                        <span>
+                          Spesifikasi{" "}
+                          <span className="font-mono font-bold">{kodeData.kodeMaster}</span>{" "}
+                          pada lokasi ini sudah ada di sistem atau antrean. Pilih divisi lain atau ubah lokasi/spesifikasi.
+                        </span>
+                      </>
+                    )
                   ) : (
                     <>
                       <span className="font-bold">Parsial Pintar Aktif: </span>
