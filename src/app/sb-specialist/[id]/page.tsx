@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -24,7 +25,11 @@ import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
 import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
-import { buatDeskripsiOtomatis } from "@/lib/utils";
+import {
+  buatDeskripsiOtomatis,
+  parseNilaiDanSatuan,
+  SATUAN_UKURAN_OPTIONS,
+} from "@/lib/utils";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import {
@@ -153,8 +158,8 @@ export default function SBSpecialistDetailPage() {
     namaItem: "",
     kategori: "",
     jenisCor: "",
-    satuan: "",
-    ukuran: "",
+    ukuranNilai: "",
+    ukuranSatuan: "cm",
     merk: "",
     tipe: "",
     warna: "",
@@ -166,12 +171,13 @@ export default function SBSpecialistDetailPage() {
 
   const openEditRedaksiModal = () => {
     if (!item) return;
+    const parsedUkuran = parseNilaiDanSatuan(item.ukuran, item.satuan || "cm");
     setRedaksiForm({
       namaItem: item.namaItem || item.item || "",
       kategori: item.kategori || "",
       jenisCor: item.jenisCor || "",
-      satuan: item.satuan || "m2",
-      ukuran: item.ukuran || "",
+      ukuranNilai: parsedUkuran.nilai,
+      ukuranSatuan: parsedUkuran.satuan || "cm",
       merk: item.merk || "",
       tipe: item.tipe || "",
       warna: item.warna || "",
@@ -183,6 +189,14 @@ export default function SBSpecialistDetailPage() {
     setIsEditRedaksiOpen(true);
   };
 
+  const combinedRedaksiUkuran =
+    redaksiForm.ukuranNilai.trim() === "-"
+      ? "-"
+      : [redaksiForm.ukuranNilai.trim(), redaksiForm.ukuranSatuan.trim()]
+          .filter(Boolean)
+          .join(" ");
+  const derivedRedaksiSatuan = (redaksiForm.ukuranSatuan || "cm").trim();
+
   const handleSaveRedaksi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
@@ -190,15 +204,15 @@ export default function SBSpecialistDetailPage() {
     if (
       !redaksiForm.namaItem.trim() ||
       !redaksiForm.kategori.trim() ||
-      !redaksiForm.satuan.trim() ||
-      !redaksiForm.ukuran.trim() ||
+      !redaksiForm.ukuranNilai.trim() ||
+      !redaksiForm.ukuranSatuan.trim() ||
       !redaksiForm.merk.trim() ||
       !redaksiForm.lokasi.trim()
     ) {
       Swal.fire({
         icon: "warning",
         title: "Kolom Wajib Kosong",
-        text: "Nama Item, Kategori, Satuan, Ukuran, Merk, dan Lokasi wajib diisi.",
+        text: "Nama Item, Kategori, Ukuran/Dimensi (nilai & satuan), Merk, dan Lokasi wajib diisi.",
         confirmButtonColor: "#005BAC",
       });
       return;
@@ -222,8 +236,8 @@ export default function SBSpecialistDetailPage() {
           namaItem: redaksiForm.namaItem.trim(),
           kategori: redaksiForm.kategori.trim(),
           jenisCor: isCor ? redaksiForm.jenisCor.trim() : "",
-          satuan: redaksiForm.satuan.trim(),
-          ukuran: redaksiForm.ukuran.trim(),
+          satuan: derivedRedaksiSatuan,
+          ukuran: combinedRedaksiUkuran,
           merk: redaksiForm.merk.trim(),
           tipe: redaksiForm.tipe.trim(),
           warna: redaksiForm.warna.trim(),
@@ -1325,26 +1339,44 @@ export default function SBSpecialistDetailPage() {
 
                 <div>
                   <label className="block font-bold text-slate-800 mb-1">
-                    Satuan <span className="text-red-500">*</span>
+                    Ukuran / Dimensi <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={redaksiForm.satuan}
-                    onChange={(e) => setRedaksiForm((p) => ({ ...p, satuan: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">
-                    Ukuran <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={redaksiForm.ukuran}
-                    onChange={(e) => setRedaksiForm((p) => ({ ...p, ukuran: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={redaksiForm.ukuranNilai}
+                      onChange={(e) =>
+                        setRedaksiForm((p) => ({ ...p, ukuranNilai: e.target.value }))
+                      }
+                      placeholder="Nilai (mis. 60x60)"
+                      className="flex-1 min-w-0 px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                    />
+                    <div className="w-28 shrink-0">
+                      <CreatableSelect
+                        value={
+                          redaksiForm.ukuranSatuan
+                            ? {
+                                label: redaksiForm.ukuranSatuan,
+                                value: redaksiForm.ukuranSatuan,
+                              }
+                            : null
+                        }
+                        onChange={(opt: any) =>
+                          setRedaksiForm((p) => ({
+                            ...p,
+                            ukuranSatuan: opt ? opt.value : "",
+                          }))
+                        }
+                        options={SATUAN_UKURAN_OPTIONS}
+                        styles={solidComboboxStyles}
+                        menuPortalTarget={
+                          typeof document !== "undefined" ? document.body : undefined
+                        }
+                        placeholder="Satuan"
+                        formatCreateLabel={(val) => `"${val}"`}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -1439,7 +1471,7 @@ export default function SBSpecialistDetailPage() {
                       ? redaksiForm.jenisCor
                       : "",
                     namaItem: redaksiForm.namaItem,
-                    ukuran: redaksiForm.ukuran,
+                    ukuran: combinedRedaksiUkuran,
                     merk: redaksiForm.merk,
                     tipe: redaksiForm.tipe,
                     warna: redaksiForm.warna,
@@ -1447,7 +1479,7 @@ export default function SBSpecialistDetailPage() {
                     tebal: redaksiForm.tebal,
                     toleransi: redaksiForm.toleransi,
                     lokasi: redaksiForm.lokasi,
-                    satuan: redaksiForm.satuan,
+                    satuan: derivedRedaksiSatuan,
                   }) || "-"}
                 </p>
               </div>

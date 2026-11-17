@@ -106,3 +106,34 @@ export function buatDeskripsiOtomatis(s: SpesifikasiItem): string {
   ].filter(Boolean);
   return bagian.join(", ");
 }
+
+export const SATUAN_UKURAN_OPTIONS = [
+  { label: "cm", value: "cm" },
+  { label: "mm", value: "mm" },
+  { label: "m", value: "m" },
+  { label: "m2", value: "m2" },
+  { label: "m3", value: "m3" },
+  { label: "inch", value: "inch" },
+  { label: "unit", value: "unit" },
+  { label: "pcs", value: "pcs" },
+];
+
+/**
+ * Memisahkan nilai dan satuan dari string ukuran/dimensi/tebal/toleransi (mis. "60x60 cm" -> { nilai: "60x60", satuan: "cm" }).
+ */
+export function parseNilaiDanSatuan(
+  val?: string | null,
+  defaultSatuan = "cm"
+): { nilai: string; satuan: string } {
+  if (!val) return { nilai: "", satuan: defaultSatuan };
+  const trimmed = val.trim();
+  const spaced = trimmed.match(/^(.+?)\s+([a-zA-Z][a-zA-Z0-9²³/%]*|%)$/);
+  if (spaced) {
+    return { nilai: spaced[1].trim(), satuan: spaced[2].trim() };
+  }
+  const compact = trimmed.match(/^(.+?\d)\s*([a-zA-Z]{1,4}\d?|%)$/);
+  if (compact) {
+    return { nilai: compact[1].trim(), satuan: compact[2].trim() };
+  }
+  return { nilai: trimmed, satuan: defaultSatuan };
+}

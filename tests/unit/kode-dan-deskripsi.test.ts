@@ -4,7 +4,7 @@ import {
   getKodeData,
   PengajuanHargaItem,
 } from "@/types/pengajuan";
-import { buatDeskripsiOtomatis, buatKodePaket } from "@/lib/utils";
+import { buatDeskripsiOtomatis, buatKodePaket, parseNilaiDanSatuan } from "@/lib/utils";
 
 function makeExistingItem(overrides: Partial<PengajuanHargaItem>): PengajuanHargaItem {
   return {
@@ -180,5 +180,13 @@ describe("Unit: Penomoran Kode Master & Deskripsi Terstandarisasi", () => {
     expect(buatKodePaket("CAB-CKL", tglPagi)).toBe("PKT-CKL-20261117");
     expect(buatKodePaket("CKL", tglSore)).toBe("PKT-CKL-20261117");
     expect(buatKodePaket("CAB-CKL", tglBesok)).toBe("PKT-CKL-20261118");
+  });
+
+  it("memisahkan nilai dan satuan ukuran dengan aman termasuk m2/m3 tanpa memecah 60x60", () => {
+    expect(parseNilaiDanSatuan("60x60 cm")).toEqual({ nilai: "60x60", satuan: "cm" });
+    expect(parseNilaiDanSatuan("15 m2")).toEqual({ nilai: "15", satuan: "m2" });
+    expect(parseNilaiDanSatuan("10mm")).toEqual({ nilai: "10", satuan: "mm" });
+    expect(parseNilaiDanSatuan("60x60", "cm")).toEqual({ nilai: "60x60", satuan: "cm" });
+    expect(parseNilaiDanSatuan("-", "LS")).toEqual({ nilai: "-", satuan: "LS" });
   });
 });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
 import { buatDeskripsiOtomatis } from "@/lib/services/master-item-service";
-import { buatKodePaket } from "@/lib/utils";
+import { buatKodePaket, parseNilaiDanSatuan } from "@/lib/utils";
 import { CakupanHarga, StatusPengajuanHarga, PengajuanHargaItem } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -472,7 +472,14 @@ export async function POST(request: NextRequest) {
         const cleanPermukaan = entry.permukaan?.trim() || null;
         const cleanTebal = entry.tebal?.trim() || null;
         const cleanToleransi = entry.toleransi?.trim() || null;
-        const cleanSatuan = (entry.satuan || "m2").toUpperCase();
+        const parsedUkuranUnit = parseNilaiDanSatuan(cleanUkuran, "").satuan;
+        const isHanyaJasaEntry =
+          entry.jenisPengajuan === "Hanya Jasa" ||
+          (entry.satuan || "").trim().toUpperCase() === "LS";
+        const cleanSatuan = (
+          entry.satuan?.trim() ||
+          (isHanyaJasaEntry ? "LS" : parsedUkuranUnit || "UNIT")
+        ).toUpperCase();
 
         const specSignature = [
           actualItemName.toLowerCase(),

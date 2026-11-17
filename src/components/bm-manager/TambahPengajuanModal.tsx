@@ -22,6 +22,7 @@ import {
   getKodeData,
 } from "@/types/pengajuan";
 import { KoefisienDetailItem } from "@/types";
+import { parseNilaiDanSatuan, SATUAN_UKURAN_OPTIONS } from "@/lib/utils";
 import {
   RincianKalkulasiKoefisien,
   type OpsiPustakaKoefisien,
@@ -142,13 +143,6 @@ const INITIAL_AREA_OPTIONS = [
   "Back Office",
   "Dinding Area Depan",
   "Dinding Area Belakang",
-];
-
-const SATUAN_UKURAN_OPTIONS = [
-  { label: "cm", value: "cm" },
-  { label: "mm", value: "mm" },
-  { label: "m", value: "m" },
-  { label: "inch", value: "inch" },
 ];
 
 const SATUAN_TEBAL_OPTIONS = [
@@ -278,20 +272,7 @@ const INITIAL_PERMUKAAN_OPTIONS = [
   "Frosted Diffuser",
 ];
 
-// Helper parsing & formatting
-function parseNilaiDanSatuan(
-  val?: string,
-  defaultSatuan = "cm"
-): { nilai: string; satuan: string } {
-  if (!val) return { nilai: "", satuan: defaultSatuan };
-  const trimmed = val.trim();
-  const match = trimmed.match(/^(.+?)\s*([a-zA-Z%]+)$/);
-  if (match) {
-    return { nilai: match[1].trim(), satuan: match[2].trim() };
-  }
-  return { nilai: trimmed, satuan: defaultSatuan };
-}
-
+// Helper formatting
 function formatTitleCase(text: string): string {
   if (!text) return "";
   return text
@@ -976,7 +957,7 @@ export function TambahPengajuanModal({
           : target.lokasi.trim()
         : ""
     );
-    setJenisPengajuan((target.satuan === "ls" ? "Hanya Jasa" : "Material"));
+    setJenisPengajuan((target.satuan || "").toUpperCase() === "LS" ? "Hanya Jasa" : "Material");
     setKomponenMaterialList(
       (target.koefisienItems || []).filter(
         (k) => k.kategori === "MATERIAL" || k.kategori === "ALAT"
@@ -1170,6 +1151,7 @@ export function TambahPengajuanModal({
       !kategori.trim() ||
       !item.trim() ||
       !ukuranNilai.trim() ||
+      (jenisPengajuan === "Material" && !ukuranSatuan.trim()) ||
       !merk.trim() ||
       !tipe.trim() ||
       !warna.trim() ||
@@ -1220,7 +1202,7 @@ export function TambahPengajuanModal({
       toleransi: combinedToleransi,
       lokasi: lokasi.trim(),
       implementasi: implementasi.trim(),
-      satuan: jenisPengajuan === "Hanya Jasa" ? "ls" : "m2",
+      satuan: jenisPengajuan === "Hanya Jasa" ? "ls" : (ukuranSatuan.trim() || "cm"),
       cabang: cabang || defaultCabang,
       kodeItem: finalKodeItem,
       kodeArea: kodeData.kodeArea,
@@ -1424,7 +1406,7 @@ export function TambahPengajuanModal({
       item: item.trim(),
       cabang: cabang || defaultCabang,
       deskripsiOtomatis: deskripsiOtomatis,
-      satuan: jenisPengajuan === "Hanya Jasa" ? "ls" : "m2",
+      satuan: jenisPengajuan === "Hanya Jasa" ? "ls" : (ukuranSatuan.trim() || "cm"),
       implementasi: finalImplementasi,
       tebal: combinedTebal,
       permukaan: permukaan.trim(),
