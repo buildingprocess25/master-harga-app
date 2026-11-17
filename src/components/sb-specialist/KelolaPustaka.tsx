@@ -128,12 +128,12 @@ export function KelolaPustaka({ rows, divisiId }: { rows: BarisPustaka[]; divisi
                     <div className="flex flex-wrap items-center gap-1 mt-0.5 text-[11px]">
                       <span className="text-slate-500">per {r.satuan}</span>
                       {r.wajibSurveiToko && (
-                        <span className="inline-flex items-center gap-1 px-1.5 rounded bg-[#EAF3FB] border border-[#B8D8F3] text-[10px] font-bold text-[#003A70] uppercase">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-600 text-[10px] font-bold text-white uppercase">
                           <Store className="w-3 h-3" /> Wajib survei
                         </span>
                       )}
                       {!r.isActive && (
-                        <span className="px-1.5 rounded bg-slate-200 text-[10px] font-bold text-slate-600 uppercase">Nonaktif</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-600 text-[10px] font-bold text-white uppercase">Nonaktif</span>
                       )}
                     </div>
                   </td>

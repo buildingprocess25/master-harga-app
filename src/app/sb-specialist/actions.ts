@@ -13,6 +13,12 @@ import { putuskanPascaSurvei, simpanEvaluasiMargin } from "@/lib/services/margin
 import { putuskanBanding } from "@/lib/services/banding-service";
 import { setStatusKoefisien, ubahKoefisien } from "@/lib/services/pustaka-service";
 import { buatMasterItem, SpesifikasiItem, ubahMasterItem } from "@/lib/services/master-item-service";
+import { setStatusHargaCabang } from "@/lib/services/master-harga-service";
+import {
+  jadikanHargaAcuan,
+  setStatusMasterTokoSnb,
+  simpanMasterTokoSnb,
+} from "@/lib/services/master-survei-service";
 import { DomainError } from "@/lib/services/transisi-tiket";
 
 export type HasilAksi = { success: true; message: string } | { success: false; message: string };
@@ -245,5 +251,71 @@ export async function simpanMasterItemAction(input: {
     );
     revalidatePath("/sb-specialist/master-item");
     return `Item ${baru.kodeMaster} ditambahkan ke master.`;
+  });
+}
+
+// ============================================================================
+// MASTER HARGA (RILIS) & MASTER SURVEI
+// ============================================================================
+
+export async function setStatusHargaCabangAction(input: {
+  id: string;
+  aktif: boolean;
+}): Promise<HasilAksi> {
+  return jalankan(async () => {
+    await requireRoleAction(["SB_SPECIALIST"]);
+    await setStatusHargaCabang(String(input.id), input.aktif === true);
+    revalidatePath("/sb-specialist/master-harga");
+    revalidatePath("/master-harga");
+    return input.aktif
+      ? "Harga cabang diaktifkan kembali di Master Harga."
+      : "Harga cabang dinonaktifkan dari Master Harga aktif.";
+  });
+}
+
+export async function jadikanHargaAcuanAction(input: {
+  masterKoefisienId: string;
+  hargaBaru: number;
+}): Promise<HasilAksi> {
+  return jalankan(async () => {
+    const user = await requireRoleAction(["SB_SPECIALIST"]);
+    const res = await jadikanHargaAcuan({
+      masterKoefisienId: String(input.masterKoefisienId),
+      hargaBaru: Number(input.hargaBaru),
+      divisiUser: user.divisiId,
+    });
+    revalidatePath("/sb-specialist/master-survei");
+    revalidatePath("/sb-specialist/master-koefisien");
+    return `Harga acuan "${res.namaKomponen}" berhasil diperbarui menjadi Rp ${res.hargaBaru.toLocaleString("id-ID")}.`;
+  });
+}
+
+export async function simpanMasterTokoSnbAction(input: {
+  id?: string;
+  cabangId: string;
+  wilayahCabangId?: string | null;
+  namaToko: string;
+  alamat: string;
+  kota: string;
+  kontakPic?: string | null;
+  telepon?: string | null;
+}): Promise<HasilAksi> {
+  return jalankan(async () => {
+    await requireRoleAction(["SB_SPECIALIST"]);
+    const msg = await simpanMasterTokoSnb(input);
+    revalidatePath("/sb-specialist/master-survei");
+    return msg;
+  });
+}
+
+export async function setStatusMasterTokoSnbAction(input: {
+  id: string;
+  aktif: boolean;
+}): Promise<HasilAksi> {
+  return jalankan(async () => {
+    await requireRoleAction(["SB_SPECIALIST"]);
+    const msg = await setStatusMasterTokoSnb(String(input.id), input.aktif === true);
+    revalidatePath("/sb-specialist/master-survei");
+    return msg;
   });
 }

@@ -20,6 +20,10 @@ export default async function PustakaKoefisienPage({ searchParams }: { searchPar
   const termasukNonaktif = sp.nonaktif === "1";
 
   const rows = divisiId ? await daftarPustakaKoefisien({ divisiId, kategori, q, termasukNonaktif }) : [];
+  const aktifRows = rows.filter((r) => r.isActive);
+  const upahCount = aktifRows.filter((r) => r.kategori === "UPAH").length;
+  const materialCount = aktifRows.filter((r) => r.kategori === "MATERIAL").length;
+  const alatCount = aktifRows.filter((r) => r.kategori === "ALAT").length;
 
   const href = (ubah: Partial<SP>) => {
     const p = new URLSearchParams();
@@ -29,14 +33,50 @@ export default async function PustakaKoefisienPage({ searchParams }: { searchPar
   };
 
   return (
-    <AppLayoutShell user={user} breadcrumbs={[{ label: "S&B Specialist" }, { label: "Pustaka Koefisien" }]}>
-      <HeaderHalaman
-        icon={BookOpenCheck}
-        judul="Pustaka Koefisien Baku"
-        deskripsi="Komponen upah, material, alat, dan bongkaran yang dipilih saat menyusun resep AHSP. Komponen nonaktif tidak muncul di worksheet, tetapi resep tiket lama tetap utuh."
-      />
+    <AppLayoutShell user={user} breadcrumbs={[{ label: "S&B Specialist", href: "/sb-specialist" }, { label: "Master Koefisien" }]}>
+      <div className="space-y-5">
+        <HeaderHalaman
+          icon={BookOpenCheck}
+          judul="Master Koefisien Baku"
+          deskripsi="Pustaka komponen Upah Kerja, Material Bahan, Peralatan Kerja, dan Bongkaran yang dipilih saat menyusun resep AHSP."
+        />
 
-      <section className="bg-white border border-slate-200 rounded-xl overflow-hidden pb-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-2xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+              Komponen Aktif
+            </span>
+            <span className="mt-1 text-2xl font-black font-mono text-slate-900 block">
+              {aktifRows.length}
+            </span>
+          </div>
+          <div className="rounded-2xl border-2 border-[#005BAC] bg-white p-4 shadow-2xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#005BAC] block">
+              Upah Kerja
+            </span>
+            <span className="mt-1 text-2xl font-black font-mono text-[#005BAC] block">
+              {upahCount}
+            </span>
+          </div>
+          <div className="rounded-2xl border-2 border-emerald-600 bg-white p-4 shadow-2xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">
+              Material Bahan
+            </span>
+            <span className="mt-1 text-2xl font-black font-mono text-emerald-600 block">
+              {materialCount}
+            </span>
+          </div>
+          <div className="rounded-2xl border-2 border-indigo-600 bg-white p-4 shadow-2xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 block">
+              Peralatan Kerja
+            </span>
+            <span className="mt-1 text-2xl font-black font-mono text-indigo-600 block">
+              {alatCount}
+            </span>
+          </div>
+        </div>
+
+        <section className="bg-white border-2 border-slate-300 rounded-2xl overflow-hidden pb-2 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
           <nav className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-lg text-xs font-semibold" aria-label="Filter kategori">
             {[undefined, ...URUTAN_KATEGORI].map((k) => (
@@ -83,7 +123,8 @@ export default async function PustakaKoefisienPage({ searchParams }: { searchPar
         ) : (
           <p className="py-10 text-center text-xs text-slate-500">Belum ada divisi aktif yang dapat dikelola.</p>
         )}
-      </section>
+        </section>
+      </div>
     </AppLayoutShell>
   );
 }

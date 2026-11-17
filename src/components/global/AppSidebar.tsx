@@ -145,21 +145,26 @@ export function AppSidebar({
             ],
           },
           {
-            title: "Pustaka Standar HO",
+            title: "Master Data & Standar HO",
             items: [
               {
-                label: "Pustaka Koefisien",
+                label: "Master Harga",
+                href: "/sb-specialist/master-harga",
+                icon: Tag,
+              },
+              {
+                label: "Master Koefisien",
                 href: "/sb-specialist/master-koefisien",
                 icon: BookOpen,
               },
               {
-                label: "Master Item Pekerjaan",
-                href: "/sb-specialist/master-item",
-                icon: Box,
+                label: "Master Survei",
+                href: "/sb-specialist/master-survei",
+                icon: Store,
               },
               {
                 label: "Rekanan Nonaktif",
-                href: "/master-harga/rekanan",
+                href: "/sb-specialist/rekanan-parked",
                 icon: Ban,
               },
             ],
