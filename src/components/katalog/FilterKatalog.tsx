@@ -2,7 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Select from "react-select";
 import { Loader2, Search, X } from "lucide-react";
+import {
+  solidFilterSelectStyles,
+  type SimpleSelectOption,
+} from "@/lib/client/select-styles";
 
 export interface OpsiFilter {
   cabangList: { id: string; namaCabang: string; regional: string }[];
@@ -76,19 +81,29 @@ export function FilterKatalog({
         <option value="ME">ME (Mekanikal &amp; Elektrikal)</option>
       </select>
       {tampilFilterCabang && (
-        <select
-          aria-label="Filter cabang"
-          className={SELECT}
-          value={params.get("cabang") ?? ""}
-          onChange={(e) => terapkan({ cabang: e.target.value || null })}
-        >
-          <option value="">Semua cabang</option>
-          {opsi.cabangList.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cabang {c.namaCabang}
-            </option>
-          ))}
-        </select>
+        <div className="w-52 sm:w-56">
+          <Select<SimpleSelectOption, false>
+            instanceId="filter-cabang-select"
+            aria-label="Filter cabang"
+            styles={solidFilterSelectStyles}
+            options={opsi.cabangList.map((c) => ({
+              value: c.id,
+              label: c.namaCabang,
+            }))}
+            value={
+              params.get("cabang")
+                ? opsi.cabangList
+                    .filter((c) => c.id === params.get("cabang"))
+                    .map((c) => ({ value: c.id, label: c.namaCabang }))[0] ?? null
+                : null
+            }
+            onChange={(opt) => terapkan({ cabang: opt ? opt.value : null })}
+            placeholder="Semua cabang"
+            noOptionsMessage={() => "Cabang tidak ditemukan"}
+            isClearable
+            menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+          />
+        </div>
       )}
       <select
         aria-label="Filter divisi"

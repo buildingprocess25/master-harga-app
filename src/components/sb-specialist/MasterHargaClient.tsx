@@ -1,28 +1,37 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Select from "react-select";
 import {
+  Building2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CornerDownRight,
   Eye,
+  Loader2,
   MapPin,
   Power,
-  X,
-  Loader2,
+  Search,
   Tag,
-  Building2,
+  X,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import type {
   BarisMasterHargaPerItem,
+  DaftarHargaCabangPerItem,
   DetailHargaRilis,
+  SlotHargaCabangSnb,
 } from "@/lib/services/master-harga-service";
 import { setStatusHargaCabangAction } from "@/app/sb-specialist/actions";
 import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import { RincianKalkulasiKoefisien } from "@/components/global/RincianKalkulasiKoefisien";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
+import {
+  solidFilterSelectStyles,
+  type SimpleSelectOption,
+} from "@/lib/client/select-styles";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
 
 function Selisih({ rp, persen }: { rp: number; persen: number }) {
@@ -53,37 +62,127 @@ function Selisih({ rp, persen }: { rp: number; persen: number }) {
   );
 }
 
+export interface ModalFilterAwal {
+  cabangId: string;
+  divisiId: string;
+  hanyaOverride: boolean;
+}
+
 export function MasterHargaClient({
   rows,
   nomorAwal = 1,
+  opsiCabang,
+  opsiDivisi,
+  initialModalFilter,
 }: {
   rows: BarisMasterHargaPerItem[];
   nomorAwal?: number;
+  opsiCabang: Array<{ id: string; namaCabang: string }>;
+  opsiDivisi: Array<{ id: string; namaDivisi: string }>;
+  initialModalFilter: ModalFilterAwal;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  // State Modal 1: Daftar Harga per Cabang & Wilayah (On-Demand per Item)
+  const [activeItem, setActiveItem] = useState<BarisMasterHargaPerItem | null>(null);
+  const [modalQ, setModalQ] = useState("");
+  const [debouncedModalQ, setDebouncedModalQ] = useState("");
+  const [modalCabangId, setModalCabangId] = useState("");
+  const [modalDivisiId, setModalDivisiId] = useState("");
+  const [modalOverride, setModalOverride] = useState(false);
+  const [modalPage, setModalPage] = useState(1);
+  const [modalData, setModalData] = useState<DaftarHargaCabangPerItem | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalRefreshTick, setModalRefreshTick] = useState(0);
+  const [expandedWilayahSlots, setExpandedWilayahSlots] = useState<Record<string, boolean>>({});
+
+  // State Modal 2: Detail Rincian AHSP & Survei 3 Toko
   const [detail, setDetail] = useState<DetailHargaRilis | null>(null);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadingRincianId, setLoadingRincianId] = useState<string | null>(null);
 
-  const toggleExpand = (id: string) => {
-    setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedModalQ(modalQ.trim()), 300);
+    return () => clearTimeout(t);
+  }, [modalQ]);
+
+  const bukaModalCabang = (item: BarisMasterHargaPerItem) => {
+    setActiveItem(item);
+    setModalQ("");
+    setDebouncedModalQ("");
+    setModalCabangId(initialModalFilter.cabangId);
+    setModalDivisiId(initialModalFilter.divisiId);
+    setModalOverride(initialModalFilter.hanyaOverride);
+    setModalPage(1);
+    setModalError("");
+    setModalData(null);
+    setExpandedWilayahSlots({});
   };
 
-  const expandSemua = () => {
-    const semuaTerbuka = rows.every((r) => expandedIds[r.id]);
-    if (semuaTerbuka) {
-      setExpandedIds({});
-    } else {
-      const next: Record<string, boolean> = {};
-      for (const r of rows) next[r.id] = true;
-      setExpandedIds(next);
-    }
+  const tutupModalCabang = () => {
+    setActiveItem(null);
+    setModalData(null);
+    setModalError("");
   };
+
+  const resetFilterModal = () => {
+    setModalQ("");
+    setDebouncedModalQ("");
+    setModalCabangId("");
+    setModalDivisiId("");
+    setModalOverride(false);
+    setModalPage(1);
+  };
+
+  useEffect(() => {
+    if (!activeItem) return;
+    const controller = new AbortController();
+    setModalLoading(true);
+    setModalError("");
+
+    const params = new URLSearchParams();
+    if (debouncedModalQ) params.set("q", debouncedModalQ);
+    if (modalCabangId) params.set("cabangId", modalCabangId);
+    if (modalDivisiId) params.set("divisiId", modalDivisiId);
+    if (modalOverride) params.set("override", "1");
+    params.set("page", String(modalPage));
+    params.set("pageSize", "15");
+
+    fetch(`/api/sb-specialist/master-harga/item/${activeItem.id}?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.message || "Gagal memuat data cabang.");
+        }
+        setModalData(json.data);
+      })
+      .catch((err: any) => {
+        if (err?.name === "AbortError") return;
+        setModalError(err?.message || "Gagal memuat daftar harga cabang.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setModalLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    activeItem,
+    debouncedModalQ,
+    modalCabangId,
+    modalDivisiId,
+    modalOverride,
+    modalPage,
+    modalRefreshTick,
+  ]);
 
   const bukaRincian = async (hargaCabangId: string) => {
     try {
-      setLoadingId(hargaCabangId);
+      setLoadingRincianId(hargaCabangId);
       const res = await fetch(`/api/sb-specialist/master-harga/${hargaCabangId}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -104,22 +203,18 @@ export function MasterHargaClient({
         confirmButtonColor: "#005BAC",
       });
     } finally {
-      setLoadingId(null);
+      setLoadingRincianId(null);
     }
   };
 
-  const toggleStatus = async (
-    slot: BarisMasterHargaPerItem["hargaCabangList"][number],
-    namaItem: string,
-    aktif: boolean
-  ) => {
+  const toggleStatus = async (slot: SlotHargaCabangSnb, namaItem: string, aktif: boolean) => {
     const confirm = await Swal.fire({
       title: aktif
         ? `Aktifkan "${namaItem}"?`
         : `Nonaktifkan "${namaItem}" di ${slot.namaCabang} (${slot.namaDivisi})?`,
       text: aktif
-        ? "Harga akan kembali tampil sebagai harga resmi aktif."
-        : "Harga cabang pada divisi ini akan dinonaktifkan dari daftar harga resmi aktif.",
+        ? "Harga akan kembali aktif."
+        : "Harga pada cabang dan divisi ini akan dinonaktifkan.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: aktif ? "#059669" : "#ED1C24",
@@ -139,28 +234,18 @@ export function MasterHargaClient({
       });
       if (hasil.success) {
         setDetail(null);
+        setModalRefreshTick((n) => n + 1);
         router.refresh();
       }
     });
   };
 
-  const semuaTerbuka = rows.length > 0 && rows.every((r) => expandedIds[r.id]);
+  const adaFilterModal = Boolean(
+    modalQ.trim() || modalCabangId || modalDivisiId || modalOverride
+  );
 
   return (
     <>
-      <div className="px-4 py-2.5 bg-white border-b-2 border-slate-200 flex items-center justify-between gap-2 text-xs">
-        <span className="font-bold text-slate-600">
-          Klik baris item atau tombol rincian cabang untuk melihat harga per cabang &amp; divisi.
-        </span>
-        <button
-          type="button"
-          onClick={expandSemua}
-          className="px-3 py-1 rounded-lg border-2 border-slate-300 bg-white hover:border-[#005BAC] hover:text-[#005BAC] font-bold text-slate-700 cursor-pointer transition-colors"
-        >
-          {semuaTerbuka ? "Tutup Semua Cabang" : "Buka Semua Cabang"}
-        </button>
-      </div>
-
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200">
@@ -169,221 +254,430 @@ export function MasterHargaClient({
               <th className="py-3 px-2 w-24">Kelompok</th>
               <th className="py-3 px-2">Item Pekerjaan &amp; Spesifikasi</th>
               <th className="py-3 px-2">Kategori</th>
-              <th className="py-3 px-2">Aktif di Cabang &amp; Divisi</th>
-              <th className="py-3 px-2 text-right">Rentang Harga</th>
+              <th className="py-3 px-2 min-w-44">Cakupan</th>
+              <th className="py-3 px-2 text-right whitespace-nowrap">Rentang Harga</th>
               <th className="py-3 pl-2 pr-4 text-center w-36">Rincian</th>
             </tr>
           </thead>
-          <tbody className="divide-y-2 divide-slate-200">
-            {rows.map((r, i) => {
-              const isExpanded = Boolean(expandedIds[r.id]);
-              return (
-                <React.Fragment key={r.id}>
-                  <tr
-                    onClick={() => toggleExpand(r.id)}
+          <tbody className="divide-y-2 divide-slate-200 bg-white">
+            {rows.map((r, i) => (
+              <tr
+                key={r.id}
+                onClick={() => bukaModalCabang(r)}
+                className="align-top cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <td className="py-3.5 pl-4 pr-2 text-slate-500 font-mono font-bold">
+                  {nomorAwal + i}
+                </td>
+                <td className="py-3.5 px-2 whitespace-nowrap">
+                  <span
                     className={cn(
-                      "align-top cursor-pointer transition-colors",
-                      isExpanded ? "bg-blue-50" : "hover:bg-slate-50 bg-white"
+                      "inline-block px-2.5 py-0.5 rounded text-[11px] font-black text-white uppercase",
+                      r.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
                     )}
                   >
-                    <td className="py-3.5 pl-4 pr-2 text-slate-500 font-mono font-bold">
-                      {nomorAwal + i}
-                    </td>
-                    <td className="py-3.5 px-2 whitespace-nowrap">
-                      <span
-                        className={cn(
-                          "inline-block px-2.5 py-0.5 rounded text-[11px] font-black text-white uppercase",
-                          r.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
-                        )}
-                      >
-                        {r.kelompokKode}
+                    {r.kelompokKode}
+                  </span>
+                  <div className="font-mono text-[11px] font-bold text-slate-600 mt-1">
+                    {r.kodeItem}
+                  </div>
+                </td>
+                <td className="py-3.5 px-2 min-w-56">
+                  <div className="font-bold text-slate-900">{r.namaItem}</div>
+                  <div className="font-mono text-[11px] font-semibold text-slate-500">
+                    {r.kodeMaster}
+                  </div>
+                  {r.spesifikasi && (
+                    <div className="text-[11px] text-slate-600 font-medium mt-0.5">
+                      {r.spesifikasi}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                    Lokasi: {r.lokasi} &middot; Satuan: {r.satuan}
+                  </div>
+                </td>
+                <td className="py-3.5 px-2 min-w-32">
+                  <span className="inline-block px-2 py-0.5 rounded bg-slate-800 text-white text-[10px] font-bold">
+                    {r.kategori}
+                  </span>
+                  <div className="text-[11px] text-slate-500 font-medium mt-1">
+                    {r.namaDivisiUtama}
+                  </div>
+                </td>
+                <td className="py-3.5 px-2 min-w-44">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black">
+                      <Building2 className="w-3 h-3" />
+                      {r.totalCabangUnik} Cabang
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold">
+                      {r.totalSlotAktif} Slot Divisi
+                    </span>
+                    {r.totalWilayah > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold">
+                        <MapPin className="w-3 h-3" />
+                        {r.totalWilayah} Wilayah
                       </span>
-                      <div className="font-mono text-[11px] font-bold text-slate-600 mt-1">
-                        {r.kodeItem}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-2 min-w-56">
-                      <div className="font-bold text-slate-900">{r.namaItem}</div>
-                      <div className="font-mono text-[11px] font-semibold text-slate-500">
-                        {r.kodeMaster}
-                      </div>
-                      {r.spesifikasi && (
-                        <div className="text-[11px] text-slate-600 font-medium mt-0.5">
-                          {r.spesifikasi}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-2 min-w-32">
-                      <div className="font-semibold text-slate-800">{r.kategori}</div>
-                      <div className="text-[11px] text-slate-500 font-medium">
-                        {r.namaDivisiUtama}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-2 min-w-56">
-                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase">
-                          <Building2 className="w-3 h-3" />
-                          Aktif di {r.totalCabangUnik} Cabang
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold">
-                          {r.totalSlotAktif} Slot Divisi
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {r.cabangRingkas.map((c) => (
-                          <span
-                            key={c.cabangId}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border-2 border-slate-300 bg-white text-[10px] font-bold text-slate-800"
-                          >
-                            <span>{c.namaCabang}</span>
-                            <span className="text-[#005BAC] font-black">
-                              ({c.divisiTokens.join(", ")})
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-2 text-right whitespace-nowrap">
-                      <div className="font-mono tabular-nums font-black text-slate-900 text-sm">
-                        {r.minHarga === r.maxHarga
-                          ? formatRupiah(r.minHarga)
-                          : `${formatRupiah(r.minHarga)} – ${formatRupiah(r.maxHarga)}`}
-                      </div>
-                      <div className="text-[11px] text-slate-500 font-medium">
-                        per {r.satuan}
-                      </div>
-                    </td>
-                    <td className="py-3.5 pl-2 pr-4 text-center whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpand(r.id);
-                        }}
-                        className={cn(
-                          "inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border-2 text-[11px] font-bold transition-colors cursor-pointer",
-                          isExpanded
-                            ? "bg-[#005BAC] border-[#005BAC] text-white"
-                            : "bg-white border-slate-300 text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC]"
-                        )}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
-                        <span>{isExpanded ? "Tutup" : "Lihat Harga"}</span>
-                      </button>
-                    </td>
-                  </tr>
+                    )}
+                  </div>
+                </td>
+                <td className="py-3.5 px-2 text-right whitespace-nowrap">
+                  <div className="font-mono tabular-nums font-black text-slate-900 text-sm">
+                    {r.minHarga === r.maxHarga
+                      ? formatRupiah(r.minHarga)
+                      : `${formatRupiah(r.minHarga)} – ${formatRupiah(r.maxHarga)}`}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    per {r.satuan}
+                  </div>
+                </td>
+                <td className="py-3.5 pl-2 pr-4 text-center whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      bukaModalCabang(r);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Lihat Harga</span>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-                  {isExpanded && (
-                    <tr className="bg-slate-50">
-                      <td colSpan={7} className="p-4 border-t border-slate-200">
-                        <div className="bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
-                          <div className="px-4 py-2 bg-slate-800 text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
-                            <span>
-                              Harga Resmi per Cabang &amp; Divisi &bull; {r.namaItem} ({r.kodeMaster})
-                            </span>
-                            <span>{r.hargaCabangList.length} Harga Cabang Aktif</span>
-                          </div>
-                          <table className="w-full text-xs text-left">
-                            <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200">
-                              <tr>
-                                <th className="py-2.5 px-3">Cabang Induk</th>
-                                <th className="py-2.5 px-3">Divisi</th>
-                                <th className="py-2.5 px-3 text-right">Harga Satuan</th>
-                                <th className="py-2.5 px-3 text-right">Selisih Wilayah</th>
-                                <th className="py-2.5 px-3">Berlaku Sejak</th>
-                                <th className="py-2.5 px-3 text-center">Aksi</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200">
-                              {r.hargaCabangList.map((slot) => (
-                                <React.Fragment key={slot.id}>
-                                  <tr className="hover:bg-slate-50">
-                                    <td className="py-2.5 px-3">
-                                      <div className="font-bold text-slate-900">
-                                        {slot.namaCabang}
+      {/* Modal 1: Daftar Harga Cabang & Wilayah (On-Demand per Item) */}
+      {activeItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-5xl w-full my-6 overflow-hidden">
+            {/* Header Modal */}
+            <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-[#005BAC] text-white flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-black text-white uppercase",
+                        activeItem.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
+                      )}
+                    >
+                      {activeItem.kelompokKode}
+                    </span>
+                    <h2 className="text-sm font-black text-slate-900 truncate">
+                      {activeItem.namaItem}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium truncate">
+                    {activeItem.kodeMaster} &middot; {activeItem.kategori} &middot; Satuan{" "}
+                    {activeItem.satuan}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={tutupModalCabang}
+                className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
+                aria-label="Tutup modal cabang"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Filter Bar Modal */}
+            <div className="px-5 py-3 bg-white border-b-2 border-slate-200 flex flex-wrap items-center gap-2.5">
+              <div className="relative flex-1 min-w-48">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  value={modalQ}
+                  onChange={(e) => {
+                    setModalQ(e.target.value);
+                    setModalPage(1);
+                  }}
+                  placeholder="Cari nama/kode cabang atau wilayah..."
+                  aria-label="Cari cabang atau wilayah"
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
+                />
+              </div>
+
+              <div className="w-52">
+                <Select<SimpleSelectOption, false>
+                  instanceId="modal-cabang-select"
+                  aria-label="Filter cabang di modal"
+                  styles={solidFilterSelectStyles}
+                  options={(modalData?.cabangOpsiItem ?? opsiCabang).map((c) => ({
+                    value: c.id,
+                    label: c.namaCabang,
+                  }))}
+                  value={
+                    modalCabangId
+                      ? (modalData?.cabangOpsiItem ?? opsiCabang)
+                          .filter((c) => c.id === modalCabangId)
+                          .map((c) => ({ value: c.id, label: c.namaCabang }))[0] ?? null
+                      : null
+                  }
+                  onChange={(opt) => {
+                    setModalCabangId(opt ? opt.value : "");
+                    setModalPage(1);
+                  }}
+                  placeholder="Semua cabang"
+                  noOptionsMessage={() => "Cabang tidak ditemukan"}
+                  isClearable
+                  menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+                />
+              </div>
+
+              <select
+                aria-label="Filter divisi di modal"
+                value={modalDivisiId}
+                onChange={(e) => {
+                  setModalDivisiId(e.target.value);
+                  setModalPage(1);
+                }}
+                className="px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
+              >
+                <option value="">Semua divisi</option>
+                {opsiDivisi.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.namaDivisi}
+                  </option>
+                ))}
+              </select>
+
+              <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2.5 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
+                <input
+                  type="checkbox"
+                  checked={modalOverride}
+                  onChange={(e) => {
+                    setModalOverride(e.target.checked);
+                    setModalPage(1);
+                  }}
+                  className="accent-[#005BAC] w-3.5 h-3.5"
+                />
+                Hanya ada harga wilayah
+              </label>
+
+              {adaFilterModal && (
+                <button
+                  type="button"
+                  onClick={resetFilterModal}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-[#005BAC] bg-white text-xs font-bold text-[#005BAC] hover:bg-[#005BAC] hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Semua Cabang</span>
+                </button>
+              )}
+            </div>
+
+            {/* Ringkasan Filter Modal */}
+            {modalData && (
+              <div className="px-5 py-2 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-700">
+                <span>
+                  {modalData.totalCabang} Cabang &middot; {modalData.totalSlot} Slot Divisi &middot;{" "}
+                  {modalData.totalWilayah} Harga Wilayah
+                </span>
+                {modalLoading && (
+                  <span className="inline-flex items-center gap-1 text-[#005BAC]">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Memperbarui...
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Konten Grup Cabang */}
+            <div className="p-5 space-y-4 max-h-[64vh] overflow-y-auto bg-slate-50">
+              {modalLoading && !modalData ? (
+                <div className="py-12 flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#005BAC]" />
+                  <span>Memuat harga per cabang...</span>
+                </div>
+              ) : modalError ? (
+                <div className="py-10 text-center space-y-2 bg-white border-2 border-rose-600 rounded-xl p-4">
+                  <p className="text-xs font-bold text-rose-700">{modalError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setModalRefreshTick((n) => n + 1)}
+                    className="px-4 py-1.5 rounded-lg bg-[#005BAC] text-white text-xs font-bold cursor-pointer"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              ) : !modalData || modalData.cabangGroups.length === 0 ? (
+                <div className="py-12 text-center bg-white border-2 border-slate-300 rounded-xl">
+                  <p className="text-xs font-bold text-slate-800">
+                    Tidak ada harga cabang yang cocok
+                  </p>
+                  {adaFilterModal && (
+                    <button
+                      type="button"
+                      onClick={resetFilterModal}
+                      className="mt-2 px-3 py-1.5 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-xs font-bold cursor-pointer"
+                    >
+                      Tampilkan Semua Cabang
+                    </button>
+                  )}
+                </div>
+              ) : (
+                modalData.cabangGroups.map((group) => (
+                  <div
+                    key={group.cabangId}
+                    className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden shadow-2xs"
+                  >
+                    <div className="px-4 py-2.5 bg-slate-800 text-white flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-xs">{group.namaCabang}</span>
+                        <span className="px-2 py-0.5 rounded bg-slate-600 text-[10px] font-mono font-bold">
+                          {group.kodeCabang}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded bg-[#005BAC]">
+                          {group.slots.length} Divisi
+                        </span>
+                        {group.totalWilayah > 0 && (
+                          <span className="px-2 py-0.5 rounded bg-amber-600">
+                            {group.totalWilayah} Wilayah
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                          <tr>
+                            <th className="py-2 px-3">Divisi / Wilayah</th>
+                            <th className="py-2 px-3 text-right">Harga Satuan</th>
+                            <th className="py-2 px-3 text-right">Selisih Wilayah</th>
+                            <th className="py-2 px-3">Berlaku Sejak</th>
+                            <th className="py-2 px-3 text-center w-36">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {group.slots.map((slot) => {
+                            const hasManyWilayah = slot.wilayahList.length > 3;
+                            const showAllWilayah =
+                              !hasManyWilayah || Boolean(expandedWilayahSlots[slot.id]);
+
+                            return (
+                              <React.Fragment key={slot.id}>
+                                <tr className="hover:bg-slate-50">
+                                  <td className="py-2.5 px-3">
+                                    <span className="inline-block px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black">
+                                      {slot.namaDivisi}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                    <div className="font-mono font-black text-slate-900">
+                                      {formatRupiah(slot.harga)}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-semibold">
+                                      per {modalData.item.satuan} &middot; Margin {slot.marginPersen}%
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right text-slate-400 font-medium">
+                                    -
+                                  </td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap">
+                                    <div className="font-mono font-semibold text-slate-700">
+                                      {formatTanggal(slot.berlakuSejak)}
+                                    </div>
+                                    {slot.nomorTiket && (
+                                      <div className="font-mono text-[10px] text-slate-500">
+                                        {slot.nomorTiket}
                                       </div>
-                                      <div className="text-[10px] font-semibold text-slate-500">
-                                        Regional {slot.regional}
-                                      </div>
-                                    </td>
-                                    <td className="py-2.5 px-3">
-                                      <span className="inline-block px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black">
-                                        {slot.namaDivisi}
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                                      <div className="font-mono font-black text-slate-900">
-                                        {formatRupiah(slot.harga)}
-                                      </div>
-                                      <div className="text-[10px] text-slate-500 font-semibold">
-                                        per {r.satuan} &middot; Margin {slot.marginPersen}%
-                                      </div>
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right text-slate-400 font-medium">
-                                      -
-                                    </td>
-                                    <td className="py-2.5 px-3 whitespace-nowrap">
-                                      <div className="font-mono font-semibold text-slate-700">
-                                        {formatTanggal(slot.berlakuSejak)}
-                                      </div>
-                                      {slot.nomorTiket && (
-                                        <div className="font-mono text-[10px] text-slate-500">
-                                          {slot.nomorTiket}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                                      <div className="inline-flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => bukaRincian(slot.id)}
-                                          disabled={loadingId === slot.id}
-                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-60"
-                                        >
-                                          {loadingId === slot.id ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                          ) : (
-                                            <Eye className="w-3.5 h-3.5" />
-                                          )}
-                                          <span>Rincian</span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleStatus(slot, r.namaItem, false)}
-                                          disabled={pending}
-                                          title="Nonaktifkan Harga Cabang"
-                                          className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
-                                        >
-                                          <Power className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                    <div className="inline-flex items-center gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => bukaRincian(slot.id)}
+                                        disabled={loadingRincianId === slot.id}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-60"
+                                      >
+                                        {loadingRincianId === slot.id ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Eye className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>Rincian</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          toggleStatus(slot, modalData.item.namaItem, false)
+                                        }
+                                        disabled={pending}
+                                        title="Nonaktifkan Harga Cabang"
+                                        className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
+                                      >
+                                        <Power className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+
+                                {hasManyWilayah && (
+                                  <tr className="bg-slate-50">
+                                    <td colSpan={5} className="py-1.5 px-3">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedWilayahSlots((prev) => ({
+                                            ...prev,
+                                            [slot.id]: !prev[slot.id],
+                                          }))
+                                        }
+                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#005BAC] hover:underline cursor-pointer"
+                                      >
+                                        {showAllWilayah ? (
+                                          <ChevronDown className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <ChevronRight className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>
+                                          {showAllWilayah
+                                            ? `Sembunyikan ${slot.wilayahList.length} Wilayah`
+                                            : `Tampilkan ${slot.wilayahList.length} Harga Wilayah`}
+                                        </span>
+                                      </button>
                                     </td>
                                   </tr>
+                                )}
 
-                                  {slot.wilayahList.map((w) => (
-                                    <tr key={w.id} className="bg-amber-50 hover:bg-amber-100">
+                                {showAllWilayah &&
+                                  slot.wilayahList.map((w) => (
+                                    <tr key={w.id} className="bg-slate-50 border-l-4 border-amber-600">
                                       <td className="py-2 px-3">
-                                        <div className="inline-flex items-center gap-1.5 pl-4 font-bold text-amber-950">
+                                        <div className="flex items-center gap-2 pl-3 flex-wrap">
                                           <CornerDownRight className="w-3.5 h-3.5 text-amber-700" />
                                           <MapPin className="w-3.5 h-3.5 text-amber-700" />
-                                          <span>{w.namaWilayah}</span>
+                                          <span className="font-bold text-slate-900">
+                                            {w.namaWilayah}
+                                          </span>
+                                          <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
+                                            Khusus Wilayah
+                                          </span>
                                         </div>
-                                      </td>
-                                      <td className="py-2 px-3">
-                                        <span className="inline-block px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
-                                          Khusus Wilayah
-                                        </span>
                                       </td>
                                       <td className="py-2 px-3 text-right whitespace-nowrap">
                                         <div className="font-mono font-black text-slate-900">
                                           {formatRupiah(w.harga)}
                                         </div>
                                         <div className="text-[10px] text-slate-500 font-semibold">
-                                          per {r.satuan}
+                                          per {modalData.item.satuan}
                                         </div>
                                       </td>
                                       <td className="py-2 px-3 text-right whitespace-nowrap">
@@ -402,27 +696,67 @@ export function MasterHargaClient({
                                       <td className="py-2 px-3" />
                                     </tr>
                                   ))}
-                                </React.Fragment>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-      {/* Modal Rincian Item Rilis */}
+            {/* Footer & Paginasi Cabang di Modal */}
+            <div className="px-5 py-3 bg-white border-t-2 border-slate-200 flex items-center justify-between gap-3">
+              {modalData && modalData.jumlahHalaman > 1 ? (
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    disabled={modalPage <= 1 || modalLoading}
+                    onClick={() => setModalPage((p) => Math.max(1, p - 1))}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Halaman cabang sebelumnya"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-mono font-bold text-slate-800">
+                    Hal {modalData.halaman} / {modalData.jumlahHalaman}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={modalPage >= modalData.jumlahHalaman || modalLoading}
+                    onClick={() =>
+                      setModalPage((p) => Math.min(modalData.jumlahHalaman, p + 1))
+                    }
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Halaman cabang berikutnya"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div />
+              )}
+
+              <button
+                type="button"
+                onClick={tutupModalCabang}
+                className="px-5 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 text-xs font-bold cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: Detail Rincian AHSP & Survei 3 Toko */}
       {detail && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-[60] bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
         >
           <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-5xl w-full my-8 overflow-hidden">
             <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
@@ -440,7 +774,7 @@ export function MasterHargaClient({
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    {detail.item.kodeMaster} &middot; Cabang {detail.item.namaCabang} &middot;{" "}
+                    {detail.item.kodeMaster} &middot; {detail.item.namaCabang} &middot;{" "}
                     {detail.item.namaDivisi} &middot; Berlaku sejak{" "}
                     {formatTanggal(detail.berlakuSejak)}
                   </p>
@@ -450,18 +784,18 @@ export function MasterHargaClient({
                 type="button"
                 onClick={() => setDetail(null)}
                 className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer"
-                aria-label="Tutup modal"
+                aria-label="Tutup modal rincian"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-5 max-h-[78vh] overflow-y-auto">
-              {/* Harga Induk + Override */}
               <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                    Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull; {detail.item.namaDivisi})
+                    Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull;{" "}
+                    {detail.item.namaDivisi})
                   </span>
                   <span className="text-2xl font-black font-mono text-[#005BAC] tabular-nums">
                     {formatRupiah(detail.hargaFinalInduk)}

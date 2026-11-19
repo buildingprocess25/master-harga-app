@@ -9,7 +9,7 @@ import {
   getMasterHargaPerItem,
   getOpsiFilterKatalog,
   parseFilterKatalog,
-  UKURAN_HALAMAN_KATALOG,
+  UKURAN_HALAMAN_SNB,
 } from "@/lib/services/master-harga-service";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +48,7 @@ export default async function MasterHargaSnbPage({
     if (n > 1) p.set("page", String(n));
     return `/sb-specialist/master-harga${p.size ? `?${p}` : ""}`;
   };
-  const nomorAwal = (halaman - 1) * UKURAN_HALAMAN_KATALOG + 1;
+  const nomorAwal = (halaman - 1) * UKURAN_HALAMAN_SNB + 1;
 
   return (
     <AppLayoutShell
@@ -118,7 +118,17 @@ export default async function MasterHargaSnbPage({
               </p>
             </div>
           ) : (
-            <MasterHargaClient rows={rows} nomorAwal={nomorAwal} />
+            <MasterHargaClient
+              rows={rows}
+              nomorAwal={nomorAwal}
+              opsiCabang={opsi.cabangList}
+              opsiDivisi={opsi.divisiList}
+              initialModalFilter={{
+                cabangId: filter.cabangId ?? "",
+                divisiId: filter.divisiId ?? "",
+                hanyaOverride: Boolean(filter.hanyaOverride),
+              }}
+            />
           )}
 
           {jumlahHalaman > 1 && (

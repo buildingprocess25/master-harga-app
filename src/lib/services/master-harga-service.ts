@@ -1,6 +1,14 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { TipeLampiranSurvei } from "@/types";
+import {
+  kelompokkanSlotPerCabang,
+  ringkasHargaItemPerCabang,
+  type CabangHargaGroup,
+  type SlotHargaCabangSnb,
+} from "@/lib/master-harga-grouping";
+
+export type { CabangHargaGroup, SlotHargaCabangSnb };
 
 /**
  * Filter Katalog Master Harga. Semua opsional; string kosong dianggap tidak difilter.
@@ -19,6 +27,8 @@ export interface FilterKatalog {
 }
 
 export const UKURAN_HALAMAN_KATALOG = 50;
+export const UKURAN_HALAMAN_SNB = 20;
+export const UKURAN_HALAMAN_CABANG_MODAL = 15;
 export const BATAS_EKSPOR_KATALOG = 5000;
 
 /** Membaca filter dari query string (?q=&cabang=&divisi=&kategori=&kelompok=&status=&override=1). */
@@ -369,7 +379,7 @@ export async function setStatusHargaCabang(id: string, aktif: boolean) {
 }
 
 // ============================================================================
-// VIEW S&B SPECIALIST: DIKELOMPOKKAN PER MASTER ITEM + RINCIAN CABANG/DIVISI
+// VIEW S&B SPECIALIST: RINGKASAN PER MASTER ITEM + ON-DEMAND HARGA CABANG/WILAYAH
 // ============================================================================
 
 export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
@@ -398,23 +408,30 @@ export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
     prisma.masterItem.findMany({
       where: itemWhere,
       orderBy: [{ kategori: "asc" }, { namaItem: "asc" }],
-      skip: (halaman - 1) * UKURAN_HALAMAN_KATALOG,
-      take: UKURAN_HALAMAN_KATALOG,
-      include: {
-        divisi: true,
+      skip: (halaman - 1) * UKURAN_HALAMAN_SNB,
+      take: UKURAN_HALAMAN_SNB,
+      select: {
+        id: true,
+        kodeItem: true,
+        kodeMaster: true,
+        namaItem: true,
+        kategori: true,
+        jenisCor: true,
+        merk: true,
+        ukuran: true,
+        tipe: true,
+        warna: true,
+        lokasi: true,
+        satuan: true,
+        divisi: { select: { namaDivisi: true } },
         hargaPerCabang: {
           where: hargaSlotFilter,
-          orderBy: [{ cabang: { namaCabang: "asc" } }, { divisi: { kodeDivisi: "asc" } }],
-          include: {
-            cabang: true,
-            divisi: true,
-            pengajuanTerakhir: { select: { nomorTiket: true } },
-            masterHargaWilayah: {
-              where: { statusHarga: "AKTIF" },
-              orderBy: { wilayahCabang: { namaWilayah: "asc" } },
-              include: {
-                wilayahCabang: true,
-                pengajuanTerakhir: { select: { nomorTiket: true } },
+          select: {
+            cabangId: true,
+            hargaFinalInduk: true,
+            _count: {
+              select: {
+                masterHargaWilayah: { where: { statusHarga: "AKTIF" } },
               },
             },
           },
@@ -425,45 +442,13 @@ export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
 
   const rows = items.map((m) => {
     const spesifikasi = [m.jenisCor, m.merk, m.ukuran, m.tipe, m.warna].filter(Boolean).join(", ");
-    const hargaCabangList = m.hargaPerCabang.map((r) => ({
-      id: r.id,
-      cabangId: r.cabangId,
-      namaCabang: r.cabang.namaCabang,
-      kodeCabang: r.cabang.kodeCabang,
-      regional: r.cabang.regional,
-      divisiId: r.divisiId,
-      kodeDivisi: r.divisi.kodeDivisi,
-      namaDivisi: r.divisi.namaDivisi,
-      harga: r.hargaFinalInduk.toNumber(),
-      marginPersen: r.marginTotalPersen.toNumber(),
-      berlakuSejak: r.berlakuSejak.toISOString(),
-      nomorTiket: r.pengajuanTerakhir?.nomorTiket ?? null,
-      wilayahList: r.masterHargaWilayah.map((w) => ({
-        id: w.id,
-        namaWilayah: w.wilayahCabang.namaWilayah,
-        kodeWilayah: w.wilayahCabang.kodeWilayah,
-        harga: w.hargaFinalWilayah.toNumber(),
-        selisihRp: w.selisihDariIndukRp.toNumber(),
-        selisihPersen: w.selisihDariIndukPersen.toNumber(),
-        berlakuSejak: w.berlakuSejak.toISOString(),
-        nomorTiket: w.pengajuanTerakhir?.nomorTiket ?? null,
-      })),
-    }));
-
-    const hargaValues = hargaCabangList.map((h) => h.harga);
-    const cabangMap = new Map<string, { cabangId: string; namaCabang: string; divisiTokens: string[] }>();
-    for (const h of hargaCabangList) {
-      if (!cabangMap.has(h.cabangId)) {
-        cabangMap.set(h.cabangId, {
-          cabangId: h.cabangId,
-          namaCabang: h.namaCabang,
-          divisiTokens: [],
-        });
-      }
-      const token = h.kodeDivisi.replace(/^DIV-/i, "");
-      const group = cabangMap.get(h.cabangId)!;
-      if (!group.divisiTokens.includes(token)) group.divisiTokens.push(token);
-    }
+    const ringkasan = ringkasHargaItemPerCabang(
+      m.hargaPerCabang.map((h) => ({
+        cabangId: h.cabangId,
+        harga: h.hargaFinalInduk.toNumber(),
+        jumlahWilayah: h._count.masterHargaWilayah,
+      }))
+    );
 
     return {
       id: m.id,
@@ -474,14 +459,10 @@ export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
       spesifikasi,
       kategori: m.kategori,
       jenisCor: m.jenisCor,
+      lokasi: m.lokasi,
       satuan: m.satuan,
       namaDivisiUtama: m.divisi.namaDivisi,
-      minHarga: hargaValues.length > 0 ? Math.min(...hargaValues) : 0,
-      maxHarga: hargaValues.length > 0 ? Math.max(...hargaValues) : 0,
-      totalCabangUnik: cabangMap.size,
-      totalSlotAktif: hargaCabangList.length,
-      cabangRingkas: Array.from(cabangMap.values()),
-      hargaCabangList,
+      ...ringkasan,
     };
   });
 
@@ -492,11 +473,168 @@ export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
     totalOverride,
     totalCabang: cabangTercakup.length,
     halaman,
-    jumlahHalaman: Math.max(1, Math.ceil(totalItems / UKURAN_HALAMAN_KATALOG)),
+    jumlahHalaman: Math.max(1, Math.ceil(totalItems / UKURAN_HALAMAN_SNB)),
   };
 }
 
 export type BarisMasterHargaPerItem = Awaited<ReturnType<typeof getMasterHargaPerItem>>["rows"][number];
+
+export interface FilterCabangPerItem {
+  q?: string;
+  cabangId?: string;
+  divisiId?: string;
+  hanyaOverride?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getDaftarHargaCabangPerItem(
+  masterItemId: string,
+  filter: FilterCabangPerItem = {}
+) {
+  const item = await prisma.masterItem.findUnique({
+    where: { id: masterItemId },
+    select: {
+      id: true,
+      kodeItem: true,
+      kodeMaster: true,
+      namaItem: true,
+      kategori: true,
+      satuan: true,
+      lokasi: true,
+    },
+  });
+  if (!item) return null;
+
+  const qClean = filter.q?.trim();
+  const pageSize = Math.max(1, Math.min(50, Math.floor(filter.pageSize || UKURAN_HALAMAN_CABANG_MODAL)));
+
+  const slotWhere: Prisma.MasterHargaCabangWhereInput = {
+    masterItemId,
+    statusHarga: "AKTIF",
+    ...(filter.cabangId ? { cabangId: filter.cabangId } : {}),
+    ...(filter.divisiId ? { divisiId: filter.divisiId } : {}),
+    ...(filter.hanyaOverride ? { masterHargaWilayah: { some: { statusHarga: "AKTIF" } } } : {}),
+    ...(qClean
+      ? {
+          OR: [
+            { cabang: { namaCabang: { contains: qClean, mode: "insensitive" } } },
+            { cabang: { kodeCabang: { contains: qClean, mode: "insensitive" } } },
+            {
+              masterHargaWilayah: {
+                some: {
+                  statusHarga: "AKTIF",
+                  wilayahCabang: {
+                    OR: [
+                      { namaWilayah: { contains: qClean, mode: "insensitive" } },
+                      { kodeWilayah: { contains: qClean, mode: "insensitive" } },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [matchingCabangRows, totalSlot, totalWilayah, cabangAktifItemRows] = await Promise.all([
+    prisma.masterHargaCabang.findMany({
+      where: slotWhere,
+      distinct: ["cabangId"],
+      orderBy: { cabang: { namaCabang: "asc" } },
+      select: { cabangId: true },
+    }),
+    prisma.masterHargaCabang.count({ where: slotWhere }),
+    prisma.masterHargaWilayah.count({
+      where: { statusHarga: "AKTIF", masterHargaCabang: slotWhere },
+    }),
+    prisma.masterHargaCabang.findMany({
+      where: { masterItemId, statusHarga: "AKTIF" },
+      distinct: ["cabangId"],
+      orderBy: { cabang: { namaCabang: "asc" } },
+      select: { cabang: { select: { id: true, namaCabang: true } } },
+    }),
+  ]);
+
+  const totalCabang = matchingCabangRows.length;
+  const jumlahHalaman = Math.max(1, Math.ceil(totalCabang / pageSize));
+  const halaman = Math.min(jumlahHalaman, Math.max(1, Math.floor(filter.page || 1)));
+  const targetCabangIds = matchingCabangRows
+    .slice((halaman - 1) * pageSize, halaman * pageSize)
+    .map((c) => c.cabangId);
+
+  const slotsDb =
+    targetCabangIds.length > 0
+      ? await prisma.masterHargaCabang.findMany({
+          where: { ...slotWhere, cabangId: { in: targetCabangIds } },
+          orderBy: [{ cabang: { namaCabang: "asc" } }, { divisi: { kodeDivisi: "asc" } }],
+          include: {
+            cabang: { select: { id: true, namaCabang: true, kodeCabang: true, regional: true } },
+            divisi: { select: { id: true, kodeDivisi: true, namaDivisi: true } },
+            pengajuanTerakhir: { select: { nomorTiket: true } },
+            masterHargaWilayah: {
+              where: { statusHarga: "AKTIF" },
+              orderBy: { wilayahCabang: { namaWilayah: "asc" } },
+              include: {
+                wilayahCabang: { select: { namaWilayah: true, kodeWilayah: true } },
+                pengajuanTerakhir: { select: { nomorTiket: true } },
+              },
+            },
+          },
+        })
+      : [];
+
+  const mappedSlots: SlotHargaCabangSnb[] = slotsDb.map((r) => ({
+    id: r.id,
+    cabangId: r.cabangId,
+    namaCabang: r.cabang.namaCabang,
+    kodeCabang: r.cabang.kodeCabang,
+    regional: r.cabang.regional,
+    divisiId: r.divisiId,
+    kodeDivisi: r.divisi.kodeDivisi,
+    namaDivisi: r.divisi.namaDivisi,
+    harga: r.hargaFinalInduk.toNumber(),
+    marginPersen: r.marginTotalPersen.toNumber(),
+    berlakuSejak: r.berlakuSejak.toISOString(),
+    nomorTiket: r.pengajuanTerakhir?.nomorTiket ?? null,
+    wilayahList: r.masterHargaWilayah.map((w) => ({
+      id: w.id,
+      namaWilayah: w.wilayahCabang.namaWilayah,
+      kodeWilayah: w.wilayahCabang.kodeWilayah,
+      harga: w.hargaFinalWilayah.toNumber(),
+      selisihRp: w.selisihDariIndukRp.toNumber(),
+      selisihPersen: w.selisihDariIndukPersen.toNumber(),
+      berlakuSejak: w.berlakuSejak.toISOString(),
+      nomorTiket: w.pengajuanTerakhir?.nomorTiket ?? null,
+    })),
+  }));
+
+  return {
+    item: {
+      id: item.id,
+      kodeItem: item.kodeItem,
+      kodeMaster: item.kodeMaster,
+      kelompokKode: (item.kodeItem.toUpperCase().startsWith("ME-") ? "ME" : "SIP") as "SIP" | "ME",
+      namaItem: item.namaItem,
+      kategori: item.kategori,
+      satuan: item.satuan,
+      lokasi: item.lokasi,
+    },
+    cabangGroups: kelompokkanSlotPerCabang(mappedSlots),
+    cabangOpsiItem: cabangAktifItemRows.map((c) => c.cabang),
+    totalCabang,
+    totalSlot,
+    totalWilayah,
+    halaman,
+    jumlahHalaman,
+    pageSize,
+  };
+}
+
+export type DaftarHargaCabangPerItem = NonNullable<
+  Awaited<ReturnType<typeof getDaftarHargaCabangPerItem>>
+>;
 
 // ============================================================================
 // VIEW B&M MANAGER: ISOLASI HARGA PER CABANG SENDIRI + STATUS AKTIF PER DIVISI
