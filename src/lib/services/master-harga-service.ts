@@ -598,9 +598,9 @@ export async function getMasterHargaUntukBm(
   ]);
 
   const itemIds = items.map((m) => m.id);
-  const tiketBerjalan =
+  const [tiketBerjalan, cabangAktifRows] = await Promise.all([
     itemIds.length > 0
-      ? await prisma.pengajuanHarga.findMany({
+      ? prisma.pengajuanHarga.findMany({
           where: {
             cabangId,
             masterItemId: { in: itemIds },
@@ -614,7 +614,60 @@ export async function getMasterHargaUntukBm(
             status: true,
           },
         })
-      : [];
+      : Promise.resolve([]),
+    itemIds.length > 0
+      ? prisma.masterHargaCabang.findMany({
+          where: {
+            masterItemId: { in: itemIds },
+            statusHarga: "AKTIF",
+          },
+          select: {
+            masterItemId: true,
+            cabangId: true,
+            cabang: { select: { namaCabang: true } },
+            divisi: { select: { kodeDivisi: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const urutanShortDiv = ["BLD", "MNT", "ENG", "DC"];
+  const cabangAktifPerItem = new Map<
+    string,
+    Map<
+      string,
+      {
+        cabangId: string;
+        namaCabang: string;
+        isCabangSaya: boolean;
+        divisiShortList: string[];
+      }
+    >
+  >();
+  for (const row of cabangAktifRows) {
+    let perCabang = cabangAktifPerItem.get(row.masterItemId);
+    if (!perCabang) {
+      perCabang = new Map();
+      cabangAktifPerItem.set(row.masterItemId, perCabang);
+    }
+    const shortDiv = row.divisi.kodeDivisi.replace(/^DIV-/i, "");
+    let entry = perCabang.get(row.cabangId);
+    if (!entry) {
+      entry = {
+        cabangId: row.cabangId,
+        namaCabang: row.cabang.namaCabang.replace(/^Cabang\s+/i, ""),
+        isCabangSaya: row.cabangId === cabangId,
+        divisiShortList: [],
+      };
+      perCabang.set(row.cabangId, entry);
+    }
+    if (!entry.divisiShortList.includes(shortDiv)) {
+      entry.divisiShortList.push(shortDiv);
+      entry.divisiShortList.sort(
+        (a, b) => urutanShortDiv.indexOf(a) - urutanShortDiv.indexOf(b)
+      );
+    }
+  }
 
   const rows = items.map((m) => {
     const spesifikasi = [m.jenisCor, m.merk, m.ukuran, m.tipe, m.warna].filter(Boolean).join(", ");
@@ -675,6 +728,15 @@ export async function getMasterHargaUntukBm(
 
     const jumlahDivisiAktifDiCabang = divisiStatusList.filter((d) => d.status === "AKTIF").length;
     const adaDivisiBelumAktif = divisiStatusList.some((d) => d.status === "BELUM_AKTIF");
+    const hargaAktifList = divisiStatusList
+      .filter((d) => d.status === "AKTIF" && d.hargaInduk !== null)
+      .map((d) => d.hargaInduk as number);
+    const minHargaCabangSaya = hargaAktifList.length > 0 ? Math.min(...hargaAktifList) : null;
+    const maxHargaCabangSaya = hargaAktifList.length > 0 ? Math.max(...hargaAktifList) : null;
+    const cabangAktifList = Array.from(cabangAktifPerItem.get(m.id)?.values() ?? []).sort((a, b) => {
+      if (a.isCabangSaya !== b.isCabangSaya) return a.isCabangSaya ? -1 : 1;
+      return a.namaCabang.localeCompare(b.namaCabang, "id-ID");
+    });
 
     return {
       id: m.id,
@@ -699,6 +761,10 @@ export async function getMasterHargaUntukBm(
       jumlahDivisiAktifDiCabang,
       jumlahDivisiResmi,
       adaDivisiBelumAktif,
+      minHargaCabangSaya,
+      maxHargaCabangSaya,
+      cabangAktifList,
+      totalCabangAktif: cabangAktifList.length,
     };
   });
 

@@ -95,7 +95,7 @@ export default async function KatalogHargaBmPage({
         <HeaderHalaman
           icon={Tag}
           judul={`Master Harga Item (Cabang ${cleanCabangName})`}
-          deskripsi="Seluruh item SIP & ME yang telah rilis. Harga yang tampil hanya untuk cabang Anda sendiri; item atau divisi yang belum aktif dapat langsung diajukan aktivasinya."
+          deskripsi={`Katalog item SIP & ME Cabang ${cleanCabangName}. Ajukan aktivasi langsung untuk item atau divisi yang belum aktif.`}
         />
 
         {/* Kartu Metrik Solid */}
@@ -124,7 +124,7 @@ export default async function KatalogHargaBmPage({
           <div className="rounded-2xl border-2 border-[#005BAC] p-4 bg-white shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Belum Aktif di Cabang Ini
+                Belum Aktif
               </span>
               <span className="px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black uppercase">
                 TERSEDIA

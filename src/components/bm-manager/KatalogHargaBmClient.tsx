@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Building2,
   CheckCircle2,
-  Clock,
   Eye,
   Loader2,
   PlusCircle,
@@ -131,13 +131,13 @@ export function KatalogHargaBmClient({
           <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200">
             <tr>
               <th className="py-3 pl-4 pr-2 w-10">No</th>
-              <th className="py-3 px-2 w-24">Kelompok</th>
+              <th className="py-3 px-2 w-24">Kode</th>
               <th className="py-3 px-2">Item Pekerjaan &amp; Spesifikasi</th>
               <th className="py-3 px-2">Kategori</th>
-              <th className="py-3 px-2">
-                Status &amp; Harga di Cabang {namaCabang} (Per Divisi)
-              </th>
-              <th className="py-3 pl-2 pr-4 text-center w-48">Aksi</th>
+              <th className="py-3 px-2 w-32 whitespace-nowrap">Status Cabang</th>
+              <th className="py-3 px-2 min-w-36">Divisi ({namaCabang})</th>
+              <th className="py-3 px-2 min-w-36 whitespace-nowrap">Harga ({namaCabang})</th>
+              <th className="py-3 pl-2 pr-4 text-center w-44">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y-2 divide-slate-200 bg-white">
@@ -146,6 +146,10 @@ export function KatalogHargaBmClient({
               const belumAktifDivs = r.divisiStatusList.filter(
                 (d) => d.status === "BELUM_AKTIF"
               );
+              const isAktifDiCabangSaya = aktifDivs.length > 0;
+              const jumlahCabangLain = isAktifDiCabangSaya
+                ? Math.max(0, r.totalCabangAktif - 1)
+                : r.totalCabangAktif;
 
               return (
                 <tr key={r.id} className="align-top hover:bg-slate-50">
@@ -189,110 +193,72 @@ export function KatalogHargaBmClient({
                       </div>
                     )}
                   </td>
-                  <td className="py-3.5 px-2 min-w-72 space-y-1.5">
-                    {aktifDivs.length === 0 && (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-700 text-white text-[10px] font-bold mb-1">
-                        Belum aktif di Cabang {namaCabang} (harga cabang lain disembunyikan)
+                  <td className="py-3.5 px-2 w-32 whitespace-nowrap">
+                    {isAktifDiCabangSaya ? (
+                      <div>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Aktif
+                        </span>
+                        <div className="text-[10px] font-semibold text-slate-600 mt-1">
+                          {jumlahCabangLain > 0
+                            ? `+${jumlahCabangLain} cabang lain`
+                            : "1 cabang"}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black">
+                          Belum Aktif
+                        </span>
+                        <div className="text-[10px] font-semibold text-slate-600 mt-1">
+                          {r.totalCabangAktif} cabang lain
+                        </div>
                       </div>
                     )}
-
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {r.divisiStatusList.map((d) => {
-                        if (d.status === "AKTIF") {
-                          return (
-                            <div
-                              key={d.divisiId}
-                              className="px-2.5 py-1.5 rounded-lg border-2 border-emerald-600 bg-white flex flex-wrap items-center justify-between gap-2"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  {d.shortLabel}
-                                </span>
-                                <span className="text-[11px] font-bold text-slate-800">
-                                  {d.namaDivisi}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="font-mono font-black text-slate-900 text-xs">
-                                  {formatRupiah(d.hargaInduk)}
-                                </span>
-                                <span className="text-[10px] text-slate-500 font-semibold ml-1">
-                                  / {r.satuan}
-                                </span>
-                              </div>
-                              {d.wilayahList.length > 0 && (
-                                <div className="w-full pt-1 border-t border-slate-200 flex flex-wrap gap-1.5">
-                                  {d.wilayahList.map((w) => (
-                                    <span
-                                      key={w.id}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold"
-                                    >
-                                      <MapPin className="w-3 h-3" />
-                                      {w.namaWilayah}: {formatRupiah(w.harga)}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        if (d.status === "PROSES") {
-                          return (
-                            <div
-                              key={d.divisiId}
-                              className="px-2.5 py-1 rounded-lg border-2 border-amber-500 bg-white flex items-center justify-between gap-2"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black">
-                                  <Clock className="w-3 h-3" />
-                                  {d.shortLabel}
-                                </span>
-                                <span className="text-[11px] font-bold text-slate-800">
-                                  Sedang Diproses ({d.nomorTiketProses})
-                                </span>
-                              </div>
-                              <Link
-                                href={`/bm-manager/${d.tiketIdProses}`}
-                                className="text-[11px] font-bold text-[#005BAC] hover:underline"
-                              >
-                                Lihat Tiket
-                              </Link>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div
+                  </td>
+                  <td className="py-3.5 px-2 min-w-36">
+                    {aktifDivs.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {aktifDivs.map((d) => (
+                          <span
                             key={d.divisiId}
-                            className="px-2.5 py-1 rounded-lg border-2 border-slate-300 bg-white flex items-center justify-between gap-2"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black"
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-slate-600 text-white text-[10px] font-black">
-                                {d.shortLabel}
-                              </span>
-                              <span className="text-[11px] font-semibold text-slate-600">
-                                Belum Aktif di Cabang Anda
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              disabled={loadingAktivasiKey !== null}
-                              onClick={() =>
-                                ajukanAktivasi(r.id, d.divisiId, `row-${r.id}-${d.divisiId}`)
-                              }
-                              className="inline-flex items-center gap-1 text-[10px] font-black text-[#005BAC] hover:underline cursor-pointer disabled:opacity-50"
-                            >
-                              {loadingAktivasiKey === `row-${r.id}-${d.divisiId}` && (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              )}
-                              <span>+ Aktifkan {d.shortLabel}</span>
-                            </button>
+                            <CheckCircle2 className="w-3 h-3" />
+                            {d.shortLabel}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="font-mono font-bold text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-2 min-w-36 whitespace-nowrap">
+                    {r.minHargaCabangSaya !== null && r.maxHargaCabangSaya !== null ? (
+                      r.minHargaCabangSaya === r.maxHargaCabangSaya ? (
+                        <div>
+                          <span className="font-mono font-black text-slate-900 text-xs">
+                            {formatRupiah(r.minHargaCabangSaya)}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-semibold ml-1">
+                            / {r.satuan}
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-mono font-black text-slate-900 text-xs">
+                            {formatRupiah(r.minHargaCabangSaya)} &ndash;{" "}
+                            {formatRupiah(r.maxHargaCabangSaya)}
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="text-[10px] text-slate-500 font-semibold">
+                            / {r.satuan}
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      <span className="font-mono font-bold text-slate-400">-</span>
+                    )}
                   </td>
                   <td className="py-3.5 pl-2 pr-4 text-center whitespace-nowrap">
                     <div className="flex flex-col gap-1.5 items-stretch">
@@ -386,58 +352,102 @@ export function KatalogHargaBmClient({
             <div className="p-5 space-y-5 max-h-[78vh] overflow-y-auto">
               <DetailSpesifikasi item={toDetailItem(selectedRow)} showDeskripsi={true} />
 
+              {/* Daftar Cabang Aktif (Tanpa Harga Cabang Lain) */}
+              <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-800 text-white text-xs font-black uppercase flex items-center gap-2">
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Cabang Aktif ({selectedRow.totalCabangAktif} Cabang)</span>
+                </div>
+                <div className="p-4 flex flex-wrap gap-2.5">
+                  {!selectedRow.cabangAktifList.some((c) => c.isCabangSaya) && (
+                    <div className="px-3 py-2 rounded-lg border-2 border-rose-600 bg-white flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900">{namaCabang}</span>
+                      <span className="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black">
+                        Belum Aktif
+                      </span>
+                    </div>
+                  )}
+                  {selectedRow.cabangAktifList.map((c) => (
+                    <div
+                      key={c.cabangId}
+                      className={cn(
+                        "px-3 py-2 rounded-lg border-2 bg-white flex items-center gap-2 flex-wrap",
+                        c.isCabangSaya ? "border-[#005BAC]" : "border-slate-300"
+                      )}
+                    >
+                      <span className="text-xs font-bold text-slate-900">
+                        {c.namaCabang}
+                      </span>
+                      {c.isCabangSaya && (
+                        <span className="px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black">
+                          Cabang Anda
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        {c.divisiShortList.map((divShort) => (
+                          <span
+                            key={divShort}
+                            className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black"
+                          >
+                            {divShort}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
                 <div className="px-4 py-2.5 bg-slate-800 text-white text-xs font-black uppercase">
-                  Status &amp; Harga Resmi Cabang {namaCabang}
+                  Harga &amp; Status Cabang {namaCabang}
                 </div>
                 <div className="divide-y divide-slate-200">
                   {selectedRow.divisiStatusList.map((d) => (
-                    <div
-                      key={d.divisiId}
-                      className="px-4 py-3 flex flex-wrap items-center justify-between gap-3"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900 text-xs">{d.namaDivisi}</div>
-                        <div className="text-[11px] text-slate-500 font-semibold">
-                          {d.status === "AKTIF" && d.berlakuSejak
-                            ? `Berlaku sejak ${formatTanggal(d.berlakuSejak)} (${d.nomorTiket || "-"})`
-                            : d.status === "PROSES"
-                              ? `Pengajuan berjalan: ${d.nomorTiketProses}`
-                              : "Belum aktif di cabang ini"}
+                    <div key={d.divisiId} className="px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="font-bold text-slate-900 text-xs">{d.namaDivisi}</div>
+                          <div className="text-[11px] text-slate-500 font-semibold">
+                            {d.status === "AKTIF" && d.berlakuSejak
+                              ? `Berlaku sejak ${formatTanggal(d.berlakuSejak)} (${d.nomorTiket || "-"})`
+                              : d.status === "PROSES"
+                                ? `Sedang Diproses (${d.nomorTiketProses})`
+                                : "Belum Aktif"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {d.status === "AKTIF" ? (
+                            <span className="font-mono font-black text-sm text-[#005BAC]">
+                              {formatRupiah(d.hargaInduk)} / {selectedRow.satuan}
+                            </span>
+                          ) : d.status === "PROSES" ? (
+                            <Link
+                              href={`/bm-manager/${d.tiketIdProses}`}
+                              className="px-3 py-1 rounded-lg bg-amber-600 text-white text-xs font-bold"
+                            >
+                              Lihat Tiket {d.nomorTiketProses}
+                            </Link>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded bg-slate-700 text-white text-[11px] font-bold">
+                              Belum Aktif
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {d.status === "AKTIF" ? (
-                          <span className="font-mono font-black text-sm text-[#005BAC]">
-                            {formatRupiah(d.hargaInduk)} / {selectedRow.satuan}
-                          </span>
-                        ) : d.status === "PROSES" ? (
-                          <Link
-                            href={`/bm-manager/${d.tiketIdProses}`}
-                            className="px-3 py-1 rounded-lg bg-amber-600 text-white text-xs font-bold"
-                          >
-                            Lihat Tiket {d.nomorTiketProses}
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={loadingAktivasiKey !== null}
-                            onClick={() =>
-                              ajukanAktivasi(
-                                selectedRow.id,
-                                d.divisiId,
-                                `modal-${selectedRow.id}-${d.divisiId}`
-                              )
-                            }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#005BAC] hover:bg-[#004585] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
-                          >
-                            {loadingAktivasiKey === `modal-${selectedRow.id}-${d.divisiId}` && (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            )}
-                            <span>Ajukan Aktivasi {d.shortLabel}</span>
-                          </button>
-                        )}
-                      </div>
+                      {d.status === "AKTIF" && d.wilayahList.length > 0 && (
+                        <div className="w-full pt-2 mt-2 border-t border-slate-200 flex flex-wrap gap-1.5">
+                          {d.wilayahList.map((w) => (
+                            <span
+                              key={w.id}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-600 text-white text-[10px] font-bold"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              {w.namaWilayah}: {formatRupiah(w.harga)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

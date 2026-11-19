@@ -123,9 +123,9 @@ export function FilterKatalog({
           value={params.get("status") ?? "semua"}
           onChange={(e) => terapkan({ status: e.target.value === "semua" ? null : e.target.value })}
         >
-          <option value="semua">Semua Status Cabang</option>
-          <option value="aktif">Sudah Aktif di Cabang Anda</option>
-          <option value="belum_aktif">Belum Aktif / Ada Divisi Kosong</option>
+          <option value="semua">Semua Status</option>
+          <option value="aktif">Sudah Aktif</option>
+          <option value="belum_aktif">Belum Aktif</option>
         </select>
       )}
       {tampilFilterOverride && (
