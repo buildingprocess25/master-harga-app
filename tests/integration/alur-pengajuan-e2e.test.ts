@@ -695,7 +695,7 @@ describe("Integration: Alur Lengkap SPARTA-PRICING (Database Test Terisolasi)", 
   it("Tahap 5: Evaluasi Margin S&B & Keputusan Layer 3 Regional membuka kuorum voting putaran #1", async () => {
     await actingAs(snbProfile);
     // HPP: UPAH (0.5*120000=60000) + MATERIAL (1*100000=100000) + ALAT (1*10000=10000) = 170000
-    // Dengan margin UPAH 10% (66000) + MATERIAL 8% (108000) + ALAT 0% (10000) => hargaFinal = 184000
+    // Dengan margin UPAH 10% (66000) + MATERIAL 8% (108000) + ALAT 8% (10800) => hargaFinal = 184800
     const evalRes = await evaluasiMarginPost(
       makeRequest(`http://localhost/api/pengajuan/${happyTiketId}/evaluasi-margin`, "POST", {
         action: "APPROVE",
@@ -706,11 +706,11 @@ describe("Integration: Alur Lengkap SPARTA-PRICING (Database Test Terisolasi)", 
     );
     const evalJson = await evalRes.json();
     expect(evalRes.status).toBe(200);
-    expect(evalJson.data.hargaFinal).toBe(184000);
+    expect(evalJson.data.hargaFinal).toBe(184800);
 
     const afterEval = await prisma.pengajuanHarga.findUnique({ where: { id: happyTiketId } });
     expect(afterEval?.status).toBe("PENDING_REGIONAL_MGR");
-    expect(afterEval?.hargaDitetapkanSNB?.toNumber()).toBe(184000);
+    expect(afterEval?.hargaDitetapkanSNB?.toNumber()).toBe(184800);
 
     // Regional Manager APPROVE -> status PENDING_KONTRAKTOR + buka putaran voting 3 rekanan aktif
     await actingAs(rmProfile);
@@ -760,14 +760,15 @@ describe("Integration: Alur Lengkap SPARTA-PRICING (Database Test Terisolasi)", 
 
     const katalogInduk = await prisma.masterHargaCabang.findUnique({
       where: {
-        masterItemId_cabangId: {
+        masterItemId_cabangId_divisiId: {
           masterItemId: finalTiket!.masterItemId!,
           cabangId: cabangUtamaId,
+          divisiId: divBldId,
         },
       },
     });
     expect(katalogInduk).not.toBeNull();
-    expect(katalogInduk?.hargaFinalInduk.toNumber()).toBe(184000);
+    expect(katalogInduk?.hargaFinalInduk.toNumber()).toBe(184800);
     expect(katalogInduk?.statusHarga).toBe("AKTIF");
   });
 

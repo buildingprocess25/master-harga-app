@@ -40,18 +40,35 @@ export function marginTersimpan(
 export async function getHargaBerlaku(tiket: {
   masterItemId: string | null;
   cabangId: string;
+  divisiId?: string | null;
   wilayahCabangId: string | null;
   cakupanHarga: string;
 }) {
   if (!tiket.masterItemId) return null;
-  const induk = await prisma.masterHargaCabang.findUnique({
-    where: { masterItemId_cabangId: { masterItemId: tiket.masterItemId, cabangId: tiket.cabangId } },
-    include: {
-      masterHargaWilayah: tiket.wilayahCabangId
-        ? { where: { wilayahCabangId: tiket.wilayahCabangId, statusHarga: "AKTIF" } }
-        : false,
-    },
-  });
+  const include = {
+    masterHargaWilayah: tiket.wilayahCabangId
+      ? { where: { wilayahCabangId: tiket.wilayahCabangId, statusHarga: "AKTIF" as const } }
+      : false,
+  };
+  const induk = tiket.divisiId
+    ? await prisma.masterHargaCabang.findUnique({
+        where: {
+          masterItemId_cabangId_divisiId: {
+            masterItemId: tiket.masterItemId,
+            cabangId: tiket.cabangId,
+            divisiId: tiket.divisiId,
+          },
+        },
+        include,
+      })
+    : await prisma.masterHargaCabang.findFirst({
+        where: {
+          masterItemId: tiket.masterItemId,
+          cabangId: tiket.cabangId,
+          statusHarga: "AKTIF",
+        },
+        include,
+      });
   if (!induk || induk.statusHarga !== "AKTIF") return null;
   const wilayah = tiket.cakupanHarga === "KHUSUS_WILAYAH" ? induk.masterHargaWilayah?.[0] : undefined;
   return {

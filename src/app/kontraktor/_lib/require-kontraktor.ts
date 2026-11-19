@@ -27,6 +27,7 @@ export async function requireKontraktor() {
         kontraktorId: defaultUser.kontraktorId,
         namaPerusahaanKontraktor:
           defaultUser.kontraktor?.namaPerusahaan || "PT Cahaya Bangun Persada",
+        jenisMitra: defaultUser.kontraktor?.jenisMitra ?? "KONTRAKTOR",
       };
     }
     redirect("/login");
@@ -39,5 +40,14 @@ export async function requireKontraktor() {
   if (user.role !== "KONTRAKTOR") redirect("/");
   if (!user.kontraktorId) redirect("/api/auth/logout");
 
-  return { ...user, kontraktorId: user.kontraktorId };
+  const kontraktorRecord = await prisma.kontraktor.findUnique({
+    where: { id: user.kontraktorId },
+    select: { jenisMitra: true },
+  });
+
+  return {
+    ...user,
+    kontraktorId: user.kontraktorId,
+    jenisMitra: kontraktorRecord?.jenisMitra ?? "KONTRAKTOR",
+  };
 }

@@ -137,3 +137,38 @@ export function parseNilaiDanSatuan(
   }
   return { nilai: trimmed, satuan: defaultSatuan };
 }
+
+export type JenisMitraVendor = "KONTRAKTOR" | "REKANAN";
+
+/**
+ * Menentukan jenis entitas mitra persetujuan kuorum berdasarkan divisi tiket:
+ * - Building (DIV-BLD) & DC (DIV-DC) -> KONTRAKTOR
+ * - Maintenance (DIV-MNT) & Engineering (DIV-ENG) -> REKANAN
+ */
+export function jenisMitraUntukDivisi(
+  kodeDivisi?: string | null,
+  namaDivisi?: string | null
+): JenisMitraVendor {
+  const k = (kodeDivisi || "").trim().toUpperCase();
+  const n = (namaDivisi || "").trim().toLowerCase();
+  if (
+    k === "DIV-MNT" ||
+    k === "DIV-ENG" ||
+    n.includes("maintenance") ||
+    n.includes("perawatan") ||
+    n.includes("engineering") ||
+    n.includes("m/e")
+  ) {
+    return "REKANAN";
+  }
+  return "KONTRAKTOR";
+}
+
+export function labelMitraUntukDivisi(
+  kodeDivisi?: string | null,
+  namaDivisi?: string | null
+): "Rekanan" | "Kontraktor" {
+  return jenisMitraUntukDivisi(kodeDivisi, namaDivisi) === "REKANAN"
+    ? "Rekanan"
+    : "Kontraktor";
+}

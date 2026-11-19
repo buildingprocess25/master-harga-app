@@ -120,6 +120,9 @@ export async function GET(request: NextRequest) {
           t.kodePaket ||
           buatKodePaket(t.cabang?.kodeCabang, t.tanggalPengajuan),
         kodeItem: t.masterItem?.kodeItem || "ITEM",
+        kelompokKode: (t.masterItem?.kodeItem || "").toUpperCase().startsWith("ME-")
+          ? "ME"
+          : "SIP",
         namaItem: t.masterItem?.namaItem || "Material",
         kategori: t.masterItem?.kategori || "Pekerjaan",
         jenisCor: t.masterItem?.jenisCor || undefined,
@@ -195,6 +198,7 @@ interface PengajuanInputPayload {
   informasiTambahan?: string;
   isTermasukBongkaran?: boolean;
   masterItemId?: string;
+  kelompokKode?: "SIP" | "ME";
   kodeItem?: string;
   kodeMaster?: string;
   kodeArea?: string;
@@ -427,13 +431,28 @@ export async function POST(request: NextRequest) {
         select: { kodeItem: true },
       });
       let maxSipNum = 0;
+      let maxMeNum = 0;
       for (const row of existingCodes) {
-        const m = row.kodeItem.match(/^SIP-(\d+)/i);
-        if (m) {
-          const n = parseInt(m[1], 10);
+        const sipMatch = row.kodeItem.match(/^SIP-(\d+)/i);
+        if (sipMatch) {
+          const n = parseInt(sipMatch[1], 10);
           if (n > maxSipNum) maxSipNum = n;
         }
+        const meMatch = row.kodeItem.match(/^ME-(\d+)/i);
+        if (meMatch) {
+          const n = parseInt(meMatch[1], 10);
+          if (n > maxMeNum) maxMeNum = n;
+        }
       }
+
+      const allocatePrefixCode = (prefix: "SIP" | "ME") => {
+        if (prefix === "ME") {
+          maxMeNum += 1;
+          return `ME-${String(maxMeNum).padStart(3, "0")}`;
+        }
+        maxSipNum += 1;
+        return `SIP-${String(maxSipNum).padStart(3, "0")}`;
+      };
 
       const allocateNomorTiket = async (): Promise<string> => {
         let candidate = `REQ-${currentYear}-${String(nextSeq).padStart(3, "0")}`;
@@ -481,7 +500,14 @@ export async function POST(request: NextRequest) {
           (isHanyaJasaEntry ? "LS" : parsedUkuranUnit || "UNIT")
         ).toUpperCase();
 
+        const entryPrefix: "SIP" | "ME" =
+          entry.kelompokKode === "ME" ||
+          (entry.kodeItem || "").trim().toUpperCase().startsWith("ME-")
+            ? "ME"
+            : "SIP";
+
         const specSignature = [
+          entryPrefix,
           actualItemName.toLowerCase(),
           cleanKategori.toLowerCase(),
           (cleanJenisCor || "").toLowerCase(),
@@ -510,10 +536,11 @@ export async function POST(request: NextRequest) {
           resolvedMaster = masterCache.get(specSignature)!;
         }
 
-        // Cek kecocokan fisik + lokasi eksisting di MasterItem DB
+        // Cek kecocokan fisik + lokasi + prefix (SIP/ME) eksisting di MasterItem DB
         if (!resolvedMaster) {
           const existingBySpec = await tx.masterItem.findFirst({
             where: {
+              kodeItem: { startsWith: `${entryPrefix}-`, mode: "insensitive" },
               namaItem: { equals: actualItemName, mode: "insensitive" },
               ukuran: { equals: cleanUkuran, mode: "insensitive" },
               merk: { equals: cleanMerk, mode: "insensitive" },
@@ -534,12 +561,14 @@ export async function POST(request: NextRequest) {
         if (!resolvedMaster) {
           const cleanKatToken = (cleanKategori || "Umum").replace(/\s+/g, "");
           let candidateKodeItem = (entry.kodeItem || "").trim().toUpperCase();
-          if (!candidateKodeItem) {
-            maxSipNum += 1;
-            candidateKodeItem = `SIP-${String(maxSipNum).padStart(3, "0")}`;
+          if (!candidateKodeItem || !candidateKodeItem.startsWith(`${entryPrefix}-`)) {
+            candidateKodeItem = allocatePrefixCode(entryPrefix);
           }
           const candidateVarian = (entry.kodeArea || "01").trim().toUpperCase();
-          let candidateKodeMaster = (entry.kodeMaster || "").trim() || `${candidateKodeItem}-${candidateVarian}-${cleanKatToken}`;
+          let candidateKodeMaster =
+            (entry.kodeMaster || "").trim().startsWith(`${candidateKodeItem}-`)
+              ? (entry.kodeMaster || "").trim()
+              : `${candidateKodeItem}-${candidateVarian}-${cleanKatToken}`;
 
           // Hindari bentrok kodeMaster / (kodeItem, kodeVarian) dengan item fisik berbeda
           let guard = 0;
@@ -554,8 +583,7 @@ export async function POST(request: NextRequest) {
               select: { id: true },
             });
             if (!conflict) break;
-            maxSipNum += 1;
-            candidateKodeItem = `SIP-${String(maxSipNum).padStart(3, "0")}`;
+            candidateKodeItem = allocatePrefixCode(entryPrefix);
             candidateKodeMaster = `${candidateKodeItem}-${candidateVarian}-${cleanKatToken}`;
             guard++;
           }

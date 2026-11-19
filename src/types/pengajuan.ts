@@ -112,6 +112,7 @@ export interface LampiranBandingItem {
 export interface VotingKontraktorItem {
   id: string;
   kontraktorId: string;
+  jenisMitra?: "KONTRAKTOR" | "REKANAN";
   namaPerusahaan: string;
   email?: string;
   statusVote: StatusVoteKontraktor;
@@ -163,11 +164,14 @@ export interface UserSessionProfile {
 // CORE TICKET: PENGAJUAN HARGA LENGKAP
 // ============================================================================
 
+export type KelompokKodeItem = "SIP" | "ME";
+
 export interface PengajuanHargaItem {
   id: string;
   noTiket: string;
   kodePaket?: string;
   kodeItem: string;
+  kelompokKode?: KelompokKodeItem;
   namaItem: string;
   kategori: string;
   jenisCor?: string;
@@ -354,6 +358,7 @@ export function generateDeskripsiOtomatis(data: {
 
 export function getKodeData(data: {
   kategori?: string;
+  prefixKode?: KelompokKodeItem;
   jenisCor?: string;
   item: string;
   implementasi?: string | string[];
@@ -378,6 +383,11 @@ export function getKodeData(data: {
   const normUkuran = (s?: string) => (s || "").trim().replace(/\s*cm$/i, "").replace(/\s+/g, "").toLowerCase();
   const normTebal = (s?: string) => (s || "").trim().replace(/\s*mm$/i, "").replace(/\s+/g, "").toLowerCase();
 
+  const activePrefix: KelompokKodeItem = data.prefixKode === "ME" ? "ME" : "SIP";
+  const itemPrefixMatchRegex = new RegExp(`^(${activePrefix}-\\d+)`, "i");
+  const prefixNumRegex = new RegExp(`^${activePrefix}-(\\d+)`, "i");
+  const variantMatchRegex = /(?:SIP|ME)-\d+-([A-Z])-/i;
+
   const cleanKategori = (data.kategori || data.item || "Kategori").trim().replace(/\s+/g, "");
   const existingItems = data.existingItems || [];
   const nextIndex = data.nextIndex || (existingItems.length + 1);
@@ -401,9 +411,17 @@ export function getKodeData(data: {
       : norm(data.implementasi)
     : "";
 
+  const resolveItemPrefix = (i: PengajuanHargaItem): KelompokKodeItem => {
+    if (i.kelompokKode === "ME") return "ME";
+    if (i.kelompokKode === "SIP") return "SIP";
+    const code = (i.kode || i.kodeItem || "").toUpperCase();
+    return code.startsWith("ME-") ? "ME" : "SIP";
+  };
+
   const isPhysicalMatch = (i: PengajuanHargaItem) => {
     const iItem = i.item || i.namaItem;
     if (!cItem || !iItem) return false;
+    if (resolveItemPrefix(i) !== activePrefix) return false;
     return (
       norm(iItem) === cItem &&
       norm(i.jenisCor) === cJenisCor &&
@@ -425,8 +443,10 @@ export function getKodeData(data: {
 
   if (physicalMatches.length > 0) {
     const existingCode = physicalMatches[0].kode || physicalMatches[0].kodeItem || "";
-    const matchSIP = existingCode.match(/^(SIP-\d+)/i);
-    kodeItem = matchSIP ? matchSIP[1].toUpperCase() : `SIP-${String(nextIndex).padStart(3, "0")}`;
+    const matchCode = existingCode.match(itemPrefixMatchRegex);
+    kodeItem = matchCode
+      ? matchCode[1].toUpperCase()
+      : `${activePrefix}-${String(nextIndex).padStart(3, "0")}`;
 
     const matchedTargetItem = physicalMatches.find((i) => {
       const iLok = i.lokasi;
@@ -439,12 +459,17 @@ export function getKodeData(data: {
     if (matchedTargetItem && cLokasi) {
       isDuplicate = true;
       duplicateItem = matchedTargetItem;
-      const vMatch = (matchedTargetItem.kodeMaster || matchedTargetItem.kodeItem || matchedTargetItem.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+      const vMatch = (
+        matchedTargetItem.kodeMaster ||
+        matchedTargetItem.kodeItem ||
+        matchedTargetItem.noTiket ||
+        ""
+      ).match(variantMatchRegex);
       kodeVarian = vMatch ? vMatch[1].toUpperCase() : "A";
     } else {
       const usedVariants = new Set<string>();
       physicalMatches.forEach((i) => {
-        const vMatch = (i.kodeMaster || i.kodeItem || i.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+        const vMatch = (i.kodeMaster || i.kodeItem || i.noTiket || "").match(variantMatchRegex);
         if (vMatch) {
           usedVariants.add(vMatch[1].toUpperCase());
         } else {
@@ -459,20 +484,23 @@ export function getKodeData(data: {
       kodeVarian = String.fromCharCode(nextCharCode);
     }
   } else {
-    let maxSIP = 0;
+    let maxSeq = 0;
     existingItems.forEach((i) => {
       const codeToCheck = i.kode || i.kodeItem || "";
-      const match = codeToCheck.match(/SIP-(\d+)/i);
+      const match = codeToCheck.match(prefixNumRegex);
       if (match) {
         const num = parseInt(match[1], 10);
-        if (num > maxSIP) {
-          maxSIP = num;
+        if (num > maxSeq) {
+          maxSeq = num;
         }
       }
     });
 
-    const nextSIPNum = Math.max(maxSIP + 1, nextIndex);
-    kodeItem = `SIP-${String(nextSIPNum).padStart(3, "0")}`;
+    const nextNum =
+      existingItems.length > 0
+        ? maxSeq + 1
+        : Math.max(maxSeq + 1, activePrefix === "SIP" ? nextIndex : 1);
+    kodeItem = `${activePrefix}-${String(nextNum).padStart(3, "0")}`;
     kodeVarian = "A";
   }
 

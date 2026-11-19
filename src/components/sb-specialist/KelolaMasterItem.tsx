@@ -194,7 +194,7 @@ export function KelolaMasterItem({
               </div>
               <div>
                 <label htmlFor="mi-kode" className="block text-xs font-bold text-slate-700 mb-1">Kode item</label>
-                <input id="mi-kode" value={form.kodeItem} disabled={!!form.id} onChange={(e) => setForm({ ...form, kodeItem: e.target.value.toUpperCase() })} placeholder="SIP-001" className={`${INPUT} font-mono`} />
+                <input id="mi-kode" value={form.kodeItem} disabled={!!form.id} onChange={(e) => setForm({ ...form, kodeItem: e.target.value.toUpperCase() })} placeholder="SIP-001 / ME-001" className={`${INPUT} font-mono`} />
               </div>
               <div>
                 <label htmlFor="mi-varian" className="block text-xs font-bold text-slate-700 mb-1">Kode varian</label>

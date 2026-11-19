@@ -3,6 +3,8 @@
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ChevronDown,
+  ChevronRight,
   CornerDownRight,
   Eye,
   MapPin,
@@ -10,10 +12,11 @@ import {
   X,
   Loader2,
   Tag,
+  Building2,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import type {
-  BarisKatalog,
+  BarisMasterHargaPerItem,
   DetailHargaRilis,
 } from "@/lib/services/master-harga-service";
 import { setStatusHargaCabangAction } from "@/app/sb-specialist/actions";
@@ -54,18 +57,34 @@ export function MasterHargaClient({
   rows,
   nomorAwal = 1,
 }: {
-  rows: BarisKatalog[];
+  rows: BarisMasterHargaPerItem[];
   nomorAwal?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [detail, setDetail] = useState<DetailHargaRilis | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const bukaRincian = async (id: string) => {
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const expandSemua = () => {
+    const semuaTerbuka = rows.every((r) => expandedIds[r.id]);
+    if (semuaTerbuka) {
+      setExpandedIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      for (const r of rows) next[r.id] = true;
+      setExpandedIds(next);
+    }
+  };
+
+  const bukaRincian = async (hargaCabangId: string) => {
     try {
-      setLoadingId(id);
-      const res = await fetch(`/api/sb-specialist/master-harga/${id}`);
+      setLoadingId(hargaCabangId);
+      const res = await fetch(`/api/sb-specialist/master-harga/${hargaCabangId}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
         Swal.fire({
@@ -89,14 +108,18 @@ export function MasterHargaClient({
     }
   };
 
-  const toggleStatus = async (r: BarisKatalog, aktif: boolean) => {
+  const toggleStatus = async (
+    slot: BarisMasterHargaPerItem["hargaCabangList"][number],
+    namaItem: string,
+    aktif: boolean
+  ) => {
     const confirm = await Swal.fire({
       title: aktif
-        ? `Aktifkan "${r.namaItem}"?`
-        : `Nonaktifkan "${r.namaItem}" di ${r.namaCabang}?`,
+        ? `Aktifkan "${namaItem}"?`
+        : `Nonaktifkan "${namaItem}" di ${slot.namaCabang} (${slot.namaDivisi})?`,
       text: aktif
         ? "Harga akan kembali tampil sebagai harga resmi aktif."
-        : "Harga cabang akan dinonaktifkan dari daftar harga resmi aktif.",
+        : "Harga cabang pada divisi ini akan dinonaktifkan dari daftar harga resmi aktif.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: aktif ? "#059669" : "#ED1C24",
@@ -107,7 +130,7 @@ export function MasterHargaClient({
     if (!confirm.isConfirmed) return;
 
     startTransition(async () => {
-      const hasil = await setStatusHargaCabangAction({ id: r.id, aktif });
+      const hasil = await setStatusHargaCabangAction({ id: slot.id, aktif });
       await Swal.fire({
         icon: hasil.success ? "success" : "error",
         title: hasil.success ? "Berhasil" : "Gagal",
@@ -121,152 +144,275 @@ export function MasterHargaClient({
     });
   };
 
+  const semuaTerbuka = rows.length > 0 && rows.every((r) => expandedIds[r.id]);
+
   return (
     <>
+      <div className="px-4 py-2.5 bg-white border-b-2 border-slate-200 flex items-center justify-between gap-2 text-xs">
+        <span className="font-bold text-slate-600">
+          Klik baris item atau tombol rincian cabang untuk melihat harga per cabang &amp; divisi.
+        </span>
+        <button
+          type="button"
+          onClick={expandSemua}
+          className="px-3 py-1 rounded-lg border-2 border-slate-300 bg-white hover:border-[#005BAC] hover:text-[#005BAC] font-bold text-slate-700 cursor-pointer transition-colors"
+        >
+          {semuaTerbuka ? "Tutup Semua Cabang" : "Buka Semua Cabang"}
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200">
             <tr>
               <th className="py-3 pl-4 pr-2 w-10">No</th>
-              <th className="py-3 px-2">Item Pekerjaan</th>
+              <th className="py-3 px-2 w-24">Kelompok</th>
+              <th className="py-3 px-2">Item Pekerjaan &amp; Spesifikasi</th>
               <th className="py-3 px-2">Kategori</th>
-              <th className="py-3 px-2">Cabang / Wilayah</th>
-              <th className="py-3 px-2 text-right">Harga Satuan</th>
-              <th className="py-3 px-2 text-right">Selisih dari Induk</th>
-              <th className="py-3 px-2">Berlaku Sejak</th>
-              <th className="py-3 pl-2 pr-4 text-center">Aksi</th>
+              <th className="py-3 px-2">Aktif di Cabang &amp; Divisi</th>
+              <th className="py-3 px-2 text-right">Rentang Harga</th>
+              <th className="py-3 pl-2 pr-4 text-center w-36">Rincian</th>
             </tr>
           </thead>
-          <tbody className="divide-y-2 divide-slate-100">
-            {rows.map((r, i) => (
-              <React.Fragment key={r.id}>
-                <tr className="align-top hover:bg-slate-50">
-                  <td className="py-3 pl-4 pr-2 text-slate-500 font-mono">
-                    {nomorAwal + i}
-                  </td>
-                  <td className="py-3 px-2 min-w-56">
-                    <div className="font-bold text-slate-900">{r.namaItem}</div>
-                    <div className="font-mono text-[11px] font-semibold text-slate-500">
-                      {r.kodeMaster}
-                    </div>
-                    {r.spesifikasi && (
-                      <div className="text-[11px] text-slate-600 font-medium">
-                        {r.spesifikasi}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-2 min-w-32">
-                    <div className="font-semibold text-slate-800">
-                      {r.kategori}
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-medium">
-                      {r.namaDivisi}
-                    </div>
-                  </td>
-                  <td className="py-3 px-2 min-w-32">
-                    <div className="font-bold text-slate-800">
-                      {r.namaCabang}
-                    </div>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-bold uppercase tracking-wider">
-                      Induk Cabang
-                    </span>
-                  </td>
-                  <td className="py-3 px-2 text-right whitespace-nowrap">
-                    <div className="font-mono tabular-nums font-black text-slate-900 text-sm">
-                      {formatRupiah(r.harga)}
-                    </div>
-                    <div className="text-[11px] text-slate-500 font-medium">
-                      per {r.satuan} · Margin {r.marginPersen}%
-                    </div>
-                  </td>
-                  <td className="py-3 px-2 text-right text-slate-400 font-medium">
-                    -
-                  </td>
-                  <td className="py-3 px-2 whitespace-nowrap">
-                    <div className="font-mono font-medium text-slate-700">
-                      {formatTanggal(r.berlakuSejak)}
-                    </div>
-                    {r.nomorTiket && (
-                      <div className="font-mono text-[11px] text-slate-500">
-                        {r.nomorTiket}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
-                    <div className="inline-flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => bukaRincian(r.id)}
-                        disabled={loadingId === r.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-60"
-                      >
-                        {loadingId === r.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
-                        <span>Rincian</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleStatus(r, false)}
-                        disabled={pending}
-                        title="Nonaktifkan Harga Cabang"
-                        className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                {r.wilayahList.map((w) => (
+          <tbody className="divide-y-2 divide-slate-200">
+            {rows.map((r, i) => {
+              const isExpanded = Boolean(expandedIds[r.id]);
+              return (
+                <React.Fragment key={r.id}>
                   <tr
-                    key={w.id}
-                    className="align-top bg-amber-50 hover:bg-amber-100"
+                    onClick={() => toggleExpand(r.id)}
+                    className={cn(
+                      "align-top cursor-pointer transition-colors",
+                      isExpanded ? "bg-blue-50" : "hover:bg-slate-50 bg-white"
+                    )}
                   >
-                    <td className="py-2.5 pl-4 pr-2" />
-                    <td className="py-2.5 px-2 text-slate-600" colSpan={2}>
-                      <span className="inline-flex items-center gap-1.5 pl-3 text-xs font-semibold text-amber-900">
-                        <CornerDownRight className="w-3.5 h-3.5 text-amber-600" />
-                        Harga khusus wilayah untuk item di atas
-                      </span>
+                    <td className="py-3.5 pl-4 pr-2 text-slate-500 font-mono font-bold">
+                      {nomorAwal + i}
                     </td>
-                    <td className="py-2.5 px-2">
-                      <div className="inline-flex items-center gap-1 font-bold text-slate-800">
-                        <MapPin className="w-3.5 h-3.5 text-amber-600" />{" "}
-                        {w.namaWilayah}
+                    <td className="py-3.5 px-2 whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "inline-block px-2.5 py-0.5 rounded text-[11px] font-black text-white uppercase",
+                          r.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
+                        )}
+                      >
+                        {r.kelompokKode}
+                      </span>
+                      <div className="font-mono text-[11px] font-bold text-slate-600 mt-1">
+                        {r.kodeItem}
                       </div>
-                      <span className="block mt-1 w-fit px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider">
-                        Khusus Wilayah
-                      </span>
                     </td>
-                    <td className="py-2.5 px-2 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-2 min-w-56">
+                      <div className="font-bold text-slate-900">{r.namaItem}</div>
+                      <div className="font-mono text-[11px] font-semibold text-slate-500">
+                        {r.kodeMaster}
+                      </div>
+                      {r.spesifikasi && (
+                        <div className="text-[11px] text-slate-600 font-medium mt-0.5">
+                          {r.spesifikasi}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-2 min-w-32">
+                      <div className="font-semibold text-slate-800">{r.kategori}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        {r.namaDivisiUtama}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-2 min-w-56">
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase">
+                          <Building2 className="w-3 h-3" />
+                          Aktif di {r.totalCabangUnik} Cabang
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-700 text-white text-[10px] font-bold">
+                          {r.totalSlotAktif} Slot Divisi
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {r.cabangRingkas.map((c) => (
+                          <span
+                            key={c.cabangId}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border-2 border-slate-300 bg-white text-[10px] font-bold text-slate-800"
+                          >
+                            <span>{c.namaCabang}</span>
+                            <span className="text-[#005BAC] font-black">
+                              ({c.divisiTokens.join(", ")})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-2 text-right whitespace-nowrap">
                       <div className="font-mono tabular-nums font-black text-slate-900 text-sm">
-                        {formatRupiah(w.harga)}
+                        {r.minHarga === r.maxHarga
+                          ? formatRupiah(r.minHarga)
+                          : `${formatRupiah(r.minHarga)} – ${formatRupiah(r.maxHarga)}`}
                       </div>
                       <div className="text-[11px] text-slate-500 font-medium">
                         per {r.satuan}
                       </div>
                     </td>
-                    <td className="py-2.5 px-2 text-right whitespace-nowrap">
-                      <Selisih rp={w.selisihRp} persen={w.selisihPersen} />
+                    <td className="py-3.5 pl-2 pr-4 text-center whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(r.id);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border-2 text-[11px] font-bold transition-colors cursor-pointer",
+                          isExpanded
+                            ? "bg-[#005BAC] border-[#005BAC] text-white"
+                            : "bg-white border-slate-300 text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC]"
+                        )}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                        <span>{isExpanded ? "Tutup" : "Lihat Harga"}</span>
+                      </button>
                     </td>
-                    <td className="py-2.5 px-2 whitespace-nowrap">
-                      <div className="font-mono font-medium text-slate-700">
-                        {formatTanggal(w.berlakuSejak)}
-                      </div>
-                      {w.nomorTiket && (
-                        <div className="font-mono text-[11px] text-slate-500">
-                          {w.nomorTiket}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2.5 pl-2 pr-4" />
                   </tr>
-                ))}
-              </React.Fragment>
-            ))}
+
+                  {isExpanded && (
+                    <tr className="bg-slate-50">
+                      <td colSpan={7} className="p-4 border-t border-slate-200">
+                        <div className="bg-white rounded-xl border-2 border-slate-300 overflow-hidden shadow-2xs">
+                          <div className="px-4 py-2 bg-slate-800 text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-between">
+                            <span>
+                              Harga Resmi per Cabang &amp; Divisi &bull; {r.namaItem} ({r.kodeMaster})
+                            </span>
+                            <span>{r.hargaCabangList.length} Harga Cabang Aktif</span>
+                          </div>
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200">
+                              <tr>
+                                <th className="py-2.5 px-3">Cabang Induk</th>
+                                <th className="py-2.5 px-3">Divisi</th>
+                                <th className="py-2.5 px-3 text-right">Harga Satuan</th>
+                                <th className="py-2.5 px-3 text-right">Selisih Wilayah</th>
+                                <th className="py-2.5 px-3">Berlaku Sejak</th>
+                                <th className="py-2.5 px-3 text-center">Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {r.hargaCabangList.map((slot) => (
+                                <React.Fragment key={slot.id}>
+                                  <tr className="hover:bg-slate-50">
+                                    <td className="py-2.5 px-3">
+                                      <div className="font-bold text-slate-900">
+                                        {slot.namaCabang}
+                                      </div>
+                                      <div className="text-[10px] font-semibold text-slate-500">
+                                        Regional {slot.regional}
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <span className="inline-block px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-black">
+                                        {slot.namaDivisi}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                      <div className="font-mono font-black text-slate-900">
+                                        {formatRupiah(slot.harga)}
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 font-semibold">
+                                        per {r.satuan} &middot; Margin {slot.marginPersen}%
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right text-slate-400 font-medium">
+                                      -
+                                    </td>
+                                    <td className="py-2.5 px-3 whitespace-nowrap">
+                                      <div className="font-mono font-semibold text-slate-700">
+                                        {formatTanggal(slot.berlakuSejak)}
+                                      </div>
+                                      {slot.nomorTiket && (
+                                        <div className="font-mono text-[10px] text-slate-500">
+                                          {slot.nomorTiket}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                      <div className="inline-flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => bukaRincian(slot.id)}
+                                          disabled={loadingId === slot.id}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-60"
+                                        >
+                                          {loadingId === slot.id ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Eye className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>Rincian</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleStatus(slot, r.namaItem, false)}
+                                          disabled={pending}
+                                          title="Nonaktifkan Harga Cabang"
+                                          className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
+                                        >
+                                          <Power className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+
+                                  {slot.wilayahList.map((w) => (
+                                    <tr key={w.id} className="bg-amber-50 hover:bg-amber-100">
+                                      <td className="py-2 px-3">
+                                        <div className="inline-flex items-center gap-1.5 pl-4 font-bold text-amber-950">
+                                          <CornerDownRight className="w-3.5 h-3.5 text-amber-700" />
+                                          <MapPin className="w-3.5 h-3.5 text-amber-700" />
+                                          <span>{w.namaWilayah}</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2 px-3">
+                                        <span className="inline-block px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
+                                          Khusus Wilayah
+                                        </span>
+                                      </td>
+                                      <td className="py-2 px-3 text-right whitespace-nowrap">
+                                        <div className="font-mono font-black text-slate-900">
+                                          {formatRupiah(w.harga)}
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 font-semibold">
+                                          per {r.satuan}
+                                        </div>
+                                      </td>
+                                      <td className="py-2 px-3 text-right whitespace-nowrap">
+                                        <Selisih rp={w.selisihRp} persen={w.selisihPersen} />
+                                      </td>
+                                      <td className="py-2 px-3 whitespace-nowrap">
+                                        <div className="font-mono font-medium text-slate-700">
+                                          {formatTanggal(w.berlakuSejak)}
+                                        </div>
+                                        {w.nomorTiket && (
+                                          <div className="font-mono text-[10px] text-slate-500">
+                                            {w.nomorTiket}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="py-2 px-3" />
+                                    </tr>
+                                  ))}
+                                </React.Fragment>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -294,8 +440,9 @@ export function MasterHargaClient({
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    {detail.item.kodeMaster} · Cabang {detail.item.namaCabang} ·
-                    Berlaku sejak {formatTanggal(detail.berlakuSejak)}
+                    {detail.item.kodeMaster} &middot; Cabang {detail.item.namaCabang} &middot;{" "}
+                    {detail.item.namaDivisi} &middot; Berlaku sejak{" "}
+                    {formatTanggal(detail.berlakuSejak)}
                   </p>
                 </div>
               </div>
@@ -314,7 +461,7 @@ export function MasterHargaClient({
               <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                    Harga Resmi Induk Cabang ({detail.item.namaCabang})
+                    Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull; {detail.item.namaDivisi})
                   </span>
                   <span className="text-2xl font-black font-mono text-[#005BAC] tabular-nums">
                     {formatRupiah(detail.hargaFinalInduk)}

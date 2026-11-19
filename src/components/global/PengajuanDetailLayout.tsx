@@ -106,11 +106,13 @@ export function PengajuanDetailLayout({
         />
       )}
 
-      {/* 5. Pemantauan Kuorum Rekanan Kontraktor (Jika tahap kuorum aktif) */}
+      {/* 5. Pemantauan Kuorum Rekanan / Kontraktor (Jika tahap kuorum aktif) */}
       {isTahapKontraktor && item.votingKontraktorList && (
         <VotingKontraktorMonitorCard
           votingList={item.votingKontraktorList}
           deadlineVoting={item.deadlineVoting}
+          kodeDivisi={item.kodeDivisi}
+          namaDivisi={item.namaDivisi}
         />
       )}
 

@@ -18,6 +18,7 @@ import Swal from "sweetalert2";
 import CreatableSelect from "react-select/creatable";
 import {
   PengajuanHargaItem,
+  KelompokKodeItem,
   generateDeskripsiOtomatis,
   getKodeData,
 } from "@/types/pengajuan";
@@ -36,6 +37,7 @@ export interface DivisiOption {
 }
 
 export interface BulkPengajuanPayloadItem {
+  kelompokKode: KelompokKodeItem;
   item: string;
   namaItem: string;
   kategori: string;
@@ -60,6 +62,36 @@ export interface BulkPengajuanPayloadItem {
   deskripsiOtomatis: string;
   jenisPengajuan: "Hanya Jasa" | "Material";
   komponenMaterial: KoefisienDetailItem[];
+  mode?: "new" | "aktivasi";
+  masterItemId?: string;
+}
+
+export interface ActivationTemplatePayload {
+  masterItemId: string;
+  targetDivisiId?: string;
+  kelompokKode: KelompokKodeItem;
+  kodeItem: string;
+  kodeMaster: string;
+  namaItem: string;
+  kategori: string;
+  jenisCor?: string;
+  ukuran: string;
+  merk: string;
+  tipe?: string;
+  warna?: string;
+  permukaan?: string;
+  tebal?: string;
+  toleransi?: string;
+  lokasi: string;
+  satuan: string;
+  activeDivisiIds: string[];
+  inProgressDivisiIds: string[];
+  komponenMaterial: Array<{
+    masterKoefisienId?: string;
+    kategori: "MATERIAL" | "ALAT";
+    namaKomponen: string;
+    satuan: string;
+  }>;
 }
 
 interface QueuedPengajuanRow extends BulkPengajuanPayloadItem {
@@ -99,6 +131,7 @@ export interface TambahPengajuanModalProps {
   nextIndex?: number;
   existingItems?: PengajuanHargaItem[];
   itemToEdit?: PengajuanHargaItem | null;
+  activationTemplate?: ActivationTemplatePayload | null;
   defaultCabang?: string;
   defaultDivisiId?: string;
 }
@@ -492,6 +525,7 @@ export function TambahPengajuanModal({
   nextIndex = 1,
   existingItems = [],
   itemToEdit = null,
+  activationTemplate = null,
   defaultCabang = "Cikokol",
   defaultDivisiId,
 }: TambahPengajuanModalProps) {
@@ -528,6 +562,7 @@ export function TambahPengajuanModal({
   const [lokasi, setLokasi] = useState<string>("");
 
   const [jenisPengajuan, setJenisPengajuan] = useState<"Hanya Jasa" | "Material">("Material");
+  const [kelompokKode, setKelompokKode] = useState<KelompokKodeItem>("SIP");
   const [komponenMaterialList, setKomponenMaterialList] = useState<KoefisienDetailItem[]>([]);
   const [pustakaKoefisien, setPustakaKoefisien] = useState<OpsiPustakaKoefisien[]>([]);
   const [isTermasukBongkaran, setIsTermasukBongkaran] = useState(false);
@@ -573,6 +608,7 @@ export function TambahPengajuanModal({
       noTiket: q.kodeMaster,
       kodeItem: q.kodeItem,
       kode: q.kodeItem,
+      kelompokKode: q.kelompokKode,
       kodeMaster: q.kodeMaster,
       namaItem: q.namaItem,
       item: q.item,
@@ -661,6 +697,12 @@ export function TambahPengajuanModal({
 
     if (selectedOption.data) {
       const target = selectedOption.data as PengajuanHargaItem;
+      const targetPrefix: KelompokKodeItem =
+        target.kelompokKode === "ME" ||
+        (target.kode || target.kodeItem || "").toUpperCase().startsWith("ME-")
+          ? "ME"
+          : "SIP";
+      setKelompokKode(targetPrefix);
       setKategori(target.kategori || "Pekerjaan Keramik");
       setJenisCor(target.jenisCor || "");
 
@@ -756,6 +798,7 @@ export function TambahPengajuanModal({
   const kodeData = useMemo(() => {
     return getKodeData({
       kategori,
+      prefixKode: kelompokKode,
       jenisCor: isKategoriCor ? jenisCor : "",
       item,
       implementasi,
@@ -772,6 +815,7 @@ export function TambahPengajuanModal({
     });
   }, [
     kategori,
+    kelompokKode,
     isKategoriCor,
     jenisCor,
     item,
@@ -797,6 +841,98 @@ export function TambahPengajuanModal({
     return false;
   };
 
+  const isSameSpecForBranchCheck = (
+    candidate: {
+      item?: string;
+      namaItem?: string;
+      kelompokKode?: KelompokKodeItem;
+      kodeItem?: string;
+      kode?: string;
+      jenisCor?: string;
+      ukuran?: string;
+      merk?: string;
+      warna?: string;
+      tipe?: string;
+      permukaan?: string;
+      tebal?: string;
+      lokasi?: string | string[];
+    },
+    target: {
+      kelompokKode: KelompokKodeItem;
+      item: string;
+      jenisCor: string;
+      ukuran: string;
+      merk: string;
+      warna: string;
+      tipe: string;
+      permukaan: string;
+      tebal: string;
+      lokasi: string;
+    }
+  ) => {
+    const norm = (s?: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const normUkuran = (s?: string) => (s || "").trim().replace(/\s*cm$/i, "").replace(/\s+/g, "").toLowerCase();
+    const normTebal = (s?: string) => (s || "").trim().replace(/\s*mm$/i, "").replace(/\s+/g, "").toLowerCase();
+    const cPrefix: KelompokKodeItem =
+      candidate.kelompokKode === "ME" ||
+      (candidate.kode || candidate.kodeItem || "").toUpperCase().startsWith("ME-")
+        ? "ME"
+        : "SIP";
+    const cName = norm(candidate.item || candidate.namaItem);
+    const cLoc = Array.isArray(candidate.lokasi)
+      ? candidate.lokasi.map(norm).sort().join(",")
+      : norm(candidate.lokasi);
+    return (
+      cPrefix === target.kelompokKode &&
+      cName === norm(target.item) &&
+      norm(candidate.jenisCor) === norm(target.jenisCor) &&
+      normUkuran(candidate.ukuran) === normUkuran(target.ukuran) &&
+      norm(candidate.merk) === norm(target.merk) &&
+      norm(candidate.warna) === norm(target.warna) &&
+      norm(candidate.tipe) === norm(target.tipe) &&
+      norm(candidate.permukaan) === norm(target.permukaan) &&
+      normTebal(candidate.tebal) === normTebal(target.tebal) &&
+      cLoc === norm(target.lokasi)
+    );
+  };
+
+  const currentFormSpecKey = useMemo(
+    () => ({
+      kelompokKode,
+      item,
+      jenisCor: isKategoriCor ? jenisCor : "",
+      ukuran: combinedUkuran,
+      merk,
+      warna,
+      tipe,
+      permukaan,
+      tebal: combinedTebal,
+      lokasi,
+    }),
+    [kelompokKode, item, isKategoriCor, jenisCor, combinedUkuran, merk, warna, tipe, permukaan, combinedTebal, lokasi]
+  );
+
+  // Divisi yang SUDAH AKTIF (RELEASED di cabang ini / dari activationTemplate) -> terkunci, tidak bisa diklik
+  const activeDivisiIdsForForm = useMemo(() => {
+    const ids = new Set<string>(activationTemplate?.activeDivisiIds || []);
+    if (!itemToEdit && item.trim() && lokasi.trim()) {
+      const releasedMatches = otherItems.filter(
+        (i) => i.status === "RELEASED" && isSameSpecForBranchCheck(i, currentFormSpecKey)
+      );
+      for (const div of divisiOptions) {
+        if (releasedMatches.some((e) => matchesDivisiKey(e, div.id))) {
+          ids.add(div.id);
+        }
+      }
+    }
+    return Array.from(ids);
+  }, [activationTemplate, itemToEdit, item, lokasi, otherItems, divisiOptions, currentFormSpecKey]);
+
+  const inProgressDivisiIdsForForm = useMemo(
+    () => activationTemplate?.inProgressDivisiIds || [],
+    [activationTemplate]
+  );
+
   const duplicateAnalysis = useMemo(() => {
     if (itemToEdit || !item.trim() || !lokasi.trim()) {
       return {
@@ -809,43 +945,12 @@ export function TambahPengajuanModal({
       };
     }
 
-    const norm = (s?: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-    const normUkuran = (s?: string) => (s || "").trim().replace(/\s*cm$/i, "").replace(/\s+/g, "").toLowerCase();
-    const normTebal = (s?: string) => (s || "").trim().replace(/\s*mm$/i, "").replace(/\s+/g, "").toLowerCase();
-
-    const isSamePhysicalAndLocation = (candidate: {
-      item?: string;
-      namaItem?: string;
-      jenisCor?: string;
-      ukuran?: string;
-      merk?: string;
-      warna?: string;
-      tipe?: string;
-      permukaan?: string;
-      tebal?: string;
-      lokasi?: string | string[];
-    }) => {
-      const cName = norm(candidate.item || candidate.namaItem);
-      const cLoc = Array.isArray(candidate.lokasi)
-        ? candidate.lokasi.map(norm).sort().join(",")
-        : norm(candidate.lokasi);
-      return (
-        cName === norm(item) &&
-        norm(candidate.jenisCor) === norm(isKategoriCor ? jenisCor : "") &&
-        normUkuran(candidate.ukuran) === normUkuran(combinedUkuran) &&
-        norm(candidate.merk) === norm(merk) &&
-        norm(candidate.warna) === norm(warna) &&
-        norm(candidate.tipe) === norm(tipe) &&
-        norm(candidate.permukaan) === norm(permukaan) &&
-        normTebal(candidate.tebal) === normTebal(combinedTebal) &&
-        cLoc === norm(lokasi)
-      );
-    };
-
     const matchingExisting = otherItems.filter(
-      (i) => i.status !== "DITOLAK" && isSamePhysicalAndLocation(i)
+      (i) => i.status !== "DITOLAK" && isSameSpecForBranchCheck(i, currentFormSpecKey)
     );
-    const matchingQueued = queuedItems.filter((q) => isSamePhysicalAndLocation(q));
+    const matchingQueued = queuedItems.filter((q) =>
+      isSameSpecForBranchCheck(q, currentFormSpecKey)
+    );
 
     const duplicatedDivs: DivisiOption[] = [];
     const queuedDivs: DivisiOption[] = [];
@@ -856,7 +961,11 @@ export function TambahPengajuanModal({
       if (!opt) continue;
       if (matchingQueued.some((q) => q.divisiIds.includes(divId))) {
         queuedDivs.push(opt);
-      } else if (matchingExisting.some((e) => matchesDivisiKey(e, divId))) {
+      } else if (
+        activeDivisiIdsForForm.includes(divId) ||
+        inProgressDivisiIdsForForm.includes(divId) ||
+        matchingExisting.some((e) => matchesDivisiKey(e, divId))
+      ) {
         duplicatedDivs.push(opt);
       } else {
         validNewDivs.push(opt);
@@ -872,20 +981,24 @@ export function TambahPengajuanModal({
   }, [
     itemToEdit,
     item,
-    isKategoriCor,
-    jenisCor,
-    combinedUkuran,
-    merk,
-    warna,
-    tipe,
-    permukaan,
-    combinedTebal,
     lokasi,
     selectedDivisiIds,
     divisiOptions,
     otherItems,
     queuedItems,
+    currentFormSpecKey,
+    activeDivisiIdsForForm,
+    inProgressDivisiIdsForForm,
   ]);
+
+  // Pastikan divisi yang sudah aktif (RELEASED / activeDivisiIds) otomatis terlepas dari pilihan
+  useEffect(() => {
+    if (!isOpen || itemToEdit || activeDivisiIdsForForm.length === 0) return;
+    setSelectedDivisiIds((prev) => {
+      const next = prev.filter((id) => !activeDivisiIdsForForm.includes(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [isOpen, itemToEdit, activeDivisiIdsForForm]);
 
   const isDuplicate = duplicateAnalysis.allBlocked;
 
@@ -966,6 +1079,12 @@ export function TambahPengajuanModal({
         : ""
     );
     setJenisPengajuan((target.satuan || "").toUpperCase() === "LS" ? "Hanya Jasa" : "Material");
+    setKelompokKode(
+      target.kelompokKode ||
+        ((target.kode || target.kodeItem || "").toUpperCase().startsWith("ME-")
+          ? "ME"
+          : "SIP")
+    );
     setKomponenMaterialList(
       (target.koefisienItems || []).filter(
         (k) => k.kategori === "MATERIAL" || k.kategori === "ALAT"
@@ -1017,6 +1136,21 @@ export function TambahPengajuanModal({
         if (mapped.length === 0) return;
         setDivisiOptions(mapped);
         setSelectedDivisiIds((prev) => {
+          if (activationTemplate) {
+            const blockedSet = new Set([
+              ...activationTemplate.activeDivisiIds,
+              ...activationTemplate.inProgressDivisiIds,
+            ]);
+            if (
+              activationTemplate.targetDivisiId &&
+              mapped.some((m) => m.id === activationTemplate.targetDivisiId) &&
+              !blockedSet.has(activationTemplate.targetDivisiId)
+            ) {
+              return [activationTemplate.targetDivisiId];
+            }
+            const firstAvailable = mapped.find((m) => !blockedSet.has(m.id));
+            return firstAvailable ? [firstAvailable.id] : [];
+          }
           // Remap fallback kodeDivisi ('DIV-BLD') ke real DB ID jika sebelumnya pakai fallback
           const remapped = prev
             .map((p) => {
@@ -1084,6 +1218,7 @@ export function TambahPengajuanModal({
 
   const handleReset = () => {
     setKategori("Pekerjaan Keramik");
+    setKelompokKode("SIP");
     clearItemFieldsForNext();
     setImplementasi("Dinding Gerai");
     setJenisPengajuan("Material");
@@ -1094,30 +1229,105 @@ export function TambahPengajuanModal({
     setSelectedDivisiIds(resolveDefaultDivisiSelection(divisiOptions));
   };
 
+  const populateFromActivation = (tpl: ActivationTemplatePayload) => {
+    setKelompokKode(tpl.kelompokKode || "SIP");
+    setKategori(tpl.kategori || "Pekerjaan Keramik");
+    setJenisCor(tpl.jenisCor || "");
+    setItem(tpl.namaItem || "");
+
+    const parsedUkuran = parseNilaiDanSatuan(tpl.ukuran, "cm");
+    setUkuranNilai(parsedUkuran.nilai);
+    setUkuranSatuan(parsedUkuran.satuan || "cm");
+
+    setMerk(tpl.merk || "");
+    setWarna(tpl.warna || "");
+    setTipe(tpl.tipe || "");
+    setPermukaan(tpl.permukaan || "");
+
+    const parsedTebal = parseNilaiDanSatuan(tpl.tebal, "mm");
+    setTebalNilai(parsedTebal.nilai);
+    setTebalSatuan(parsedTebal.satuan || "mm");
+
+    const parsedTol = parseNilaiDanSatuan(tpl.toleransi, "mm");
+    setToleransiNilai(parsedTol.nilai);
+    setToleransiSatuan(parsedTol.satuan || "mm");
+
+    setImplementasi("Dinding Gerai");
+    setLokasi(tpl.lokasi || "");
+    setJenisPengajuan((tpl.satuan || "").toUpperCase() === "LS" ? "Hanya Jasa" : "Material");
+    setKomponenMaterialList(
+      (tpl.komponenMaterial || []).map((k, idx) => ({
+        id: `act-${idx}-${Date.now()}`,
+        masterKoefisienId: k.masterKoefisienId,
+        kategori: k.kategori,
+        namaKomponen: k.namaKomponen,
+        satuan: k.satuan,
+        koefisien: 0,
+        hargaAcuan: 0,
+        marginPersen: 8,
+        wajibSurveiToko: true,
+      }))
+    );
+    setIsTermasukBongkaran(false);
+    setInformasiTambahan("");
+    setCabang(defaultCabang);
+    setQueuedItems([]);
+    setKodeItem(tpl.kodeItem);
+    setKodeMaster(tpl.kodeMaster);
+
+    const blockedSet = new Set([
+      ...(tpl.activeDivisiIds || []),
+      ...(tpl.inProgressDivisiIds || []),
+    ]);
+    if (tpl.targetDivisiId && !blockedSet.has(tpl.targetDivisiId)) {
+      setSelectedDivisiIds([tpl.targetDivisiId]);
+    } else {
+      const avail = divisiOptions.find((d) => !blockedSet.has(d.id));
+      setSelectedDivisiIds(avail ? [avail.id] : []);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (itemToEdit) {
         populateForm(itemToEdit);
+      } else if (activationTemplate) {
+        populateFromActivation(activationTemplate);
       } else {
         handleReset();
       }
     }
-  }, [isOpen, itemToEdit]);
+  }, [isOpen, itemToEdit, activationTemplate]);
+
+  const isDivisiBlockedByActivation = (divId: string) =>
+    activeDivisiIdsForForm.includes(divId) || inProgressDivisiIdsForForm.includes(divId);
 
   const handleToggleDivisi = (divId: string) => {
+    if (isDivisiBlockedByActivation(divId)) return;
     setSelectedDivisiIds((prev) =>
       prev.includes(divId) ? prev.filter((id) => id !== divId) : [...prev, divId]
     );
   };
 
+  const selectableDivisiOptions = useMemo(
+    () =>
+      divisiOptions.filter(
+        (d) =>
+          !activeDivisiIdsForForm.includes(d.id) && !inProgressDivisiIdsForForm.includes(d.id)
+      ),
+    [divisiOptions, activeDivisiIdsForForm, inProgressDivisiIdsForForm]
+  );
+
   const allDivisiSelected =
-    divisiOptions.length > 0 && divisiOptions.every((d) => selectedDivisiIds.includes(d.id));
+    selectableDivisiOptions.length > 0 &&
+    selectableDivisiOptions.every((d) => selectedDivisiIds.includes(d.id));
 
   const handleToggleAllDivisi = () => {
     if (allDivisiSelected) {
-      setSelectedDivisiIds(resolveDefaultDivisiSelection(divisiOptions));
+      const def = resolveDefaultDivisiSelection(selectableDivisiOptions);
+      setSelectedDivisiIds(def);
     } else {
-      setSelectedDivisiIds(divisiOptions.map((d) => d.id));
+      setSelectedDivisiIds(selectableDivisiOptions.map((d) => d.id));
     }
   };
 
@@ -1197,6 +1407,7 @@ export function TambahPengajuanModal({
     const finalKodeItem = kodeItem.trim() || kodeData.kodeItem;
     const finalKodeMaster = kodeMaster.trim() || kodeData.kodeMaster;
     return {
+      kelompokKode,
       item: item.trim(),
       namaItem: item.trim(),
       kategori: kategori.trim(),
@@ -1221,6 +1432,8 @@ export function TambahPengajuanModal({
       deskripsiOtomatis,
       jenisPengajuan,
       komponenMaterial: jenisPengajuan === "Material" ? [...komponenMaterialList] : [],
+      mode: activationTemplate ? "aktivasi" : "new",
+      ...(activationTemplate ? { masterItemId: activationTemplate.masterItemId } : {}),
     };
   };
 
@@ -1246,10 +1459,40 @@ export function TambahPengajuanModal({
     });
   };
 
+  const isRowDivisiBlocked = (row: QueuedPengajuanRow, divId: string) => {
+    if (
+      activationTemplate &&
+      row.masterItemId === activationTemplate.masterItemId &&
+      (activationTemplate.activeDivisiIds.includes(divId) ||
+        activationTemplate.inProgressDivisiIds.includes(divId))
+    ) {
+      return true;
+    }
+    const rowSpecKey = {
+      kelompokKode: row.kelompokKode || "SIP",
+      item: row.item || row.namaItem,
+      jenisCor: row.jenisCor || "",
+      ukuran: row.ukuran,
+      merk: row.merk,
+      warna: row.warna,
+      tipe: row.tipe,
+      permukaan: row.permukaan,
+      tebal: row.tebal,
+      lokasi: row.lokasi,
+    };
+    return otherItems.some(
+      (i) =>
+        i.status === "RELEASED" &&
+        matchesDivisiKey(i, divId) &&
+        isSameSpecForBranchCheck(i, rowSpecKey)
+    );
+  };
+
   const handleToggleRowDivisi = (queueId: string, divId: string) => {
     setQueuedItems((prev) =>
       prev.map((row) => {
         if (row.queueId !== queueId) return row;
+        if (isRowDivisiBlocked(row, divId)) return row;
         const exists = row.divisiIds.includes(divId);
         if (exists && row.divisiIds.length <= 1) {
           return row;
@@ -1269,6 +1512,7 @@ export function TambahPengajuanModal({
   };
 
   const handleCopyRowToForm = (row: QueuedPengajuanRow) => {
+    setKelompokKode(row.kelompokKode || "SIP");
     setKategori(row.kategori);
     setJenisCor(row.jenisCor || "");
     setItem(row.item);
@@ -1395,6 +1639,7 @@ export function TambahPengajuanModal({
       id: itemToEdit?.id || `item-${Date.now()}`,
       noTiket: itemToEdit?.noTiket || finalKodeMaster,
       kodeItem: finalKodeItem,
+      kelompokKode,
       namaItem: item.trim(),
       kategori: kategori.trim(),
       jenisCor: isKategoriCor ? jenisCor.trim() : "",
@@ -1454,13 +1699,21 @@ export function TambahPengajuanModal({
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-5 rounded-sm inline-block ${itemToEdit ? "bg-amber-600" : "bg-[#ED1C24]"}`} />
               <h2 className="text-base md:text-lg font-black text-slate-900">
-                {itemToEdit ? "Edit Revisi Spesifikasi" : "Pengajuan Spesifikasi Material Baru"}
+                {itemToEdit
+                  ? "Edit Revisi Spesifikasi"
+                  : activationTemplate
+                    ? "Aktivasi Item Master ke Divisi / Cabang"
+                    : "Pengajuan Spesifikasi Material Baru"}
               </h2>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               {itemToEdit
                 ? "Perbaiki data material sesuai instruksi S&B Specialist."
-                : "Pilih divisi pengaktifan, isi spesifikasi, lalu tambahkan ke antrean massal atau ajukan langsung."}
+                : activationTemplate
+                  ? activationTemplate.komponenMaterial.length > 0
+                    ? "Spesifikasi item dan referensi komponen sudah terisi. Pilih divisi yang belum aktif lalu sesuaikan komponen jika perlu."
+                    : "Spesifikasi item sudah terisi. Pilih divisi yang belum aktif dan tambahkan minimal 1 komponen Bahan/Peralatan sebelum mengajukan."
+                  : "Pilih divisi pengaktifan, isi spesifikasi, lalu tambahkan ke antrean massal atau ajukan langsung."}
             </p>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -1473,11 +1726,15 @@ export function TambahPengajuanModal({
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border-2 ${
                 itemToEdit
                   ? "bg-amber-600 text-white border-amber-700"
-                  : "bg-emerald-600 text-white border-emerald-700"
+                  : activationTemplate
+                    ? "bg-[#005BAC] text-white border-[#004585]"
+                    : "bg-emerald-600 text-white border-emerald-700"
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-white" />
-              <span>{itemToEdit ? "Mode Revisi" : "Material Baru"}</span>
+              <span>
+                {itemToEdit ? "Mode Revisi" : activationTemplate ? "Mode Aktivasi" : "Material Baru"}
+              </span>
             </span>
             <button
               type="button"
@@ -1533,32 +1790,63 @@ export function TambahPengajuanModal({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {divisiOptions.map((div) => {
                   const checked = selectedDivisiIds.includes(div.id);
+                  const isAlreadyActive = activeDivisiIdsForForm.includes(div.id);
+                  const isInProgress = inProgressDivisiIdsForForm.includes(div.id);
+                  const blocked = isAlreadyActive || isInProgress;
+
                   return (
                     <button
                       key={div.id}
                       type="button"
+                      disabled={blocked}
+                      aria-disabled={blocked}
+                      title={
+                        isAlreadyActive
+                          ? `${div.namaDivisi} sudah aktif untuk item ini`
+                          : isInProgress
+                            ? `${div.namaDivisi} sedang dalam proses pengajuan`
+                            : `Pilih divisi ${div.namaDivisi}`
+                      }
                       onClick={() => handleToggleDivisi(div.id)}
-                      className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        checked
-                          ? "bg-[#005BAC] border-[#004585] text-white shadow-xs"
-                          : "bg-white border-slate-300 text-slate-800 hover:border-[#005BAC]"
+                      className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
+                        blocked
+                          ? isAlreadyActive
+                            ? "bg-slate-100 border-emerald-600 text-emerald-950 cursor-not-allowed select-none"
+                            : "bg-slate-100 border-amber-500 text-amber-950 cursor-not-allowed select-none"
+                          : checked
+                            ? "bg-[#005BAC] border-[#004585] text-white shadow-xs cursor-pointer"
+                            : "bg-white border-slate-300 text-slate-800 hover:border-[#005BAC] cursor-pointer"
                       }`}
                     >
                       <div className="min-w-0">
                         <div className="text-xs font-black truncate">{div.namaDivisi}</div>
                         <div
                           className={`text-[10px] font-mono font-bold ${
-                            checked ? "text-blue-100" : "text-slate-500"
+                            blocked
+                              ? isAlreadyActive
+                                ? "text-emerald-700"
+                                : "text-amber-700"
+                              : checked
+                                ? "text-blue-100"
+                                : "text-slate-500"
                           }`}
                         >
-                          {div.kodeDivisi}
+                          {isAlreadyActive
+                            ? "Sudah Aktif"
+                            : isInProgress
+                              ? "Sedang Proses"
+                              : div.kodeDivisi}
                         </div>
                       </div>
                       <span
                         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
-                          checked
-                            ? "bg-white border-white text-[#005BAC]"
-                            : "bg-white border-slate-300 text-transparent"
+                          blocked
+                            ? isAlreadyActive
+                              ? "bg-emerald-600 border-emerald-600 text-white"
+                              : "bg-amber-600 border-amber-600 text-white"
+                            : checked
+                              ? "bg-white border-white text-[#005BAC]"
+                              : "bg-white border-slate-300 text-transparent"
                         }`}
                       >
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -1581,7 +1869,24 @@ export function TambahPengajuanModal({
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Kelompok Pekerjaan (Kode) <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={kelompokKode}
+                  onChange={(e) => setKelompokKode(e.target.value === "ME" ? "ME" : "SIP")}
+                  className="w-full h-9 px-3 rounded-lg border-2 border-slate-300 text-xs text-slate-800 bg-white font-bold focus:border-[#005BAC] focus:outline-none"
+                >
+                  <option value="SIP">SIP</option>
+                  <option value="ME">ME</option>
+                </select>
+                <span className="text-[10px] text-slate-500">
+                  Menentukan awalan kode item ({kelompokKode}-XXX)
+                </span>
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">
                   Jenis Pengajuan <span className="text-red-500">*</span>
@@ -2184,6 +2489,13 @@ export function TambahPengajuanModal({
                                 {[row.jenisCor, row.merk, row.ukuran, row.warna, row.tipe].filter(Boolean).join(" · ")}
                               </div>
                               <div className="mt-1 flex flex-wrap gap-1">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-white text-[10px] font-black ${
+                                    row.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-700"
+                                  }`}
+                                >
+                                  {row.kelompokKode}
+                                </span>
                                 <span className="px-2 py-0.5 rounded bg-slate-800 text-white text-[10px] font-bold">
                                   {row.kategori}
                                 </span>
@@ -2207,16 +2519,24 @@ export function TambahPengajuanModal({
                               <div className="flex flex-wrap gap-1">
                                 {divisiOptions.map((div) => {
                                   const active = row.divisiIds.includes(div.id);
+                                  const blockedRowDiv = isRowDivisiBlocked(row, div.id);
                                   return (
                                     <button
                                       key={div.id}
                                       type="button"
+                                      disabled={blockedRowDiv}
                                       onClick={() => handleToggleRowDivisi(row.queueId, div.id)}
-                                      title={`Toggle divisi ${div.namaDivisi}`}
-                                      className={`px-2 py-1 rounded-md text-[10px] font-black border-2 transition-colors cursor-pointer ${
-                                        active
-                                          ? "bg-[#005BAC] border-[#004585] text-white"
-                                          : "bg-white border-slate-300 text-slate-500 hover:border-[#005BAC]"
+                                      title={
+                                        blockedRowDiv
+                                          ? `${div.namaDivisi} sudah aktif / sedang diproses`
+                                          : `Toggle divisi ${div.namaDivisi}`
+                                      }
+                                      className={`px-2 py-1 rounded-md text-[10px] font-black border-2 transition-colors ${
+                                        blockedRowDiv
+                                          ? "bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed"
+                                          : active
+                                            ? "bg-[#005BAC] border-[#004585] text-white cursor-pointer"
+                                            : "bg-white border-slate-300 text-slate-500 hover:border-[#005BAC] cursor-pointer"
                                       }`}
                                     >
                                       {div.shortLabel}

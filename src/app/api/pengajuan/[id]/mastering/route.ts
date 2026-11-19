@@ -82,6 +82,8 @@ export async function POST(
       const nama = (b.namaKomponen || b.label || "Komponen").trim();
       const satuan = (b.satuan || b.unit || "Oh").trim();
       const isMaterial = kategori === "MATERIAL" || kategori === "ALAT";
+      let wajibSurvei =
+        typeof b.wajibSurveiToko === "boolean" ? b.wajibSurveiToko : isMaterial;
 
       let validMasterId = "";
 
@@ -92,6 +94,7 @@ export async function POST(
         });
         if (found && found.divisiId === tiket.divisiId && found.isActive) {
           validMasterId = found.id;
+          wajibSurvei = found.wajibSurveiToko;
         }
       }
 
@@ -107,6 +110,7 @@ export async function POST(
         });
         if (matchByName) {
           validMasterId = matchByName.id;
+          wajibSurvei = matchByName.wajibSurveiToko;
         }
       }
 
@@ -119,8 +123,8 @@ export async function POST(
             namaKomponen: nama,
             satuan,
             nilaiKoefisienDefault: nilai > 0 ? nilai : 1,
-            hargaAcuanDefault: isMaterial ? null : harga > 0 ? harga : null,
-            wajibSurveiToko: isMaterial,
+            hargaAcuanDefault: wajibSurvei ? null : harga > 0 ? harga : null,
+            wajibSurveiToko: wajibSurvei,
             isActive: true,
           },
         });
@@ -130,7 +134,7 @@ export async function POST(
       formattedBaris.push({
         masterKoefisienId: validMasterId,
         nilaiKoefisien: nilai,
-        hargaAcuanSatuan: isMaterial ? 0 : harga,
+        hargaAcuanSatuan: wajibSurvei ? 0 : harga,
       });
     }
 

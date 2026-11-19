@@ -11,19 +11,27 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { VotingKontraktorItem } from "@/types";
-import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
+import { cn, formatRupiah, formatTanggal, labelMitraUntukDivisi } from "@/lib/utils";
 
 export interface VotingKontraktorMonitorCardProps {
   votingList?: VotingKontraktorItem[];
   deadlineVoting?: string;
+  kodeDivisi?: string | null;
+  namaDivisi?: string | null;
   className?: string;
 }
 
 export function VotingKontraktorMonitorCard({
   votingList = [],
   deadlineVoting,
+  kodeDivisi,
+  namaDivisi,
   className = "",
 }: VotingKontraktorMonitorCardProps) {
+  const isRekanan =
+    votingList.some((v) => v.jenisMitra === "REKANAN") ||
+    labelMitraUntukDivisi(kodeDivisi, namaDivisi) === "Rekanan";
+  const labelMitra = isRekanan ? "Rekanan" : "Kontraktor";
   const total = votingList.length;
   const setujuCount = votingList.filter((v) => v.statusVote === "SETUJU").length;
   const tolakCount = votingList.filter((v) => v.statusVote === "TOLAK").length;
@@ -78,7 +86,7 @@ export function VotingKontraktorMonitorCard({
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-[#005BAC]" />
           <h3 className="text-xs font-black text-slate-800 tracking-wide uppercase">
-            Penawaran Kontraktor
+            Penawaran {labelMitra}
           </h3>
         </div>
 
@@ -96,7 +104,7 @@ export function VotingKontraktorMonitorCard({
         <div className="bg-slate-50 p-3.5 rounded-xl border-2 border-slate-200">
           <div className="flex justify-between items-center mb-1.5 text-xs font-bold">
             <span className="text-slate-700">
-              Progres Persetujuan Kontraktor:
+              Progres Persetujuan {labelMitra}:
             </span>
             <span
               className={cn(
@@ -108,7 +116,7 @@ export function VotingKontraktorMonitorCard({
                   : "text-amber-700"
               )}
             >
-              {setujuCount} dari {total} Kontraktor ({persentaseSetuju}%)
+              {setujuCount} dari {total} {labelMitra} ({persentaseSetuju}%)
               {isKuorumTercapai
                 ? " • Kuorum Tercapai"
                 : isKuorumGagal

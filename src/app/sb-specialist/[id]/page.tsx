@@ -154,7 +154,22 @@ export default function SBSpecialistDetailPage() {
   // State Modal Edit Redaksi Spesifikasi (hanya kolom terstruktur, status DIAJUKAN)
   const [isEditRedaksiOpen, setIsEditRedaksiOpen] = useState(false);
   const [isSavingRedaksi, setIsSavingRedaksi] = useState(false);
-  const [redaksiForm, setRedaksiForm] = useState({
+  const [redaksiForm, setRedaksiForm] = useState<{
+    kelompokKode: "SIP" | "ME";
+    namaItem: string;
+    kategori: string;
+    jenisCor: string;
+    ukuranNilai: string;
+    ukuranSatuan: string;
+    merk: string;
+    tipe: string;
+    warna: string;
+    permukaan: string;
+    tebal: string;
+    toleransi: string;
+    lokasi: string;
+  }>({
+    kelompokKode: "SIP",
     namaItem: "",
     kategori: "",
     jenisCor: "",
@@ -172,7 +187,13 @@ export default function SBSpecialistDetailPage() {
   const openEditRedaksiModal = () => {
     if (!item) return;
     const parsedUkuran = parseNilaiDanSatuan(item.ukuran, item.satuan || "cm");
+    const resolvedKelompok: "SIP" | "ME" =
+      item.kelompokKode === "ME" ||
+      (item.kode || item.kodeItem || "").toUpperCase().startsWith("ME-")
+        ? "ME"
+        : "SIP";
     setRedaksiForm({
+      kelompokKode: resolvedKelompok,
       namaItem: item.namaItem || item.item || "",
       kategori: item.kategori || "",
       jenisCor: item.jenisCor || "",
@@ -233,6 +254,7 @@ export default function SBSpecialistDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          kelompokKode: redaksiForm.kelompokKode,
           namaItem: redaksiForm.namaItem.trim(),
           kategori: redaksiForm.kategori.trim(),
           jenisCor: isCor ? redaksiForm.jenisCor.trim() : "",
@@ -1208,6 +1230,8 @@ export default function SBSpecialistDetailPage() {
             <VotingKontraktorMonitorCard
               votingList={item.votingKontraktorList || []}
               deadlineVoting={item.deadlineVoting}
+              kodeDivisi={item.kodeDivisi}
+              namaDivisi={item.namaDivisi}
             />
             {isKeputusanBandingTersedia && (
               <KeputusanBanding
@@ -1308,6 +1332,34 @@ export default function SBSpecialistDetailPage() {
                     onChange={(e) => setRedaksiForm((p) => ({ ...p, namaItem: e.target.value }))}
                     className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:border-[#005BAC]"
                   />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">
+                    Kelompok Pekerjaan (Kode) <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={redaksiForm.kelompokKode}
+                    onChange={(e) =>
+                      setRedaksiForm((p) => ({
+                        ...p,
+                        kelompokKode: e.target.value === "ME" ? "ME" : "SIP",
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-[#005BAC]"
+                  >
+                    <option value="SIP">SIP — Sipil (SIP-XXX)</option>
+                    <option value="ME">ME — Mekanikal &amp; Elektrikal (ME-XXX)</option>
+                  </select>
+                  {item &&
+                    ((item.kode || item.kodeItem || "").toUpperCase().startsWith("ME-")
+                      ? "ME"
+                      : "SIP") !== redaksiForm.kelompokKode && (
+                      <p className="text-[10px] text-amber-800 font-semibold mt-1">
+                        Kode Item &amp; Kode Master akan di-generate ulang ke urutan{" "}
+                        {redaksiForm.kelompokKode}-XXX saat disimpan.
+                      </p>
+                    )}
                 </div>
 
                 <div>

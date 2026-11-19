@@ -165,6 +165,23 @@ export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
 }
 
+export type EnumJenisMitraFilter<$PrismaModel = never> = {
+  equals?: $Enums.JenisMitra | Prisma.EnumJenisMitraFieldRefInput<$PrismaModel>
+  in?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  notIn?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel> | $Enums.JenisMitra
+}
+
+export type EnumJenisMitraWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.JenisMitra | Prisma.EnumJenisMitraFieldRefInput<$PrismaModel>
+  in?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  notIn?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumJenisMitraWithAggregatesFilter<$PrismaModel> | $Enums.JenisMitra
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel>
+}
+
 export type EnumStatusKeaktifanCabangFilter<$PrismaModel = never> = {
   equals?: $Enums.StatusKeaktifanCabang | Prisma.EnumStatusKeaktifanCabangFieldRefInput<$PrismaModel>
   in?: $Enums.StatusKeaktifanCabang[] | Prisma.ListEnumStatusKeaktifanCabangFieldRefInput<$PrismaModel>
@@ -493,6 +510,23 @@ export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumJenisMitraFilter<$PrismaModel = never> = {
+  equals?: $Enums.JenisMitra | Prisma.EnumJenisMitraFieldRefInput<$PrismaModel>
+  in?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  notIn?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel> | $Enums.JenisMitra
+}
+
+export type NestedEnumJenisMitraWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.JenisMitra | Prisma.EnumJenisMitraFieldRefInput<$PrismaModel>
+  in?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  notIn?: $Enums.JenisMitra[] | Prisma.ListEnumJenisMitraFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumJenisMitraWithAggregatesFilter<$PrismaModel> | $Enums.JenisMitra
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumJenisMitraFilter<$PrismaModel>
 }
 
 export type NestedEnumStatusKeaktifanCabangFilter<$PrismaModel = never> = {

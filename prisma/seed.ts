@@ -438,11 +438,12 @@ async function main() {
   console.log("✅ MasterItem spesifikasi berhasil diseed.");
 
   // ==========================================================================
-  // 6. SEED KONTRAKTOR REKANAN & PENUGASAN CABANG
+  // 6. SEED KONTRAKTOR (BUILDING/DC) & REKANAN (MAINTENANCE/ENGINEERING)
   // ==========================================================================
   const kontraktor1 = await prisma.kontraktor.upsert({
     where: { kodeVendor: "KTR-001" },
     update: {
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Cahaya Mandiri Perkasa",
       picName: "Budi Santoso",
       email: "kontraktor.cahaya@rekanan.com",
@@ -451,6 +452,7 @@ async function main() {
     },
     create: {
       kodeVendor: "KTR-001",
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Cahaya Mandiri Perkasa",
       picName: "Budi Santoso",
       email: "kontraktor.cahaya@rekanan.com",
@@ -462,6 +464,7 @@ async function main() {
   const kontraktor2 = await prisma.kontraktor.upsert({
     where: { kodeVendor: "KTR-002" },
     update: {
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Sinar Mitra Konstruksi",
       picName: "Herry Gunawan",
       email: "kontraktor.sinar@rekanan.com",
@@ -470,6 +473,7 @@ async function main() {
     },
     create: {
       kodeVendor: "KTR-002",
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Sinar Mitra Konstruksi",
       picName: "Herry Gunawan",
       email: "kontraktor.sinar@rekanan.com",
@@ -481,6 +485,7 @@ async function main() {
   const kontraktor3 = await prisma.kontraktor.upsert({
     where: { kodeVendor: "KTR-003" },
     update: {
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "CV Graha Indah Mandiri",
       picName: "Agus Pratama",
       email: "kontraktor.graha@rekanan.com",
@@ -489,6 +494,7 @@ async function main() {
     },
     create: {
       kodeVendor: "KTR-003",
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "CV Graha Indah Mandiri",
       picName: "Agus Pratama",
       email: "kontraktor.graha@rekanan.com",
@@ -500,6 +506,7 @@ async function main() {
   const kontraktorParked = await prisma.kontraktor.upsert({
     where: { kodeVendor: "KTR-004" },
     update: {
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Rekanan Nonaktif Bersyarat",
       picName: "Surya Dharma",
       email: "kontraktor.parked@rekanan.com",
@@ -508,6 +515,7 @@ async function main() {
     },
     create: {
       kodeVendor: "KTR-004",
+      jenisMitra: "KONTRAKTOR",
       namaPerusahaan: "PT Rekanan Nonaktif Bersyarat",
       picName: "Surya Dharma",
       email: "kontraktor.parked@rekanan.com",
@@ -516,16 +524,18 @@ async function main() {
     },
   });
 
-  // Relasi KontraktorCabang (Aktif di Cikokol untuk seluruh 4 divisi resmi)
-  const cikokolDivisiList = [
-    divisiBuilding,
-    divisiEngineering,
-    divisiMaintenance,
-    divisiDC,
-  ];
-  const upsertRelasiCikokol = async (kontraktorId: string) => {
+  // Relasi KontraktorCabang (Kontraktor khusus DIV-BLD & DIV-DC)
+  const kontraktorDivisiList = [divisiBuilding, divisiDC];
+  const upsertRelasiKontraktorCikokol = async (kontraktorId: string) => {
+    await prisma.kontraktorCabang.deleteMany({
+      where: {
+        kontraktorId,
+        cabangId: cabangCikokol.id,
+        divisiId: { in: [divisiMaintenance.id, divisiEngineering.id] },
+      },
+    });
     const hasil = [];
-    for (const div of cikokolDivisiList) {
+    for (const div of kontraktorDivisiList) {
       hasil.push(
         await prisma.kontraktorCabang.upsert({
           where: {
@@ -548,9 +558,95 @@ async function main() {
     return hasil[0];
   };
 
-  const relasiKtr1 = await upsertRelasiCikokol(kontraktor1.id);
-  const relasiKtr2 = await upsertRelasiCikokol(kontraktor2.id);
-  const relasiKtr3 = await upsertRelasiCikokol(kontraktor3.id);
+  const relasiKtr1 = await upsertRelasiKontraktorCikokol(kontraktor1.id);
+  const relasiKtr2 = await upsertRelasiKontraktorCikokol(kontraktor2.id);
+  const relasiKtr3 = await upsertRelasiKontraktorCikokol(kontraktor3.id);
+
+  // Rekanan Resmi M&E (khusus DIV-MNT & DIV-ENG, entitas terpisah dari Kontraktor)
+  const rekanan1 = await prisma.kontraktor.upsert({
+    where: { kodeVendor: "RKN-001" },
+    update: {
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "PT Teknik Pendingin Nusantara",
+      picName: "Dedi Kurniawan",
+      email: "rekanan.teknik@rekanan.com",
+      telepon: "021-5561001",
+      alamatKantor: "Jl. Modern Industri III, Cikande",
+    },
+    create: {
+      kodeVendor: "RKN-001",
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "PT Teknik Pendingin Nusantara",
+      picName: "Dedi Kurniawan",
+      email: "rekanan.teknik@rekanan.com",
+      telepon: "021-5561001",
+      alamatKantor: "Jl. Modern Industri III, Cikande",
+    },
+  });
+
+  const rekanan2 = await prisma.kontraktor.upsert({
+    where: { kodeVendor: "RKN-002" },
+    update: {
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "CV Mitra Elektrikal Gerai",
+      picName: "Rizky Ramadhan",
+      email: "rekanan.elektrikal@rekanan.com",
+      telepon: "021-5562002",
+      alamatKantor: "Ruko Alam Sutera Town Center Blok B",
+    },
+    create: {
+      kodeVendor: "RKN-002",
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "CV Mitra Elektrikal Gerai",
+      picName: "Rizky Ramadhan",
+      email: "rekanan.elektrikal@rekanan.com",
+      telepon: "021-5562002",
+      alamatKantor: "Ruko Alam Sutera Town Center Blok B",
+    },
+  });
+
+  const rekanan3 = await prisma.kontraktor.upsert({
+    where: { kodeVendor: "RKN-003" },
+    update: {
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "PT Prima Perawatan Ritel",
+      picName: "Yudi Hartono",
+      email: "rekanan.prima@rekanan.com",
+      telepon: "021-5563003",
+      alamatKantor: "Jl. Serpong BSD Sektor IV",
+    },
+    create: {
+      kodeVendor: "RKN-003",
+      jenisMitra: "REKANAN",
+      namaPerusahaan: "PT Prima Perawatan Ritel",
+      picName: "Yudi Hartono",
+      email: "rekanan.prima@rekanan.com",
+      telepon: "021-5563003",
+      alamatKantor: "Jl. Serpong BSD Sektor IV",
+    },
+  });
+
+  const rekananDivisiList = [divisiMaintenance, divisiEngineering];
+  for (const rknId of [rekanan1.id, rekanan2.id, rekanan3.id]) {
+    for (const div of rekananDivisiList) {
+      await prisma.kontraktorCabang.upsert({
+        where: {
+          kontraktorId_cabangId_divisiId: {
+            kontraktorId: rknId,
+            cabangId: cabangCikokol.id,
+            divisiId: div.id,
+          },
+        },
+        update: { statusKeaktifan: "AKTIF" },
+        create: {
+          kontraktorId: rknId,
+          cabangId: cabangCikokol.id,
+          divisiId: div.id,
+          statusKeaktifan: "AKTIF",
+        },
+      });
+    }
+  }
 
   // Rekanan Parked (Nonaktif Sementara untuk menguji fitur Unpark)
   await prisma.kontraktorCabang.upsert({
@@ -743,6 +839,48 @@ async function main() {
       role: "KONTRAKTOR",
       branchName: "CV Graha Indah Mandiri",
       kontraktorId: kontraktor3.id,
+      isActive: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "rekanan.teknik@rekanan.com" },
+    update: {
+      fullName: "Dedi Kurniawan (PT Teknik Pendingin Nusantara)",
+      role: "KONTRAKTOR",
+      branchName: "PT Teknik Pendingin Nusantara",
+      divisiId: divisiMaintenance.id,
+      kontraktorId: rekanan1.id,
+      isActive: true,
+    },
+    create: {
+      email: "rekanan.teknik@rekanan.com",
+      fullName: "Dedi Kurniawan (PT Teknik Pendingin Nusantara)",
+      role: "KONTRAKTOR",
+      branchName: "PT Teknik Pendingin Nusantara",
+      divisiId: divisiMaintenance.id,
+      kontraktorId: rekanan1.id,
+      isActive: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "rekanan.elektrikal@rekanan.com" },
+    update: {
+      fullName: "Rizky Ramadhan (CV Mitra Elektrikal Gerai)",
+      role: "KONTRAKTOR",
+      branchName: "CV Mitra Elektrikal Gerai",
+      divisiId: divisiEngineering.id,
+      kontraktorId: rekanan2.id,
+      isActive: true,
+    },
+    create: {
+      email: "rekanan.elektrikal@rekanan.com",
+      fullName: "Rizky Ramadhan (CV Mitra Elektrikal Gerai)",
+      role: "KONTRAKTOR",
+      branchName: "CV Mitra Elektrikal Gerai",
+      divisiId: divisiEngineering.id,
+      kontraktorId: rekanan2.id,
       isActive: true,
     },
   });
@@ -1246,9 +1384,10 @@ async function main() {
   // Rilis Harga Induk Cabang
   const hargaCabangCikokol = await prisma.masterHargaCabang.upsert({
     where: {
-      masterItemId_cabangId: {
+      masterItemId_cabangId_divisiId: {
         masterItemId: itemKeramik.id,
         cabangId: cabangCikokol.id,
+        divisiId: divisiBuilding.id,
       },
     },
     update: {
@@ -1261,6 +1400,7 @@ async function main() {
     create: {
       masterItemId: itemKeramik.id,
       cabangId: cabangCikokol.id,
+      divisiId: divisiBuilding.id,
       pengajuanTerakhirId: tiket5.id,
       hargaFinalInduk: 242000,
       marginTotalPersen: 8.0,

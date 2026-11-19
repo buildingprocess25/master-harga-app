@@ -104,18 +104,13 @@ export function AppSidebar({
                 href: "/bm-manager",
                 icon: LayoutDashboard,
               },
-              {
-                label: "Inisiasi Harga Baru",
-                href: "/bm-manager/buat-pengajuan",
-                icon: PlusCircle,
-              },
-              {
-                label: "Review Survei Toko",
-                href: "/bm-manager/review-survei",
-                icon: CheckSquare,
-                badgeCount: 1,
-                badgeVariant: "amber",
-              },
+              // {
+              //   label: "Review Survei Toko",
+              //   href: "/bm-manager/review-survei",
+              //   icon: CheckSquare,
+              //   badgeCount: 1,
+              //   badgeVariant: "amber",
+              // },
             ],
           },
           {

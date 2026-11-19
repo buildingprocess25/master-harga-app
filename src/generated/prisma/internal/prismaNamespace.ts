@@ -1950,6 +1950,7 @@ export type UserCabangCoverageScalarFieldEnum = (typeof UserCabangCoverageScalar
 export const KontraktorScalarFieldEnum = {
   id: 'id',
   kodeVendor: 'kodeVendor',
+  jenisMitra: 'jenisMitra',
   namaPerusahaan: 'namaPerusahaan',
   picName: 'picName',
   telepon: 'telepon',
@@ -2046,6 +2047,7 @@ export const MasterHargaCabangScalarFieldEnum = {
   id: 'id',
   masterItemId: 'masterItemId',
   cabangId: 'cabangId',
+  divisiId: 'divisiId',
   pengajuanTerakhirId: 'pengajuanTerakhirId',
   hargaFinalInduk: 'hargaFinalInduk',
   marginTotalPersen: 'marginTotalPersen',
@@ -2263,6 +2265,20 @@ export type EnumRoleUserFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
  * Reference to a field of type 'RoleUser[]'
  */
 export type ListEnumRoleUserFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RoleUser[]'>
+    
+
+
+/**
+ * Reference to a field of type 'JenisMitra'
+ */
+export type EnumJenisMitraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JenisMitra'>
+    
+
+
+/**
+ * Reference to a field of type 'JenisMitra[]'
+ */
+export type ListEnumJenisMitraFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JenisMitra[]'>
     
 
 

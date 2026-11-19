@@ -13,8 +13,18 @@ export interface OpsiFilter {
 const SELECT =
   "px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC] min-w-0";
 
-/** Filter katalog berbasis URL agar hasil filter bisa dibagikan dan dipakai untuk ekspor. */
-export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
+/** Filter katalog berbasis URL agar hasil filter bisa dibagikan. */
+export function FilterKatalog({
+  opsi,
+  tampilFilterCabang = true,
+  tampilFilterOverride = true,
+  tampilStatusCabangSaya = false,
+}: {
+  opsi: OpsiFilter;
+  tampilFilterCabang?: boolean;
+  tampilFilterOverride?: boolean;
+  tampilStatusCabangSaya?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -39,7 +49,9 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const adaFilter = ["q", "cabang", "divisi", "kategori", "override"].some((k) => params.get(k));
+  const adaFilter = ["q", "kelompok", "cabang", "divisi", "kategori", "override", "status"].some(
+    (k) => params.get(k)
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
@@ -54,18 +66,30 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
         />
       </div>
       <select
-        aria-label="Filter cabang"
+        aria-label="Filter kelompok SIP atau ME"
         className={SELECT}
-        value={params.get("cabang") ?? ""}
-        onChange={(e) => terapkan({ cabang: e.target.value || null })}
+        value={params.get("kelompok") ?? ""}
+        onChange={(e) => terapkan({ kelompok: e.target.value || null })}
       >
-        <option value="">Semua cabang</option>
-        {opsi.cabangList.map((c) => (
-          <option key={c.id} value={c.id}>
-            Cabang {c.namaCabang}
-          </option>
-        ))}
+        <option value="">Semua Kelompok (SIP &amp; ME)</option>
+        <option value="SIP">SIP (Sipil)</option>
+        <option value="ME">ME (Mekanikal &amp; Elektrikal)</option>
       </select>
+      {tampilFilterCabang && (
+        <select
+          aria-label="Filter cabang"
+          className={SELECT}
+          value={params.get("cabang") ?? ""}
+          onChange={(e) => terapkan({ cabang: e.target.value || null })}
+        >
+          <option value="">Semua cabang</option>
+          {opsi.cabangList.map((c) => (
+            <option key={c.id} value={c.id}>
+              Cabang {c.namaCabang}
+            </option>
+          ))}
+        </select>
+      )}
       <select
         aria-label="Filter divisi"
         className={SELECT}
@@ -92,15 +116,29 @@ export function FilterKatalog({ opsi }: { opsi: OpsiFilter }) {
           </option>
         ))}
       </select>
-      <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
-        <input
-          type="checkbox"
-          checked={params.get("override") === "1"}
-          onChange={(e) => terapkan({ override: e.target.checked ? "1" : null })}
-          className="accent-[#005BAC] w-3.5 h-3.5"
-        />
-        Hanya ada harga wilayah
-      </label>
+      {tampilStatusCabangSaya && (
+        <select
+          aria-label="Filter status cabang saya"
+          className={SELECT}
+          value={params.get("status") ?? "semua"}
+          onChange={(e) => terapkan({ status: e.target.value === "semua" ? null : e.target.value })}
+        >
+          <option value="semua">Semua Status Cabang</option>
+          <option value="aktif">Sudah Aktif di Cabang Anda</option>
+          <option value="belum_aktif">Belum Aktif / Ada Divisi Kosong</option>
+        </select>
+      )}
+      {tampilFilterOverride && (
+        <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
+          <input
+            type="checkbox"
+            checked={params.get("override") === "1"}
+            onChange={(e) => terapkan({ override: e.target.checked ? "1" : null })}
+            className="accent-[#005BAC] w-3.5 h-3.5"
+          />
+          Hanya ada harga wilayah
+        </label>
+      )}
       {adaFilter && (
         <button
           type="button"

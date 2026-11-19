@@ -414,9 +414,14 @@ export default function RegionalManagerDetailPage() {
           liveMarginBongkaran={item.liveMarginBongkaran ?? 8}
         />
 
-        {/* Monitoring Kuorum Rekanan (Jika sudah di tahap kuorum) */}
+        {/* Monitoring Kuorum Kontraktor / Rekanan (Jika sudah di tahap kuorum) */}
         {inKuorum && (
-          <VotingKontraktorMonitorCard votingList={item.votingKontraktorList || []} />
+          <VotingKontraktorMonitorCard
+            votingList={item.votingKontraktorList || []}
+            deadlineVoting={item.deadlineVoting}
+            kodeDivisi={item.kodeDivisi}
+            namaDivisi={item.namaDivisi}
+          />
         )}
 
         {/* Tinjauan & Keputusan Regional Manager */}

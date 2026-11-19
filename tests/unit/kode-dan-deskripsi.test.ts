@@ -241,4 +241,76 @@ describe("Unit: Penomoran Kode Master & Deskripsi Terstandarisasi", () => {
     expect(sameJenis.isDuplicate).toBe(true);
     expect(sameJenis.kodeItem).toBe("SIP-001");
   });
+
+  it("menomori kode ME-XXX secara terpisah dari SIP-XXX beserta varian lokasinya", () => {
+    const existing = [
+      makeExistingItem({ kode: "SIP-004", kodeItem: "SIP-004" }),
+      makeExistingItem({
+        id: "me-1",
+        kode: "ME-001",
+        kodeItem: "ME-001",
+        kodeMaster: "ME-001-A-PekerjaanElektrikal",
+        namaItem: "Lampu LED Downlight",
+        item: "Lampu LED Downlight",
+        kategori: "Pekerjaan Elektrikal",
+        ukuran: "18 Watt",
+        merk: "Philips",
+        warna: "Putih",
+        tipe: "Meson",
+        permukaan: "Diffuser",
+        tebal: "30 mm",
+        lokasi: "Sales Area",
+      }),
+    ];
+
+    const newMe = getKodeData({
+      prefixKode: "ME",
+      kategori: "Pekerjaan Elektrikal",
+      item: "Stop Kontak",
+      lokasi: "Gudang",
+      ukuran: "16 A",
+      merk: "Schneider",
+      warna: "White",
+      tipe: "Vivace",
+      permukaan: "Matte",
+      tebal: "10 mm",
+      existingItems: existing,
+    });
+    expect(newMe.kodeItem).toBe("ME-002");
+    expect(newMe.kodeArea).toBe("A");
+    expect(newMe.kodeMaster).toBe("ME-002-A-PekerjaanElektrikal");
+
+    const meVariant = getKodeData({
+      prefixKode: "ME",
+      kategori: "Pekerjaan Elektrikal",
+      item: "Lampu LED Downlight",
+      lokasi: "Gudang",
+      ukuran: "18 Watt",
+      merk: "Philips",
+      warna: "Putih",
+      tipe: "Meson",
+      permukaan: "Diffuser",
+      tebal: "30 mm",
+      existingItems: existing,
+    });
+    expect(meVariant.isDuplicate).toBe(false);
+    expect(meVariant.kodeItem).toBe("ME-001");
+    expect(meVariant.kodeArea).toBe("B");
+    expect(meVariant.kodeMaster).toBe("ME-001-B-PekerjaanElektrikal");
+
+    const newSip = getKodeData({
+      prefixKode: "SIP",
+      kategori: "Pekerjaan Lantai",
+      item: "Rabat Beton",
+      lokasi: "Parkir",
+      ukuran: "10 cm",
+      merk: "Holcim",
+      warna: "Grey",
+      tipe: "Standar",
+      permukaan: "Kasar",
+      tebal: "100 mm",
+      existingItems: existing,
+    });
+    expect(newSip.kodeItem).toBe("SIP-005");
+  });
 });

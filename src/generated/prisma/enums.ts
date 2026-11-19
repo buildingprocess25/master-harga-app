@@ -74,3 +74,11 @@ export const StatusVoteKontraktor = {
 } as const
 
 export type StatusVoteKontraktor = (typeof StatusVoteKontraktor)[keyof typeof StatusVoteKontraktor]
+
+
+export const JenisMitra = {
+  KONTRAKTOR: 'KONTRAKTOR',
+  REKANAN: 'REKANAN'
+} as const
+
+export type JenisMitra = (typeof JenisMitra)[keyof typeof JenisMitra]

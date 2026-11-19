@@ -77,7 +77,7 @@ export default async function KontraktorDashboardPage({
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">
-              Portal Kontraktor
+              {user.jenisMitra === "REKANAN" ? "Portal Rekanan" : "Portal Kontraktor"}
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               Konfirmasi &amp; kesepakatan harga satuan pekerjaan cabang

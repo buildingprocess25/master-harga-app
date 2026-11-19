@@ -27,6 +27,7 @@ export type AggregateKontraktor = {
 export type KontraktorMinAggregateOutputType = {
   id: string | null
   kodeVendor: string | null
+  jenisMitra: $Enums.JenisMitra | null
   namaPerusahaan: string | null
   picName: string | null
   telepon: string | null
@@ -39,6 +40,7 @@ export type KontraktorMinAggregateOutputType = {
 export type KontraktorMaxAggregateOutputType = {
   id: string | null
   kodeVendor: string | null
+  jenisMitra: $Enums.JenisMitra | null
   namaPerusahaan: string | null
   picName: string | null
   telepon: string | null
@@ -51,6 +53,7 @@ export type KontraktorMaxAggregateOutputType = {
 export type KontraktorCountAggregateOutputType = {
   id: number
   kodeVendor: number
+  jenisMitra: number
   namaPerusahaan: number
   picName: number
   telepon: number
@@ -65,6 +68,7 @@ export type KontraktorCountAggregateOutputType = {
 export type KontraktorMinAggregateInputType = {
   id?: true
   kodeVendor?: true
+  jenisMitra?: true
   namaPerusahaan?: true
   picName?: true
   telepon?: true
@@ -77,6 +81,7 @@ export type KontraktorMinAggregateInputType = {
 export type KontraktorMaxAggregateInputType = {
   id?: true
   kodeVendor?: true
+  jenisMitra?: true
   namaPerusahaan?: true
   picName?: true
   telepon?: true
@@ -89,6 +94,7 @@ export type KontraktorMaxAggregateInputType = {
 export type KontraktorCountAggregateInputType = {
   id?: true
   kodeVendor?: true
+  jenisMitra?: true
   namaPerusahaan?: true
   picName?: true
   telepon?: true
@@ -174,6 +180,7 @@ export type KontraktorGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 export type KontraktorGroupByOutputType = {
   id: string
   kodeVendor: string
+  jenisMitra: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -207,6 +214,7 @@ export type KontraktorWhereInput = {
   NOT?: Prisma.KontraktorWhereInput | Prisma.KontraktorWhereInput[]
   id?: Prisma.StringFilter<"Kontraktor"> | string
   kodeVendor?: Prisma.StringFilter<"Kontraktor"> | string
+  jenisMitra?: Prisma.EnumJenisMitraFilter<"Kontraktor"> | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFilter<"Kontraktor"> | string
   picName?: Prisma.StringFilter<"Kontraktor"> | string
   telepon?: Prisma.StringFilter<"Kontraktor"> | string
@@ -221,6 +229,7 @@ export type KontraktorWhereInput = {
 export type KontraktorOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   kodeVendor?: Prisma.SortOrder
+  jenisMitra?: Prisma.SortOrder
   namaPerusahaan?: Prisma.SortOrder
   picName?: Prisma.SortOrder
   telepon?: Prisma.SortOrder
@@ -239,6 +248,7 @@ export type KontraktorWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.KontraktorWhereInput | Prisma.KontraktorWhereInput[]
   OR?: Prisma.KontraktorWhereInput[]
   NOT?: Prisma.KontraktorWhereInput | Prisma.KontraktorWhereInput[]
+  jenisMitra?: Prisma.EnumJenisMitraFilter<"Kontraktor"> | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFilter<"Kontraktor"> | string
   picName?: Prisma.StringFilter<"Kontraktor"> | string
   telepon?: Prisma.StringFilter<"Kontraktor"> | string
@@ -252,6 +262,7 @@ export type KontraktorWhereUniqueInput = Prisma.AtLeast<{
 export type KontraktorOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   kodeVendor?: Prisma.SortOrder
+  jenisMitra?: Prisma.SortOrder
   namaPerusahaan?: Prisma.SortOrder
   picName?: Prisma.SortOrder
   telepon?: Prisma.SortOrder
@@ -270,6 +281,7 @@ export type KontraktorScalarWhereWithAggregatesInput = {
   NOT?: Prisma.KontraktorScalarWhereWithAggregatesInput | Prisma.KontraktorScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Kontraktor"> | string
   kodeVendor?: Prisma.StringWithAggregatesFilter<"Kontraktor"> | string
+  jenisMitra?: Prisma.EnumJenisMitraWithAggregatesFilter<"Kontraktor"> | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringWithAggregatesFilter<"Kontraktor"> | string
   picName?: Prisma.StringWithAggregatesFilter<"Kontraktor"> | string
   telepon?: Prisma.StringWithAggregatesFilter<"Kontraktor"> | string
@@ -282,6 +294,7 @@ export type KontraktorScalarWhereWithAggregatesInput = {
 export type KontraktorCreateInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -296,6 +309,7 @@ export type KontraktorCreateInput = {
 export type KontraktorUncheckedCreateInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -310,6 +324,7 @@ export type KontraktorUncheckedCreateInput = {
 export type KontraktorUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -324,6 +339,7 @@ export type KontraktorUpdateInput = {
 export type KontraktorUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -338,6 +354,7 @@ export type KontraktorUncheckedUpdateInput = {
 export type KontraktorCreateManyInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -350,6 +367,7 @@ export type KontraktorCreateManyInput = {
 export type KontraktorUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -362,6 +380,7 @@ export type KontraktorUpdateManyMutationInput = {
 export type KontraktorUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -379,6 +398,7 @@ export type KontraktorNullableScalarRelationFilter = {
 export type KontraktorCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   kodeVendor?: Prisma.SortOrder
+  jenisMitra?: Prisma.SortOrder
   namaPerusahaan?: Prisma.SortOrder
   picName?: Prisma.SortOrder
   telepon?: Prisma.SortOrder
@@ -391,6 +411,7 @@ export type KontraktorCountOrderByAggregateInput = {
 export type KontraktorMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   kodeVendor?: Prisma.SortOrder
+  jenisMitra?: Prisma.SortOrder
   namaPerusahaan?: Prisma.SortOrder
   picName?: Prisma.SortOrder
   telepon?: Prisma.SortOrder
@@ -403,6 +424,7 @@ export type KontraktorMaxOrderByAggregateInput = {
 export type KontraktorMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   kodeVendor?: Prisma.SortOrder
+  jenisMitra?: Prisma.SortOrder
   namaPerusahaan?: Prisma.SortOrder
   picName?: Prisma.SortOrder
   telepon?: Prisma.SortOrder
@@ -433,6 +455,10 @@ export type KontraktorUpdateOneWithoutUsersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.KontraktorUpdateToOneWithWhereWithoutUsersInput, Prisma.KontraktorUpdateWithoutUsersInput>, Prisma.KontraktorUncheckedUpdateWithoutUsersInput>
 }
 
+export type EnumJenisMitraFieldUpdateOperationsInput = {
+  set?: $Enums.JenisMitra
+}
+
 export type KontraktorCreateNestedOneWithoutCabangRelasiInput = {
   create?: Prisma.XOR<Prisma.KontraktorCreateWithoutCabangRelasiInput, Prisma.KontraktorUncheckedCreateWithoutCabangRelasiInput>
   connectOrCreate?: Prisma.KontraktorCreateOrConnectWithoutCabangRelasiInput
@@ -450,6 +476,7 @@ export type KontraktorUpdateOneRequiredWithoutCabangRelasiNestedInput = {
 export type KontraktorCreateWithoutUsersInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -463,6 +490,7 @@ export type KontraktorCreateWithoutUsersInput = {
 export type KontraktorUncheckedCreateWithoutUsersInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -492,6 +520,7 @@ export type KontraktorUpdateToOneWithWhereWithoutUsersInput = {
 export type KontraktorUpdateWithoutUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -505,6 +534,7 @@ export type KontraktorUpdateWithoutUsersInput = {
 export type KontraktorUncheckedUpdateWithoutUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -518,6 +548,7 @@ export type KontraktorUncheckedUpdateWithoutUsersInput = {
 export type KontraktorCreateWithoutCabangRelasiInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -531,6 +562,7 @@ export type KontraktorCreateWithoutCabangRelasiInput = {
 export type KontraktorUncheckedCreateWithoutCabangRelasiInput = {
   id?: string
   kodeVendor: string
+  jenisMitra?: $Enums.JenisMitra
   namaPerusahaan: string
   picName: string
   telepon: string
@@ -560,6 +592,7 @@ export type KontraktorUpdateToOneWithWhereWithoutCabangRelasiInput = {
 export type KontraktorUpdateWithoutCabangRelasiInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -573,6 +606,7 @@ export type KontraktorUpdateWithoutCabangRelasiInput = {
 export type KontraktorUncheckedUpdateWithoutCabangRelasiInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kodeVendor?: Prisma.StringFieldUpdateOperationsInput | string
+  jenisMitra?: Prisma.EnumJenisMitraFieldUpdateOperationsInput | $Enums.JenisMitra
   namaPerusahaan?: Prisma.StringFieldUpdateOperationsInput | string
   picName?: Prisma.StringFieldUpdateOperationsInput | string
   telepon?: Prisma.StringFieldUpdateOperationsInput | string
@@ -626,6 +660,7 @@ export type KontraktorCountOutputTypeCountCabangRelasiArgs<ExtArgs extends runti
 export type KontraktorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   kodeVendor?: boolean
+  jenisMitra?: boolean
   namaPerusahaan?: boolean
   picName?: boolean
   telepon?: boolean
@@ -641,6 +676,7 @@ export type KontraktorSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type KontraktorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   kodeVendor?: boolean
+  jenisMitra?: boolean
   namaPerusahaan?: boolean
   picName?: boolean
   telepon?: boolean
@@ -653,6 +689,7 @@ export type KontraktorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type KontraktorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   kodeVendor?: boolean
+  jenisMitra?: boolean
   namaPerusahaan?: boolean
   picName?: boolean
   telepon?: boolean
@@ -665,6 +702,7 @@ export type KontraktorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type KontraktorSelectScalar = {
   id?: boolean
   kodeVendor?: boolean
+  jenisMitra?: boolean
   namaPerusahaan?: boolean
   picName?: boolean
   telepon?: boolean
@@ -674,7 +712,7 @@ export type KontraktorSelectScalar = {
   updatedAt?: boolean
 }
 
-export type KontraktorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kodeVendor" | "namaPerusahaan" | "picName" | "telepon" | "email" | "alamatKantor" | "createdAt" | "updatedAt", ExtArgs["result"]["kontraktor"]>
+export type KontraktorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kodeVendor" | "jenisMitra" | "namaPerusahaan" | "picName" | "telepon" | "email" | "alamatKantor" | "createdAt" | "updatedAt", ExtArgs["result"]["kontraktor"]>
 export type KontraktorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | Prisma.Kontraktor$usersArgs<ExtArgs>
   cabangRelasi?: boolean | Prisma.Kontraktor$cabangRelasiArgs<ExtArgs>
@@ -692,6 +730,7 @@ export type $KontraktorPayload<ExtArgs extends runtime.Types.Extensions.Internal
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     kodeVendor: string
+    jenisMitra: $Enums.JenisMitra
     namaPerusahaan: string
     picName: string
     telepon: string
@@ -1126,6 +1165,7 @@ export interface Prisma__KontraktorClient<T, Null = never, ExtArgs extends runti
 export interface KontraktorFieldRefs {
   readonly id: Prisma.FieldRef<"Kontraktor", 'String'>
   readonly kodeVendor: Prisma.FieldRef<"Kontraktor", 'String'>
+  readonly jenisMitra: Prisma.FieldRef<"Kontraktor", 'JenisMitra'>
   readonly namaPerusahaan: Prisma.FieldRef<"Kontraktor", 'String'>
   readonly picName: Prisma.FieldRef<"Kontraktor", 'String'>
   readonly telepon: Prisma.FieldRef<"Kontraktor", 'String'>

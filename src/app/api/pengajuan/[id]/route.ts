@@ -249,6 +249,9 @@ export async function GET(
         pengajuan.kodePaket ||
         buatKodePaket(pengajuan.cabang.kodeCabang, pengajuan.tanggalPengajuan),
       kodeItem: pengajuan.masterItem?.kodeItem || "ITEM-CUSTOM",
+      kelompokKode: (pengajuan.masterItem?.kodeItem || "").toUpperCase().startsWith("ME-")
+        ? "ME"
+        : "SIP",
       kodeMaster: pengajuan.masterItem?.kodeMaster || undefined,
       namaItem: pengajuan.masterItem?.namaItem || "Item Tidak Ditemukan",
       kategori: pengajuan.masterItem?.kategori || "Pekerjaan",
@@ -403,6 +406,7 @@ export async function PATCH(
     const {
       item,
       namaItem,
+      kelompokKode,
       kategori,
       jenisCor,
       merk,
@@ -454,11 +458,63 @@ export async function PATCH(
     });
 
     // Update MasterItem dan PengajuanHarga dalam transaksi
+    const currentPrefix: "SIP" | "ME" = (existing.masterItem?.kodeItem || "")
+      .toUpperCase()
+      .startsWith("ME-")
+      ? "ME"
+      : "SIP";
+    const requestedPrefix: "SIP" | "ME" =
+      kelompokKode === "ME"
+        ? "ME"
+        : kelompokKode === "SIP"
+        ? "SIP"
+        : currentPrefix;
+
     const updated = await prisma.$transaction(async (tx) => {
-      if (existing.masterItemId) {
+      let nextKodeItem = existing.masterItem?.kodeItem;
+      let nextKodeMaster = existing.masterItem?.kodeMaster;
+
+      if (existing.masterItemId && existing.masterItem) {
+        if (requestedPrefix !== currentPrefix) {
+          const allCodes = await tx.masterItem.findMany({
+            select: { kodeItem: true },
+          });
+          const seqRegex = new RegExp(`^${requestedPrefix}-(\\d+)`, "i");
+          let maxSeq = 0;
+          for (const row of allCodes) {
+            const m = row.kodeItem.match(seqRegex);
+            if (m) {
+              const num = parseInt(m[1], 10);
+              if (num > maxSeq) maxSeq = num;
+            }
+          }
+          const varianToken = (existing.masterItem.kodeVarian || "A").trim().toUpperCase();
+          const cleanKatToken = (resolvedKategori || "Umum").replace(/\s+/g, "");
+          let guard = 0;
+          do {
+            maxSeq += 1;
+            nextKodeItem = `${requestedPrefix}-${String(maxSeq).padStart(3, "0")}`;
+            nextKodeMaster = `${nextKodeItem}-${varianToken}-${cleanKatToken}`;
+            const conflict = await tx.masterItem.findFirst({
+              where: {
+                id: { not: existing.masterItemId },
+                OR: [
+                  { kodeMaster: nextKodeMaster },
+                  { kodeItem: nextKodeItem, kodeVarian: varianToken },
+                ],
+              },
+              select: { id: true },
+            });
+            if (!conflict) break;
+            guard++;
+          } while (guard < 50);
+        }
+
         await tx.masterItem.update({
           where: { id: existing.masterItemId },
           data: {
+            kodeItem: nextKodeItem,
+            kodeMaster: nextKodeMaster,
             namaItem: actualItemName,
             kategori: resolvedKategori,
             jenisCor: resolvedJenisCor,
@@ -492,6 +548,11 @@ export async function PATCH(
         },
       });
 
+      const kodeChangeNote =
+        requestedPrefix !== currentPrefix && nextKodeItem
+          ? ` (Kelompok diubah ${currentPrefix} → ${requestedPrefix}, kode baru: ${nextKodeItem})`
+          : "";
+
       // Audit Log
       await tx.approvalAuditLog.create({
         data: {
@@ -499,7 +560,9 @@ export async function PATCH(
           userId: user.id,
           roleActor: user.role,
           action: isResubmittingRevision ? "AJUKAN_ULANG_REVISI" : "UPDATE_SPESIFIKASI",
-          catatan: catatanReview || `Spesifikasi material diperbarui oleh ${user.fullName}`,
+          catatan:
+            (catatanReview || `Spesifikasi material diperbarui oleh ${user.fullName}`) +
+            kodeChangeNote,
         },
       });
 

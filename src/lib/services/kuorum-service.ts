@@ -7,6 +7,7 @@ import {
   StatusVoteKontraktor,
   VotingKontraktorItem,
 } from "@/types";
+import { jenisMitraUntukDivisi, labelMitraUntukDivisi } from "@/lib/utils";
 
 /** SLA respon voting rekanan: 3 x 24 jam sejak putaran dibuka. */
 export const SLA_VOTING_JAM = 72;
@@ -48,6 +49,7 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
       id: true,
       cabangId: true,
       divisiId: true,
+      divisi: { select: { kodeDivisi: true, namaDivisi: true } },
       masterItemId: true,
       cakupanHarga: true,
       wilayahCabangId: true,
@@ -57,7 +59,7 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
   if (!tiket) throw new KuorumError("Tiket tidak ditemukan.", 404);
 
   // Prasyarat rilis dicek di awal, agar masalah data muncul ke Regional Manager
-  // dan bukan saat kontraktor terakhir menekan tombol Setuju.
+  // dan bukan saat kontraktor/rekanan terakhir menekan tombol Setuju.
   if (!tiket.masterItemId) {
     throw new KuorumError("Tiket belum terhubung ke Master Item.");
   }
@@ -70,31 +72,36 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
     }
     const induk = await tx.masterHargaCabang.findUnique({
       where: {
-        masterItemId_cabangId: {
+        masterItemId_cabangId_divisiId: {
           masterItemId: tiket.masterItemId,
           cabangId: tiket.cabangId,
+          divisiId: tiket.divisiId,
         },
       },
       select: { id: true },
     });
     if (!induk) {
       throw new KuorumError(
-        "Harga induk cabang untuk item ini belum dirilis, sehingga harga khusus wilayah belum dapat ditawarkan."
+        "Harga induk cabang untuk item dan divisi ini belum dirilis, sehingga harga khusus wilayah belum dapat ditawarkan."
       );
     }
   }
+
+  const requiredJenis = jenisMitraUntukDivisi(tiket.divisi.kodeDivisi, tiket.divisi.namaDivisi);
+  const labelMitra = labelMitraUntukDivisi(tiket.divisi.kodeDivisi, tiket.divisi.namaDivisi).toLowerCase();
 
   const relasiAktif = await tx.kontraktorCabang.findMany({
     where: {
       cabangId: tiket.cabangId,
       divisiId: tiket.divisiId,
       statusKeaktifan: "AKTIF",
+      kontraktor: { jenisMitra: requiredJenis },
     },
     select: { id: true },
   });
   if (relasiAktif.length === 0) {
     throw new KuorumError(
-      "Tidak ada rekanan kontraktor aktif pada cabang dan divisi ini, kuorum tidak dapat dibuka."
+      `Tidak ada ${labelMitra} aktif pada cabang dan divisi ini, kuorum tidak dapat dibuka.`
     );
   }
 
@@ -144,6 +151,7 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
     select: {
       id: true,
       cabangId: true,
+      divisiId: true,
       masterItemId: true,
       cakupanHarga: true,
       wilayahCabangId: true,
@@ -163,9 +171,10 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
   if (tiket.cakupanHarga === "INDUK_CABANG") {
     const induk = await tx.masterHargaCabang.upsert({
       where: {
-        masterItemId_cabangId: {
+        masterItemId_cabangId_divisiId: {
           masterItemId: tiket.masterItemId,
           cabangId: tiket.cabangId,
+          divisiId: tiket.divisiId,
         },
       },
       update: {
@@ -178,6 +187,7 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
       create: {
         masterItemId: tiket.masterItemId,
         cabangId: tiket.cabangId,
+        divisiId: tiket.divisiId,
         pengajuanTerakhirId: tiket.id,
         hargaFinalInduk: hargaFinal,
         marginTotalPersen: tiket.marginSNBPersen ?? tiket.marginAwalPersen,
@@ -204,9 +214,10 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
   }
   const induk = await tx.masterHargaCabang.findUnique({
     where: {
-      masterItemId_cabangId: {
+      masterItemId_cabangId_divisiId: {
         masterItemId: tiket.masterItemId,
         cabangId: tiket.cabangId,
+        divisiId: tiket.divisiId,
       },
     },
     select: { id: true, hargaFinalInduk: true },
@@ -668,6 +679,7 @@ export async function getRingkasanKuorum(tiketId: string) {
   const votingKontraktorList: VotingKontraktorItem[] = rows.map((v) => ({
     id: v.id,
     kontraktorId: v.kontraktorCabang.kontraktorId,
+    jenisMitra: v.kontraktorCabang.kontraktor.jenisMitra as "KONTRAKTOR" | "REKANAN",
     namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
     email: v.kontraktorCabang.kontraktor.email,
     statusVote: v.statusVote as StatusVoteKontraktor,
