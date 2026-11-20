@@ -77,7 +77,7 @@ export function DetailSpesifikasiCard({
           {isKhususWilayah ? (
             <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-[#FFD100] text-slate-900 border border-amber-300 flex items-center gap-1 shadow-xs">
               <MapPin className="w-3 h-3 text-slate-900" />
-              Khusus Wilayah: {item.namaWilayah || "Sub-Cabang"}
+              {item.namaWilayah || "Harga Wilayah"}
             </span>
           ) : (
             <span className="px-2.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1">

@@ -98,7 +98,7 @@ export function PengajuanHargaTable({
         item.cabang ||
         item.namaCabang ||
         (item.cakupanHarga === "KHUSUS_WILAYAH"
-          ? item.namaWilayah || "Khusus Wilayah"
+          ? item.namaWilayah || "Wilayah"
           : "Induk Cabang");
       if (!map.has(paketKey)) {
         map.set(paketKey, {
@@ -297,7 +297,7 @@ export function PengajuanHargaTable({
                   item.cabang ||
                   item.namaCabang ||
                   (item.cakupanHarga === "KHUSUS_WILAYAH"
-                    ? item.namaWilayah || "Khusus Wilayah"
+                    ? item.namaWilayah || "Wilayah"
                     : "Induk Cabang");
                 const deskripsi =
                   item.deskripsiOtomatis ||

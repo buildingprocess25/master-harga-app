@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import {
+  ArrowLeft,
   Building2,
   ChevronDown,
   ChevronLeft,
@@ -98,9 +100,10 @@ export function MasterHargaClient({
   const [modalRefreshTick, setModalRefreshTick] = useState(0);
   const [expandedWilayahSlots, setExpandedWilayahSlots] = useState<Record<string, boolean>>({});
 
-  // State Modal 2: Detail Rincian AHSP & Survei 3 Toko
+  // State Drill-Down Rincian AHSP & Survei 3 Toko (di dalam modal yang sama)
   const [detail, setDetail] = useState<DetailHargaRilis | null>(null);
   const [loadingRincianId, setLoadingRincianId] = useState<string | null>(null);
+  const modalBodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedModalQ(modalQ.trim()), 300);
@@ -109,6 +112,7 @@ export function MasterHargaClient({
 
   const bukaModalCabang = (item: BarisMasterHargaPerItem) => {
     setActiveItem(item);
+    setDetail(null);
     setModalQ("");
     setDebouncedModalQ("");
     setModalCabangId(initialModalFilter.cabangId);
@@ -122,8 +126,14 @@ export function MasterHargaClient({
 
   const tutupModalCabang = () => {
     setActiveItem(null);
+    setDetail(null);
     setModalData(null);
     setModalError("");
+  };
+
+  const kembaliKeDaftarCabang = () => {
+    setDetail(null);
+    requestAnimationFrame(() => modalBodyRef.current?.scrollTo({ top: 0 }));
   };
 
   const resetFilterModal = () => {
@@ -195,6 +205,7 @@ export function MasterHargaClient({
         return;
       }
       setDetail(json.data);
+      requestAnimationFrame(() => modalBodyRef.current?.scrollTo({ top: 0 }));
     } catch {
       Swal.fire({
         icon: "error",
@@ -350,154 +361,281 @@ export function MasterHargaClient({
         </table>
       </div>
 
-      {/* Modal 1: Daftar Harga Cabang & Wilayah (On-Demand per Item) */}
-      {activeItem && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
-        >
-          <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-5xl w-full my-6 overflow-hidden">
-            {/* Header Modal */}
-            <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#005BAC] text-white flex items-center justify-center shrink-0">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-black text-white uppercase",
-                        activeItem.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
-                      )}
+      {/* Modal Daftar Harga Cabang & Drill-Down Rincian AHSP (Portal ke document.body) */}
+      {activeItem &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
+          >
+            <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-5xl w-full my-6 overflow-hidden">
+              {/* Header Modal (Daftar Cabang vs Drill-Down Rincian) */}
+              {detail ? (
+                <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <button
+                      type="button"
+                      onClick={kembaliKeDaftarCabang}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
                     >
-                      {activeItem.kelompokKode}
-                    </span>
-                    <h2 className="text-sm font-black text-slate-900 truncate">
-                      {activeItem.namaItem}
-                    </h2>
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Kembali</span>
+                    </button>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <Tag className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-sm font-black text-slate-900 truncate">
+                          {detail.item.namaItem}
+                        </h2>
+                        <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold uppercase shrink-0">
+                          RILIS AKTIF
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium truncate">
+                        {detail.item.kodeMaster} &middot; {detail.item.namaCabang} &middot;{" "}
+                        {detail.item.namaDivisi} &middot; Berlaku sejak{" "}
+                        {formatTanggal(detail.berlakuSejak)}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-600 font-medium truncate">
-                    {activeItem.kodeMaster} &middot; {activeItem.kategori} &middot; Satuan{" "}
-                    {activeItem.satuan}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={tutupModalCabang}
+                    className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
+                    aria-label="Tutup modal rincian"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={tutupModalCabang}
-                className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
-                aria-label="Tutup modal cabang"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              ) : (
+                <>
+                  <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#005BAC] text-white flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[10px] font-black text-white uppercase",
+                              activeItem.kelompokKode === "ME" ? "bg-[#005BAC]" : "bg-slate-800"
+                            )}
+                          >
+                            {activeItem.kelompokKode}
+                          </span>
+                          <h2 className="text-sm font-black text-slate-900 truncate">
+                            {activeItem.namaItem}
+                          </h2>
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium truncate">
+                          {activeItem.kodeMaster} &middot; {activeItem.kategori} &middot; Satuan{" "}
+                          {activeItem.satuan}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={tutupModalCabang}
+                      className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
+                      aria-label="Tutup modal cabang"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
 
-            {/* Filter Bar Modal */}
-            <div className="px-5 py-3 bg-white border-b-2 border-slate-200 flex flex-wrap items-center gap-2.5">
-              <div className="relative flex-1 min-w-48">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  value={modalQ}
-                  onChange={(e) => {
-                    setModalQ(e.target.value);
-                    setModalPage(1);
-                  }}
-                  placeholder="Cari nama/kode cabang atau wilayah..."
-                  aria-label="Cari cabang atau wilayah"
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
-                />
-              </div>
+                  {/* Filter Bar Modal */}
+                  <div className="px-5 py-3 bg-white border-b-2 border-slate-200 flex flex-wrap items-center gap-2.5">
+                    <div className="relative flex-1 min-w-48">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        value={modalQ}
+                        onChange={(e) => {
+                          setModalQ(e.target.value);
+                          setModalPage(1);
+                        }}
+                        placeholder="Cari nama/kode cabang atau wilayah..."
+                        aria-label="Cari cabang atau wilayah"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
+                      />
+                    </div>
 
-              <div className="w-52">
-                <Select<SimpleSelectOption, false>
-                  instanceId="modal-cabang-select"
-                  aria-label="Filter cabang di modal"
-                  styles={solidFilterSelectStyles}
-                  options={(modalData?.cabangOpsiItem ?? opsiCabang).map((c) => ({
-                    value: c.id,
-                    label: c.namaCabang,
-                  }))}
-                  value={
-                    modalCabangId
-                      ? (modalData?.cabangOpsiItem ?? opsiCabang)
-                          .filter((c) => c.id === modalCabangId)
-                          .map((c) => ({ value: c.id, label: c.namaCabang }))[0] ?? null
-                      : null
-                  }
-                  onChange={(opt) => {
-                    setModalCabangId(opt ? opt.value : "");
-                    setModalPage(1);
-                  }}
-                  placeholder="Semua cabang"
-                  noOptionsMessage={() => "Cabang tidak ditemukan"}
-                  isClearable
-                  menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
-                />
-              </div>
+                    <div className="w-52">
+                      <Select<SimpleSelectOption, false>
+                        instanceId="modal-cabang-select"
+                        aria-label="Filter cabang di modal"
+                        styles={solidFilterSelectStyles}
+                        options={(modalData?.cabangOpsiItem ?? opsiCabang).map((c) => ({
+                          value: c.id,
+                          label: c.namaCabang,
+                        }))}
+                        value={
+                          modalCabangId
+                            ? (modalData?.cabangOpsiItem ?? opsiCabang)
+                                .filter((c) => c.id === modalCabangId)
+                                .map((c) => ({ value: c.id, label: c.namaCabang }))[0] ?? null
+                            : null
+                        }
+                        onChange={(opt) => {
+                          setModalCabangId(opt ? opt.value : "");
+                          setModalPage(1);
+                        }}
+                        placeholder="Semua cabang"
+                        noOptionsMessage={() => "Cabang tidak ditemukan"}
+                        isClearable
+                        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+                      />
+                    </div>
 
-              <select
-                aria-label="Filter divisi di modal"
-                value={modalDivisiId}
-                onChange={(e) => {
-                  setModalDivisiId(e.target.value);
-                  setModalPage(1);
-                }}
-                className="px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
-              >
-                <option value="">Semua divisi</option>
-                {opsiDivisi.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.namaDivisi}
-                  </option>
-                ))}
-              </select>
+                    <select
+                      aria-label="Filter divisi di modal"
+                      value={modalDivisiId}
+                      onChange={(e) => {
+                        setModalDivisiId(e.target.value);
+                        setModalPage(1);
+                      }}
+                      className="px-3 py-1.5 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white focus:outline-none focus:border-[#005BAC]"
+                    >
+                      <option value="">Semua divisi</option>
+                      {opsiDivisi.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.namaDivisi}
+                        </option>
+                      ))}
+                    </select>
 
-              <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2.5 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
-                <input
-                  type="checkbox"
-                  checked={modalOverride}
-                  onChange={(e) => {
-                    setModalOverride(e.target.checked);
-                    setModalPage(1);
-                  }}
-                  className="accent-[#005BAC] w-3.5 h-3.5"
-                />
-                Hanya ada harga wilayah
-              </label>
+                    <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none px-2.5 py-1.5 rounded-xl border-2 border-slate-300 bg-white hover:border-slate-400">
+                      <input
+                        type="checkbox"
+                        checked={modalOverride}
+                        onChange={(e) => {
+                          setModalOverride(e.target.checked);
+                          setModalPage(1);
+                        }}
+                        className="accent-[#005BAC] w-3.5 h-3.5"
+                      />
+                      Hanya ada harga wilayah
+                    </label>
 
-              {adaFilterModal && (
-                <button
-                  type="button"
-                  onClick={resetFilterModal}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-[#005BAC] bg-white text-xs font-bold text-[#005BAC] hover:bg-[#005BAC] hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Semua Cabang</span>
-                </button>
+                    {adaFilterModal && (
+                      <button
+                        type="button"
+                        onClick={resetFilterModal}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-[#005BAC] bg-white text-xs font-bold text-[#005BAC] hover:bg-[#005BAC] hover:text-white transition-colors cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Semua Cabang</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Ringkasan Filter Modal */}
+                  {modalData && (
+                    <div className="px-5 py-2 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-700">
+                      <span>
+                        {modalData.totalCabang} Cabang &middot; {modalData.totalSlot} Slot Divisi &middot;{" "}
+                        {modalData.totalWilayah} Harga Wilayah
+                      </span>
+                      {modalLoading && (
+                        <span className="inline-flex items-center gap-1 text-[#005BAC]">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Memperbarui...
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
-            </div>
 
-            {/* Ringkasan Filter Modal */}
-            {modalData && (
-              <div className="px-5 py-2 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-700">
-                <span>
-                  {modalData.totalCabang} Cabang &middot; {modalData.totalSlot} Slot Divisi &middot;{" "}
-                  {modalData.totalWilayah} Harga Wilayah
-                </span>
-                {modalLoading && (
-                  <span className="inline-flex items-center gap-1 text-[#005BAC]">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Memperbarui...
-                  </span>
-                )}
-              </div>
-            )}
+              {/* Body Modal */}
+              <div
+                ref={modalBodyRef}
+                className="p-5 space-y-4 max-h-[68vh] overflow-y-auto bg-slate-50"
+              >
+                {detail ? (
+                  <>
+                    <div className="bg-white border-2 border-slate-300 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                          Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull;{" "}
+                          {detail.item.namaDivisi})
+                        </span>
+                        <span className="text-2xl font-black font-mono text-[#005BAC] tabular-nums">
+                          {formatRupiah(detail.hargaFinalInduk)}
+                        </span>
+                        <span className="text-xs text-slate-600 font-semibold ml-1.5">
+                          / {detail.item.satuan} (Margin {detail.marginTotalPersen}%)
+                        </span>
+                      </div>
+                      {detail.nomorTiket && (
+                        <span className="px-3 py-1.5 rounded-lg bg-[#005BAC] text-white text-xs font-mono font-bold">
+                          Tiket Rilis: {detail.nomorTiket}
+                        </span>
+                      )}
+                    </div>
 
-            {/* Konten Grup Cabang */}
-            <div className="p-5 space-y-4 max-h-[64vh] overflow-y-auto bg-slate-50">
-              {modalLoading && !modalData ? (
+                    {detail.wilayahList.length > 0 && (
+                      <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
+                        <div className="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 text-xs font-black uppercase text-slate-800">
+                          Harga Wilayah ({detail.wilayahList.length})
+                        </div>
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="py-2 px-3">Wilayah</th>
+                              <th className="py-2 px-3 text-right">Harga Wilayah</th>
+                              <th className="py-2 px-3 text-right">Selisih Induk</th>
+                              <th className="py-2 px-3">Berlaku Sejak</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {detail.wilayahList.map((w) => (
+                              <tr key={w.id}>
+                                <td className="py-2 px-3 font-bold text-slate-900">
+                                  {w.namaWilayah}
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
+                                  {formatRupiah(w.harga)}
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <Selisih rp={w.selisihRp} persen={w.selisihPersen} />
+                                </td>
+                                <td className="py-2 px-3 font-mono text-slate-600">
+                                  {formatTanggal(w.berlakuSejak)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <DetailSpesifikasi item={detail.item} showDeskripsi={true} />
+
+                    {detail.item.koefisienItems.length > 0 && (
+                      <RincianKalkulasiKoefisien
+                        item={detail.item}
+                        koefisienItems={detail.item.koefisienItems}
+                        mode="readonly"
+                        liveMarginUpah={detail.item.liveMarginUpah}
+                        liveMarginMaterial={detail.item.liveMarginMaterial}
+                        liveMarginBongkaran={detail.item.liveMarginBongkaran}
+                      />
+                    )}
+
+                    {detail.item.surveiTokoList.length > 0 && (
+                      <RincianSurvei3TokoCard
+                        surveiList={detail.item.surveiTokoList}
+                        materialName={detail.item.namaItem}
+                        readonly={true}
+                      />
+                    )}
+                  </>
+                ) : modalLoading && !modalData ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
                   <Loader2 className="w-4 h-4 animate-spin text-[#005BAC]" />
                   <span>Memuat harga per cabang...</span>
@@ -667,9 +805,6 @@ export function MasterHargaClient({
                                           <span className="font-bold text-slate-900">
                                             {w.namaWilayah}
                                           </span>
-                                          <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
-                                            Khusus Wilayah
-                                          </span>
                                         </div>
                                       </td>
                                       <td className="py-2 px-3 text-right whitespace-nowrap">
@@ -707,180 +842,59 @@ export function MasterHargaClient({
               )}
             </div>
 
-            {/* Footer & Paginasi Cabang di Modal */}
-            <div className="px-5 py-3 bg-white border-t-2 border-slate-200 flex items-center justify-between gap-3">
-              {modalData && modalData.jumlahHalaman > 1 ? (
-                <div className="flex items-center gap-2 text-xs">
+              {/* Footer Modal */}
+              <div className="px-5 py-3 bg-white border-t-2 border-slate-200 flex items-center justify-between gap-3">
+                {detail ? (
                   <button
                     type="button"
-                    disabled={modalPage <= 1 || modalLoading}
-                    onClick={() => setModalPage((p) => Math.max(1, p - 1))}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                    aria-label="Halaman cabang sebelumnya"
+                    onClick={kembaliKeDaftarCabang}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-xs font-bold transition-colors cursor-pointer"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Kembali ke Daftar Cabang</span>
                   </button>
-                  <span className="font-mono font-bold text-slate-800">
-                    Hal {modalData.halaman} / {modalData.jumlahHalaman}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={modalPage >= modalData.jumlahHalaman || modalLoading}
-                    onClick={() =>
-                      setModalPage((p) => Math.min(modalData.jumlahHalaman, p + 1))
-                    }
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                    aria-label="Halaman cabang berikutnya"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div />
-              )}
-
-              <button
-                type="button"
-                onClick={tutupModalCabang}
-                className="px-5 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 text-xs font-bold cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: Detail Rincian AHSP & Survei 3 Toko */}
-      {detail && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-[60] bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
-        >
-          <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-5xl w-full my-8 overflow-hidden">
-            <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <Tag className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-sm font-black text-slate-900">
-                      {detail.item.namaItem}
-                    </h2>
-                    <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold uppercase">
-                      RILIS AKTIF
+                ) : modalData && modalData.jumlahHalaman > 1 ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      disabled={modalPage <= 1 || modalLoading}
+                      onClick={() => setModalPage((p) => Math.max(1, p - 1))}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                      aria-label="Halaman cabang sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="font-mono font-bold text-slate-800">
+                      Hal {modalData.halaman} / {modalData.jumlahHalaman}
                     </span>
+                    <button
+                      type="button"
+                      disabled={modalPage >= modalData.jumlahHalaman || modalLoading}
+                      onClick={() =>
+                        setModalPage((p) => Math.min(modalData.jumlahHalaman, p + 1))
+                      }
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                      aria-label="Halaman cabang berikutnya"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-600 font-medium">
-                    {detail.item.kodeMaster} &middot; {detail.item.namaCabang} &middot;{" "}
-                    {detail.item.namaDivisi} &middot; Berlaku sejak{" "}
-                    {formatTanggal(detail.berlakuSejak)}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetail(null)}
-                className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer"
-                aria-label="Tutup modal rincian"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-5 max-h-[78vh] overflow-y-auto">
-              <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                    Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull;{" "}
-                    {detail.item.namaDivisi})
-                  </span>
-                  <span className="text-2xl font-black font-mono text-[#005BAC] tabular-nums">
-                    {formatRupiah(detail.hargaFinalInduk)}
-                  </span>
-                  <span className="text-xs text-slate-600 font-semibold ml-1.5">
-                    / {detail.item.satuan} (Margin {detail.marginTotalPersen}%)
-                  </span>
-                </div>
-                {detail.nomorTiket && (
-                  <span className="px-3 py-1.5 rounded-lg bg-[#005BAC] text-white text-xs font-mono font-bold">
-                    Tiket Rilis: {detail.nomorTiket}
-                  </span>
+                ) : (
+                  <div />
                 )}
+
+                <button
+                  type="button"
+                  onClick={tutupModalCabang}
+                  className="px-5 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 text-xs font-bold cursor-pointer"
+                >
+                  Tutup
+                </button>
               </div>
-
-              {detail.wilayahList.length > 0 && (
-                <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 text-xs font-black uppercase text-slate-800">
-                    Harga Khusus Wilayah ({detail.wilayahList.length})
-                  </div>
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                      <tr>
-                        <th className="py-2 px-3">Wilayah</th>
-                        <th className="py-2 px-3 text-right">Harga Wilayah</th>
-                        <th className="py-2 px-3 text-right">Selisih Induk</th>
-                        <th className="py-2 px-3">Berlaku Sejak</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {detail.wilayahList.map((w) => (
-                        <tr key={w.id}>
-                          <td className="py-2 px-3 font-bold text-slate-900">
-                            {w.namaWilayah}
-                          </td>
-                          <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
-                            {formatRupiah(w.harga)}
-                          </td>
-                          <td className="py-2 px-3 text-right">
-                            <Selisih rp={w.selisihRp} persen={w.selisihPersen} />
-                          </td>
-                          <td className="py-2 px-3 font-mono text-slate-600">
-                            {formatTanggal(w.berlakuSejak)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <DetailSpesifikasi item={detail.item} showDeskripsi={true} />
-
-              {detail.item.koefisienItems.length > 0 && (
-                <RincianKalkulasiKoefisien
-                  item={detail.item}
-                  koefisienItems={detail.item.koefisienItems}
-                  mode="readonly"
-                  liveMarginUpah={detail.item.liveMarginUpah}
-                  liveMarginMaterial={detail.item.liveMarginMaterial}
-                  liveMarginBongkaran={detail.item.liveMarginBongkaran}
-                />
-              )}
-
-              {detail.item.surveiTokoList.length > 0 && (
-                <RincianSurvei3TokoCard
-                  surveiList={detail.item.surveiTokoList}
-                  materialName={detail.item.namaItem}
-                  readonly={true}
-                />
-              )}
             </div>
-
-            <div className="px-5 py-3.5 bg-slate-50 border-t-2 border-slate-200 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setDetail(null)}
-                className="px-5 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 text-xs font-bold cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }

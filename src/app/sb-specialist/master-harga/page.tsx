@@ -59,7 +59,7 @@ export default async function MasterHargaSnbPage({
         <HeaderHalaman
           icon={Tag}
           judul="Master Harga Resmi (Rilis)"
-          deskripsi="Daftar item SIP & ME yang sudah dinyatakan rilis beserta rincian harga aktif per cabang, per divisi, dan khusus wilayah."
+          deskripsi="Daftar item SIP & ME yang sudah dinyatakan rilis beserta rincian harga aktif per cabang, per divisi, dan wilayah."
         />
 
         {/* Kartu Metrik Solid */}
@@ -76,14 +76,9 @@ export default async function MasterHargaSnbPage({
             </span>
           </div>
           <div className="rounded-2xl border-2 border-amber-400 p-4 bg-white shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Harga Khusus Wilayah
-              </span>
-              <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
-                KHUSUS
-              </span>
-            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+              Harga Wilayah
+            </span>
             <span className="mt-1 text-2xl font-black font-mono tabular-nums text-slate-900 block">
               {totalOverride.toLocaleString("id-ID")}
             </span>

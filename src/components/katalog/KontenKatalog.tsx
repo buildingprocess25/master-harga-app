@@ -63,7 +63,7 @@ export async function KontenKatalog({
             <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">Katalog Harga Satuan Resmi</h1>
             <p className="text-xs text-slate-600 font-medium mt-0.5 max-w-2xl">
               Harga satuan yang telah disetujui kuorum rekanan dan berlaku aktif.
-              Harga khusus wilayah ditampilkan di bawah harga induk cabang.
+              Harga wilayah ditampilkan di bawah harga induk cabang.
             </p>
           </div>
         )}
@@ -89,7 +89,7 @@ export async function KontenKatalog({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Metrik label="Item harga induk" nilai={total} />
-        <Metrik label="Harga khusus wilayah" nilai={totalOverride} tone="yellow" />
+        <Metrik label="Harga wilayah" nilai={totalOverride} tone="yellow" />
         <Metrik label="Cabang aktif" nilai={totalCabang} />
       </div>
 
@@ -147,12 +147,7 @@ function Metrik({ label, nilai, tone = "blue" }: { label: string; nilai: number;
         tone === "yellow" ? "border-amber-400" : "border-slate-300"
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
-        {tone === "yellow" && (
-          <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">KHUSUS</span>
-        )}
-      </div>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{label}</span>
       <div className="mt-1 text-2xl font-black font-mono tabular-nums text-slate-900">{nilai.toLocaleString("id-ID")}</div>
     </div>
   );

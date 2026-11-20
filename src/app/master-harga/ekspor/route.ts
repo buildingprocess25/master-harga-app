@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const umum = [r.kodeMaster, r.namaItem, r.spesifikasi, r.kategori, r.namaDivisi, r.satuan, r.kodeCabang, r.namaCabang, r.regional];
     baris.push([i + 1, ...umum, "Induk Cabang", "", r.harga, null, null, r.marginPersen, tgl(r.berlakuSejak), r.nomorTiket]);
     for (const w of r.wilayahList) {
-      baris.push(["", ...umum, "Khusus Wilayah", w.namaWilayah, w.harga, w.selisihRp, w.selisihPersen, null, tgl(w.berlakuSejak), w.nomorTiket]);
+      baris.push(["", ...umum, "Harga Wilayah", w.namaWilayah, w.harga, w.selisihRp, w.selisihPersen, null, tgl(w.berlakuSejak), w.nomorTiket]);
     }
   });
   if (terpotong) {

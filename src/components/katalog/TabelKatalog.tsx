@@ -80,16 +80,13 @@ function FragmentBaris({ r, no }: { r: BarisKatalog; no: number }) {
           <td className="py-2.5 px-2 text-slate-600" colSpan={2}>
             <span className="inline-flex items-center gap-1.5 pl-3 text-xs font-semibold text-amber-900">
               <CornerDownRight className="w-3.5 h-3.5 text-amber-600" />
-              Harga khusus wilayah untuk item di atas
+              Harga wilayah untuk item di atas
             </span>
           </td>
           <td className="py-2.5 px-2">
             <div className="inline-flex items-center gap-1 font-bold text-slate-800">
               <MapPin className="w-3.5 h-3.5 text-amber-600" /> {w.namaWilayah}
             </div>
-            <span className="block mt-1 w-fit px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider">
-              Khusus Wilayah
-            </span>
           </td>
           <td className="py-2.5 px-2 text-right whitespace-nowrap">
             <div className="font-mono tabular-nums font-black text-slate-900 text-sm">{formatRupiah(w.harga)}</div>

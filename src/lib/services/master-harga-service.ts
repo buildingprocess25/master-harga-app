@@ -231,7 +231,7 @@ export async function deskripsiFilterKatalog(f: FilterKatalog) {
   }
   if (f.kategori) bagian.push(`Kategori ${f.kategori}`);
   if (f.q) bagian.push(`Pencarian "${f.q}"`);
-  if (f.hanyaOverride) bagian.push("Hanya item dengan harga khusus wilayah");
+  if (f.hanyaOverride) bagian.push("Hanya item dengan harga wilayah");
   return bagian.length > 0 ? bagian.join(" | ") : "Semua cabang dan divisi";
 }
 
