@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { TipeLampiranSurvei } from "@/types";
 import {
+  buatStatusFilterBmWhere,
   kelompokkanSlotPerCabang,
   ringkasHargaItemPerCabang,
   type CabangHargaGroup,
@@ -656,40 +657,11 @@ export async function getMasterHargaUntukBm(
   );
   const jumlahDivisiResmi = Math.max(allDivisi.length, 1);
 
-  let statusFilterWhere: Prisma.MasterItemWhereInput = {};
-  if (filter.statusCabangSaya === "aktif") {
-    statusFilterWhere = {
-      hargaPerCabang: {
-        some: {
-          cabangId,
-          statusHarga: "AKTIF",
-          ...(filter.divisiId ? { divisiId: filter.divisiId } : {}),
-        },
-      },
-    };
-  } else if (filter.statusCabangSaya === "belum_aktif") {
-    if (filter.divisiId) {
-      statusFilterWhere = {
-        hargaPerCabang: {
-          none: { cabangId, divisiId: filter.divisiId, statusHarga: "AKTIF" },
-        },
-      };
-    } else {
-      // Item yang belum aktif di minimal 1 divisi pada cabang ini (termasuk yang baru aktif di Building saja)
-      statusFilterWhere = {
-        OR: allDivisi.map((d) => ({
-          hargaPerCabang: { none: { cabangId, divisiId: d.id, statusHarga: "AKTIF" } },
-        })),
-      };
-    }
-  } else if (filter.divisiId) {
-    statusFilterWhere = {
-      OR: [
-        { divisiId: filter.divisiId },
-        { hargaPerCabang: { some: { divisiId: filter.divisiId, statusHarga: "AKTIF" } } },
-      ],
-    };
-  }
+  const statusFilterWhere: Prisma.MasterItemWhereInput = buatStatusFilterBmWhere(
+    cabangId,
+    filter.statusCabangSaya,
+    filter.divisiId
+  );
 
   const baseReleaseWhere: Prisma.MasterItemWhereInput = {
     ...buatItemWhere(filter),

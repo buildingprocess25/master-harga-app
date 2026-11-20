@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buatStatusFilterBmWhere,
   kelompokkanSlotPerCabang,
   ringkasHargaItemPerCabang,
   type SlotHargaCabangSnb,
@@ -95,5 +96,41 @@ describe("Unit: Agregasi & Pengelompokan Master Harga Nasional SNB", () => {
     ]);
     expect(groups[0].totalWilayah).toBe(1);
     expect(groups[1].slots.map((s) => s.kodeDivisi)).toEqual(["DIV-BLD", "DIV-DC"]);
+  });
+
+  it("filter status 'belum_aktif' tanpa divisi mencari item tanpa slot aktif di cabang saya", () => {
+    expect(buatStatusFilterBmWhere("cab-ckk", "belum_aktif")).toEqual({
+      hargaPerCabang: {
+        none: { cabangId: "cab-ckk", statusHarga: "AKTIF" },
+      },
+    });
+  });
+
+  it("filter status 'belum_aktif' dengan divisi memeriksa belum aktif khusus pada divisi tersebut di cabang saya", () => {
+    expect(buatStatusFilterBmWhere("cab-ckk", "belum_aktif", "div-eng")).toEqual({
+      hargaPerCabang: {
+        none: { cabangId: "cab-ckk", divisiId: "div-eng", statusHarga: "AKTIF" },
+      },
+    });
+  });
+
+  it("filter status 'aktif' dan 'semua' menyusun query sesuai pilihan divisi", () => {
+    expect(buatStatusFilterBmWhere("cab-ckk", "aktif")).toEqual({
+      hargaPerCabang: {
+        some: { cabangId: "cab-ckk", statusHarga: "AKTIF" },
+      },
+    });
+    expect(buatStatusFilterBmWhere("cab-ckk", "aktif", "div-mnt")).toEqual({
+      hargaPerCabang: {
+        some: { cabangId: "cab-ckk", divisiId: "div-mnt", statusHarga: "AKTIF" },
+      },
+    });
+    expect(buatStatusFilterBmWhere("cab-ckk", "semua", "div-bld")).toEqual({
+      OR: [
+        { divisiId: "div-bld" },
+        { hargaPerCabang: { some: { divisiId: "div-bld", statusHarga: "AKTIF" } } },
+      ],
+    });
+    expect(buatStatusFilterBmWhere("cab-ckk", "semua")).toEqual({});
   });
 });

@@ -122,3 +122,49 @@ export function kelompokkanSlotPerCabang(slots: SlotHargaCabangSnb[]): CabangHar
   result.sort((a, b) => a.namaCabang.localeCompare(b.namaCabang, "id-ID"));
   return result;
 }
+
+/**
+ * Menyusun klausa WHERE Prisma untuk filter status katalog B&M Manager:
+ * - "belum_aktif" tanpa divisiId mencari item yang sama sekali belum aktif di cabang tersebut.
+ * - "belum_aktif" dengan divisiId mencari item rilis yang belum aktif pada divisi tersebut di cabang ini.
+ */
+export function buatStatusFilterBmWhere(
+  cabangId: string,
+  statusCabangSaya?: "semua" | "aktif" | "belum_aktif",
+  divisiId?: string
+) {
+  if (statusCabangSaya === "aktif") {
+    return {
+      hargaPerCabang: {
+        some: {
+          cabangId,
+          statusHarga: "AKTIF" as const,
+          ...(divisiId ? { divisiId } : {}),
+        },
+      },
+    };
+  }
+
+  if (statusCabangSaya === "belum_aktif") {
+    return {
+      hargaPerCabang: {
+        none: {
+          cabangId,
+          statusHarga: "AKTIF" as const,
+          ...(divisiId ? { divisiId } : {}),
+        },
+      },
+    };
+  }
+
+  if (divisiId) {
+    return {
+      OR: [
+        { divisiId },
+        { hargaPerCabang: { some: { divisiId, statusHarga: "AKTIF" as const } } },
+      ],
+    };
+  }
+
+  return {};
+}
