@@ -20,6 +20,7 @@ import {
   Send,
   Pencil,
   X,
+  MapPin,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
@@ -27,9 +28,13 @@ import { PengajuanTimelineBar } from "@/components/global/PengajuanTimelineBar";
 import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import {
   buatDeskripsiOtomatis,
+  cn,
+  formatRupiah,
   parseNilaiDanSatuan,
   SATUAN_UKURAN_OPTIONS,
 } from "@/lib/utils";
+import { hitungAhsp } from "@/lib/kalkulasi-ahsp";
+import { hitungSelisihTerhadapInduk } from "@/lib/wilayah-ahsp";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import {
@@ -110,7 +115,9 @@ type ActionType =
   | "reject_spec"
   | "revise_spec"
   | "approve_harga"
-  | "reject_harga";
+  | "reject_harga"
+  | "revisi_bnm"
+  | "tolak_wilayah";
 
 export default function SBSpecialistDetailPage() {
   const params = useParams();
@@ -637,9 +644,51 @@ export default function SBSpecialistDetailPage() {
     }
   };
 
+  const handleKeputusanWilayah = async (modeAction: "REVISI_BNM" | "TOLAK") => {
+    if (!item) return;
+    if (catatan.trim().length < 5) {
+      Swal.fire({
+        icon: "warning",
+        title: "Perhatian",
+        text: "Catatan minimal 5 karakter wajib diisi.",
+        confirmButtonColor: "#ED1C24",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch(`/api/pengajuan/${id}/evaluasi-margin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: modeAction,
+          catatan: catatan.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await Swal.fire({
+          title: modeAction === "TOLAK" ? "Pengajuan Ditolak" : "Dikembalikan ke B&M",
+          text: json.message,
+          icon: modeAction === "TOLAK" ? "warning" : "info",
+          confirmButtonColor: "#005BAC",
+        });
+        router.push("/sb-specialist");
+      } else {
+        Swal.fire("Gagal", json.message || "Gagal memproses keputusan.", "error");
+      }
+    } catch (e: any) {
+      Swal.fire("Kesalahan", e.message || "Terjadi kesalahan koneksi.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Helper Badge Status Header Sesuai Prototype
   const renderStatusBadge = () => {
     if (!item) return null;
+    const directWilayah = item.cakupanHarga === "KHUSUS_WILAYAH";
 
     switch (item.status) {
       case "DIAJUKAN":
@@ -653,8 +702,10 @@ export default function SBSpecialistDetailPage() {
       case "PENDING_SB_SPECIALIST":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-[#005BAC] text-white shadow-2xs">
-            <Store className="w-3.5 h-3.5" />
-            <span>Status: Validasi Harga Survei</span>
+            {directWilayah ? <MapPin className="w-3.5 h-3.5" /> : <Store className="w-3.5 h-3.5" />}
+            <span>
+              {directWilayah ? "Status: Approval Harga Wilayah" : "Status: Validasi Harga Survei"}
+            </span>
           </span>
         );
       case "USULAN_KONTRAKTOR":
@@ -743,6 +794,27 @@ export default function SBSpecialistDetailPage() {
     (item.status === "DIAJUKAN" || item.status === "PENDING_BM_MGR") &&
     !isSpekDisetujui;
   const isPendingSb = item.status === "PENDING_SB_SPECIALIST";
+  const isDirectWilayah = item.cakupanHarga === "KHUSUS_WILAYAH";
+  const liveWilayahKalk =
+    isDirectWilayah && koefisienList.length > 0
+      ? hitungAhsp(
+          koefisienList.map((k) => ({
+            kategori: k.kategori,
+            koefisien: Number(k.koefisien) || 0,
+            hargaAcuan: Number(k.hargaAcuan) || 0,
+          })),
+          {
+            upah: liveMarginUpah,
+            material: liveMarginMaterial,
+            bongkaran: liveMarginBongkaran,
+          }
+        )
+      : null;
+  const liveWilayahHargaFinal = liveWilayahKalk?.hargaFinal ?? item.totalHargaSatuan ?? 0;
+  const liveWilayahSelisih =
+    item.hargaIndukCabang !== undefined
+      ? hitungSelisihTerhadapInduk(liveWilayahHargaFinal, item.hargaIndukCabang)
+      : null;
   const isBanding =
     item.status === "PENDING_KONTRAKTOR" ||
     item.status === "USULAN_KONTRAKTOR" ||
@@ -1059,32 +1131,95 @@ export default function SBSpecialistDetailPage() {
         )}
 
         {/* =========================================================================
-            ALUR 2: REVIEW HASIL SURVEI HARGA LAPANGAN (STATUS PENDING_SB_SPECIALIST)
+            ALUR 2: REVIEW HASIL SURVEI / APPROVAL HARGA WILAYAH (STATUS PENDING_SB_SPECIALIST)
             ========================================================================= */}
         {isPendingSb && (
           <div className="space-y-6">
-            {/* Tampilkan Hasil Survei Lapangan 3 Toko */}
-            <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 pb-3 border-b-2 border-slate-200">
-                <Store className="w-4 h-4 text-slate-600" />
-                <span>Review Hasil Survei Harga Lapangan</span>
-              </h3>
+            {isDirectWilayah && (
+              <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between gap-2 pb-3 border-b-2 border-slate-200 flex-wrap">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-600" />
+                    <span>Pengajuan Harga Wilayah ({item.namaWilayah || "Wilayah"})</span>
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black uppercase">
+                    {item.namaWilayah || "Wilayah"}
+                  </span>
+                </div>
 
-              <RingkasanBiayaMaterial
-                surveiList={item.surveiTokoList || []}
-                namaMaterial={item.namaItem || item.item}
-              />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-3.5">
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                      Harga Induk ({item.namaCabang})
+                    </span>
+                    <span className="text-lg font-black font-mono text-slate-900">
+                      {item.hargaIndukCabang !== undefined
+                        ? formatRupiah(item.hargaIndukCabang)
+                        : "-"}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 border-2 border-[#005BAC] rounded-xl p-3.5">
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                      Harga Usulan Wilayah
+                    </span>
+                    <span className="text-lg font-black font-mono text-[#005BAC]">
+                      {formatRupiah(liveWilayahHargaFinal)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-3.5">
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                      Selisih Induk
+                    </span>
+                    <span
+                      className={cn(
+                        "text-lg font-black font-mono",
+                        liveWilayahSelisih && liveWilayahSelisih.selisihRp > 0
+                          ? "text-[#990F14]"
+                          : liveWilayahSelisih && liveWilayahSelisih.selisihRp < 0
+                            ? "text-emerald-700"
+                            : "text-slate-700"
+                      )}
+                    >
+                      {liveWilayahSelisih
+                        ? `${liveWilayahSelisih.selisihRp > 0 ? "+" : liveWilayahSelisih.selisihRp < 0 ? "-" : ""}${formatRupiah(Math.abs(liveWilayahSelisih.selisihRp))} (${liveWilayahSelisih.selisihRp > 0 ? "+" : liveWilayahSelisih.selisihRp < 0 ? "-" : ""}${Math.abs(liveWilayahSelisih.selisihPersen).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)`
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
 
-              <div className="space-y-4 pt-2">
-                <RincianSurvei3TokoCard
-                  surveiList={item.surveiTokoList || []}
-                  materialName={item.namaItem || item.item}
-                  readonly={true}
-                />
+                {(item.alasanPengajuan || item.catatanReview) && (
+                  <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-xs text-slate-700">
+                    <span className="font-bold text-slate-900 block mb-0.5">Alasan B&amp;M:</span>
+                    {item.alasanPengajuan || item.catatanReview}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Panel Aksi Persetujuan Harga Survei (Layer 2) */}
+            {(!isDirectWilayah || (item.surveiTokoList || []).length > 0) && (
+              /* Tampilkan Hasil Survei Lapangan 3 Toko */
+              <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2 pb-3 border-b-2 border-slate-200">
+                  <Store className="w-4 h-4 text-slate-600" />
+                  <span>Review Harga Bahan &amp; Peralatan (3 Toko)</span>
+                </h3>
+
+                <RingkasanBiayaMaterial
+                  surveiList={item.surveiTokoList || []}
+                  namaMaterial={item.namaItem || item.item}
+                />
+
+                <div className="space-y-4 pt-2">
+                  <RincianSurvei3TokoCard
+                    surveiList={item.surveiTokoList || []}
+                    materialName={item.namaItem || item.item}
+                    readonly={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Panel Aksi Persetujuan (Layer 2) */}
             <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b-2 border-slate-200">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
@@ -1092,7 +1227,9 @@ export default function SBSpecialistDetailPage() {
                   <span>
                     {item.isRevisiMargin
                       ? "Konfirmasi Revisi Margin & Teruskan ke Regional"
-                      : "Tinjauan & Persetujuan Harga Survei"}
+                      : isDirectWilayah
+                        ? "Approval Harga Wilayah & Margin"
+                        : "Tinjauan & Persetujuan Harga Survei"}
                   </span>
                 </h3>
                 {item.isRevisiMargin && (
@@ -1125,18 +1262,47 @@ export default function SBSpecialistDetailPage() {
                   </button>
 
                   <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveAction("reject_harga");
-                        setCatatan("");
-                      }}
-                      disabled={isSubmitting}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Kembalikan Survei ke BC</span>
-                    </button>
+                    {isDirectWilayah ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAction("tolak_wilayah");
+                            setCatatan("");
+                          }}
+                          disabled={isSubmitting}
+                          className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Tolak</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAction("revisi_bnm");
+                            setCatatan("");
+                          }}
+                          disabled={isSubmitting}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Revisi ke B&amp;M</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveAction("reject_harga");
+                          setCatatan("");
+                        }}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Kembalikan Survei ke BC</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1160,7 +1326,11 @@ export default function SBSpecialistDetailPage() {
                       <span>
                         {activeAction === "approve_harga"
                           ? "Catatan Persetujuan Harga (Opsional)"
-                          : "Alasan Pengembalian Harga ke BC (Wajib)"}
+                          : activeAction === "tolak_wilayah"
+                            ? "Alasan Penolakan (Wajib minimal 5 karakter)"
+                            : activeAction === "revisi_bnm"
+                              ? "Catatan Revisi ke B&M Manager (Wajib minimal 5 karakter)"
+                              : "Alasan Pengembalian Harga ke BC (Wajib)"}
                       </span>
                     </label>
                     <textarea
@@ -1168,12 +1338,12 @@ export default function SBSpecialistDetailPage() {
                       onChange={(e) => setCatatan(e.target.value)}
                       placeholder={
                         activeAction === "approve_harga"
-                          ? "Tuliskan catatan persetujuan harga survei jika ada..."
-                          : "Tuliskan alasan spesifik kenapa harga survei ini dikembalikan..."
+                          ? "Tuliskan catatan persetujuan jika ada..."
+                          : "Tuliskan alasan spesifik (minimal 5 karakter)..."
                       }
                       rows={3}
                       className={`w-full text-xs font-medium bg-white border-2 ${
-                        activeAction === "reject_harga" && !catatan.trim()
+                        activeAction !== "approve_harga" && !catatan.trim()
                           ? "border-rose-400"
                           : "border-slate-300"
                       } rounded-xl p-3 focus:border-[#005BAC] focus:outline-none`}
@@ -1184,7 +1354,7 @@ export default function SBSpecialistDetailPage() {
                     <button
                       type="button"
                       onClick={() => setActiveAction("none")}
-                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer border border-slate-300"
+                      className="px-4 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-xl cursor-pointer border-2 border-slate-300"
                     >
                       Batal
                     </button>
@@ -1192,19 +1362,24 @@ export default function SBSpecialistDetailPage() {
                     <button
                       type="button"
                       disabled={isSubmitting}
-                      onClick={
-                        activeAction === "approve_harga"
-                          ? handleApproveHarga
-                          : handleRejectHarga
-                      }
+                      onClick={() => {
+                        if (activeAction === "approve_harga") return handleApproveHarga();
+                        if (activeAction === "tolak_wilayah") return handleKeputusanWilayah("TOLAK");
+                        if (activeAction === "revisi_bnm") return handleKeputusanWilayah("REVISI_BNM");
+                        return handleRejectHarga();
+                      }}
                       className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-2xs flex items-center gap-1.5 cursor-pointer ${
                         activeAction === "approve_harga"
                           ? "bg-[#005BAC] hover:bg-blue-700"
-                          : "bg-amber-600 hover:bg-amber-700"
+                          : activeAction === "tolak_wilayah"
+                            ? "bg-rose-600 hover:bg-rose-700"
+                            : "bg-amber-600 hover:bg-amber-700"
                       }`}
                     >
                       {activeAction === "approve_harga" ? (
                         <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : activeAction === "tolak_wilayah" ? (
+                        <XCircle className="w-3.5 h-3.5" />
                       ) : (
                         <RotateCcw className="w-3.5 h-3.5" />
                       )}
@@ -1212,7 +1387,11 @@ export default function SBSpecialistDetailPage() {
                         Konfirmasi{" "}
                         {activeAction === "approve_harga"
                           ? "Setujui Harga"
-                          : "Kembalikan ke BC"}
+                          : activeAction === "tolak_wilayah"
+                            ? "Tolak"
+                            : activeAction === "revisi_bnm"
+                              ? "Kembalikan ke B&M"
+                              : "Kembalikan ke BC"}
                       </span>
                     </button>
                   </div>
@@ -1276,7 +1455,7 @@ export default function SBSpecialistDetailPage() {
                   ? isSpekDisetujui
                     ? "editable"
                     : "readonly"
-                  : item.isRevisiMargin
+                  : item.isRevisiMargin || (isPendingSb && isDirectWilayah)
                   ? "margin-only"
                   : "readonly"
               }

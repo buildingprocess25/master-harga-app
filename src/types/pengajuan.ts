@@ -168,6 +168,7 @@ export type KelompokKodeItem = "SIP" | "ME";
 
 export interface PengajuanHargaItem {
   id: string;
+  masterItemId?: string | null;
   noTiket: string;
   kodePaket?: string;
   kodeItem: string;
@@ -191,6 +192,7 @@ export interface PengajuanHargaItem {
   cakupanHarga: CakupanHarga;
   wilayahCabangId?: string | null;
   namaWilayah?: string | null;
+  hargaIndukCabang?: number;
 
   // Siklus Status & Audit
   status: StatusPengajuanHarga;

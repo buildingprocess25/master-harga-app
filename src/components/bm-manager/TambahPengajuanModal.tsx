@@ -13,6 +13,7 @@ import {
   Building2,
   Trash2,
   ListPlus,
+  Lock,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import CreatableSelect from "react-select/creatable";
@@ -85,7 +86,9 @@ export interface ActivationTemplatePayload {
   lokasi: string;
   satuan: string;
   activeDivisiIds: string[];
+  activeDivisiCodes?: string[];
   inProgressDivisiIds: string[];
+  inProgressDivisiCodes?: string[];
   komponenMaterial: Array<{
     masterKoefisienId?: string;
     kategori: "MATERIAL" | "ALAT";
@@ -912,9 +915,27 @@ export function TambahPengajuanModal({
     [kelompokKode, item, isKategoriCor, jenisCor, combinedUkuran, merk, warna, tipe, permukaan, combinedTebal, lokasi]
   );
 
+  const isDivisiInKeys = (div: DivisiOption, keys: string[]): boolean => {
+    const normalized = new Set(keys.map((k) => k.trim().toUpperCase()).filter(Boolean));
+    return (
+      normalized.has(div.id.trim().toUpperCase()) ||
+      normalized.has(div.kodeDivisi.trim().toUpperCase())
+    );
+  };
+
   // Divisi yang SUDAH AKTIF (RELEASED di cabang ini / dari activationTemplate) -> terkunci, tidak bisa diklik
   const activeDivisiIdsForForm = useMemo(() => {
-    const ids = new Set<string>(activationTemplate?.activeDivisiIds || []);
+    const rawKeys = [
+      ...(activationTemplate?.activeDivisiIds || []),
+      ...(activationTemplate?.activeDivisiCodes || []),
+    ];
+    const ids = new Set<string>(rawKeys);
+    for (const div of divisiOptions) {
+      if (isDivisiInKeys(div, rawKeys)) {
+        ids.add(div.id);
+        ids.add(div.kodeDivisi);
+      }
+    }
     if (!itemToEdit && item.trim() && lokasi.trim()) {
       const releasedMatches = otherItems.filter(
         (i) => i.status === "RELEASED" && isSameSpecForBranchCheck(i, currentFormSpecKey)
@@ -922,16 +943,41 @@ export function TambahPengajuanModal({
       for (const div of divisiOptions) {
         if (releasedMatches.some((e) => matchesDivisiKey(e, div.id))) {
           ids.add(div.id);
+          ids.add(div.kodeDivisi);
         }
       }
     }
     return Array.from(ids);
   }, [activationTemplate, itemToEdit, item, lokasi, otherItems, divisiOptions, currentFormSpecKey]);
 
-  const inProgressDivisiIdsForForm = useMemo(
-    () => activationTemplate?.inProgressDivisiIds || [],
-    [activationTemplate]
-  );
+  const inProgressDivisiIdsForForm = useMemo(() => {
+    const rawKeys = [
+      ...(activationTemplate?.inProgressDivisiIds || []),
+      ...(activationTemplate?.inProgressDivisiCodes || []),
+    ];
+    const ids = new Set<string>(rawKeys);
+    for (const div of divisiOptions) {
+      if (isDivisiInKeys(div, rawKeys)) {
+        ids.add(div.id);
+        ids.add(div.kodeDivisi);
+      }
+    }
+    if (!itemToEdit && item.trim() && lokasi.trim()) {
+      const inProgressMatches = otherItems.filter(
+        (i) =>
+          i.status !== "DITOLAK" &&
+          i.status !== "RELEASED" &&
+          isSameSpecForBranchCheck(i, currentFormSpecKey)
+      );
+      for (const div of divisiOptions) {
+        if (inProgressMatches.some((e) => matchesDivisiKey(e, div.id))) {
+          ids.add(div.id);
+          ids.add(div.kodeDivisi);
+        }
+      }
+    }
+    return Array.from(ids);
+  }, [activationTemplate, itemToEdit, item, lokasi, otherItems, divisiOptions, currentFormSpecKey]);
 
   const duplicateAnalysis = useMemo(() => {
     if (itemToEdit || !item.trim() || !lokasi.trim()) {
@@ -991,14 +1037,41 @@ export function TambahPengajuanModal({
     inProgressDivisiIdsForForm,
   ]);
 
-  // Pastikan divisi yang sudah aktif (RELEASED / activeDivisiIds) otomatis terlepas dari pilihan
+  // Pastikan divisi yang sudah aktif atau sedang proses otomatis terlepas dari pilihan
   useEffect(() => {
-    if (!isOpen || itemToEdit || activeDivisiIdsForForm.length === 0) return;
+    if (!isOpen || itemToEdit) return;
+    const blockedKeys = [...activeDivisiIdsForForm, ...inProgressDivisiIdsForForm];
+    if (blockedKeys.length === 0) return;
+
+    const isIdBlocked = (divId: string) => {
+      if (blockedKeys.includes(divId)) return true;
+      const opt = divisiOptions.find((d) => d.id === divId || d.kodeDivisi === divId);
+      return opt ? isDivisiInKeys(opt, blockedKeys) : false;
+    };
+
     setSelectedDivisiIds((prev) => {
-      const next = prev.filter((id) => !activeDivisiIdsForForm.includes(id));
+      const next = prev.filter((id) => !isIdBlocked(id));
+      if (next.length === 0 && activationTemplate) {
+        const target = divisiOptions.find(
+          (d) =>
+            (d.id === activationTemplate.targetDivisiId ||
+              d.kodeDivisi === activationTemplate.targetDivisiId) &&
+            !isDivisiInKeys(d, blockedKeys)
+        );
+        if (target) return [target.id];
+        const firstAvailable = divisiOptions.find((d) => !isDivisiInKeys(d, blockedKeys));
+        return firstAvailable ? [firstAvailable.id] : [];
+      }
       return next.length === prev.length ? prev : next;
     });
-  }, [isOpen, itemToEdit, activeDivisiIdsForForm]);
+  }, [
+    isOpen,
+    itemToEdit,
+    activationTemplate,
+    divisiOptions,
+    activeDivisiIdsForForm,
+    inProgressDivisiIdsForForm,
+  ]);
 
   const isDuplicate = duplicateAnalysis.allBlocked;
 
@@ -1137,18 +1210,23 @@ export function TambahPengajuanModal({
         setDivisiOptions(mapped);
         setSelectedDivisiIds((prev) => {
           if (activationTemplate) {
-            const blockedSet = new Set([
-              ...activationTemplate.activeDivisiIds,
-              ...activationTemplate.inProgressDivisiIds,
-            ]);
-            if (
-              activationTemplate.targetDivisiId &&
-              mapped.some((m) => m.id === activationTemplate.targetDivisiId) &&
-              !blockedSet.has(activationTemplate.targetDivisiId)
-            ) {
-              return [activationTemplate.targetDivisiId];
+            const blockedKeys = [
+              ...(activationTemplate.activeDivisiIds || []),
+              ...(activationTemplate.activeDivisiCodes || []),
+              ...(activationTemplate.inProgressDivisiIds || []),
+              ...(activationTemplate.inProgressDivisiCodes || []),
+            ];
+            if (activationTemplate.targetDivisiId) {
+              const target = mapped.find(
+                (m) =>
+                  m.id === activationTemplate.targetDivisiId ||
+                  m.kodeDivisi === activationTemplate.targetDivisiId
+              );
+              if (target && !isDivisiInKeys(target, blockedKeys)) {
+                return [target.id];
+              }
             }
-            const firstAvailable = mapped.find((m) => !blockedSet.has(m.id));
+            const firstAvailable = mapped.find((m) => !isDivisiInKeys(m, blockedKeys));
             return firstAvailable ? [firstAvailable.id] : [];
           }
           // Remap fallback kodeDivisi ('DIV-BLD') ke real DB ID jika sebelumnya pakai fallback
@@ -1167,7 +1245,7 @@ export function TambahPengajuanModal({
     return () => {
       active = false;
     };
-  }, [isOpen, itemToEdit]);
+  }, [isOpen, itemToEdit, activationTemplate]);
 
   // Ambil pustaka Master Koefisien (Bahan & Peralatan) saat modal dibuka
   useEffect(() => {
@@ -1275,14 +1353,21 @@ export function TambahPengajuanModal({
     setKodeItem(tpl.kodeItem);
     setKodeMaster(tpl.kodeMaster);
 
-    const blockedSet = new Set([
+    const blockedKeys = [
       ...(tpl.activeDivisiIds || []),
+      ...(tpl.activeDivisiCodes || []),
       ...(tpl.inProgressDivisiIds || []),
-    ]);
-    if (tpl.targetDivisiId && !blockedSet.has(tpl.targetDivisiId)) {
-      setSelectedDivisiIds([tpl.targetDivisiId]);
+      ...(tpl.inProgressDivisiCodes || []),
+    ];
+    const targetDiv = tpl.targetDivisiId
+      ? divisiOptions.find(
+          (d) => d.id === tpl.targetDivisiId || d.kodeDivisi === tpl.targetDivisiId
+        )
+      : undefined;
+    if (targetDiv && !isDivisiInKeys(targetDiv, blockedKeys)) {
+      setSelectedDivisiIds([targetDiv.id]);
     } else {
-      const avail = divisiOptions.find((d) => !blockedSet.has(d.id));
+      const avail = divisiOptions.find((d) => !isDivisiInKeys(d, blockedKeys));
       setSelectedDivisiIds(avail ? [avail.id] : []);
     }
   };
@@ -1299,8 +1384,16 @@ export function TambahPengajuanModal({
     }
   }, [isOpen, itemToEdit, activationTemplate]);
 
-  const isDivisiBlockedByActivation = (divId: string) =>
-    activeDivisiIdsForForm.includes(divId) || inProgressDivisiIdsForForm.includes(divId);
+  const isDivisiBlockedByActivation = (divId: string) => {
+    const opt = divisiOptions.find((d) => d.id === divId || d.kodeDivisi === divId);
+    const activeMatch = opt
+      ? isDivisiInKeys(opt, activeDivisiIdsForForm)
+      : activeDivisiIdsForForm.includes(divId);
+    const inProgressMatch = opt
+      ? isDivisiInKeys(opt, inProgressDivisiIdsForForm)
+      : inProgressDivisiIdsForForm.includes(divId);
+    return activeMatch || inProgressMatch;
+  };
 
   const handleToggleDivisi = (divId: string) => {
     if (isDivisiBlockedByActivation(divId)) return;
@@ -1313,7 +1406,8 @@ export function TambahPengajuanModal({
     () =>
       divisiOptions.filter(
         (d) =>
-          !activeDivisiIdsForForm.includes(d.id) && !inProgressDivisiIdsForForm.includes(d.id)
+          !isDivisiInKeys(d, activeDivisiIdsForForm) &&
+          !isDivisiInKeys(d, inProgressDivisiIdsForForm)
       ),
     [divisiOptions, activeDivisiIdsForForm, inProgressDivisiIdsForForm]
   );
@@ -1460,13 +1554,17 @@ export function TambahPengajuanModal({
   };
 
   const isRowDivisiBlocked = (row: QueuedPengajuanRow, divId: string) => {
-    if (
-      activationTemplate &&
-      row.masterItemId === activationTemplate.masterItemId &&
-      (activationTemplate.activeDivisiIds.includes(divId) ||
-        activationTemplate.inProgressDivisiIds.includes(divId))
-    ) {
-      return true;
+    const opt = divisiOptions.find((d) => d.id === divId || d.kodeDivisi === divId);
+    if (activationTemplate && row.masterItemId === activationTemplate.masterItemId) {
+      const tplBlocked = [
+        ...(activationTemplate.activeDivisiIds || []),
+        ...(activationTemplate.activeDivisiCodes || []),
+        ...(activationTemplate.inProgressDivisiIds || []),
+        ...(activationTemplate.inProgressDivisiCodes || []),
+      ];
+      if (opt ? isDivisiInKeys(opt, tplBlocked) : tplBlocked.includes(divId)) {
+        return true;
+      }
     }
     const rowSpecKey = {
       kelompokKode: row.kelompokKode || "SIP",
@@ -1482,7 +1580,7 @@ export function TambahPengajuanModal({
     };
     return otherItems.some(
       (i) =>
-        i.status === "RELEASED" &&
+        i.status !== "DITOLAK" &&
         matchesDivisiKey(i, divId) &&
         isSameSpecForBranchCheck(i, rowSpecKey)
     );
@@ -1780,19 +1878,24 @@ export function TambahPengajuanModal({
                 </div>
                 <button
                   type="button"
+                  disabled={selectableDivisiOptions.length <= 1}
                   onClick={handleToggleAllDivisi}
-                  className="px-3 py-1.5 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-black transition-colors cursor-pointer shrink-0"
+                  className="px-3 py-1.5 rounded-lg border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-[11px] font-black transition-colors cursor-pointer shrink-0 disabled:bg-slate-200 disabled:border-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
                 >
-                  {allDivisiSelected ? "Hanya Default (Building)" : "Pilih Semua (4 Divisi)"}
+                  {selectableDivisiOptions.length === 0
+                    ? "Semua Divisi Sudah Aktif / Proses"
+                    : allDivisiSelected
+                      ? `Hanya ${selectableDivisiOptions[0]?.namaDivisi || "Default"}`
+                      : `Pilih Semua (${selectableDivisiOptions.length} Divisi)`}
                 </button>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {divisiOptions.map((div) => {
-                  const checked = selectedDivisiIds.includes(div.id);
-                  const isAlreadyActive = activeDivisiIdsForForm.includes(div.id);
-                  const isInProgress = inProgressDivisiIdsForForm.includes(div.id);
+                  const isAlreadyActive = isDivisiInKeys(div, activeDivisiIdsForForm);
+                  const isInProgress = isDivisiInKeys(div, inProgressDivisiIdsForForm);
                   const blocked = isAlreadyActive || isInProgress;
+                  const checked = !blocked && selectedDivisiIds.includes(div.id);
 
                   return (
                     <button
@@ -1810,9 +1913,7 @@ export function TambahPengajuanModal({
                       onClick={() => handleToggleDivisi(div.id)}
                       className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all ${
                         blocked
-                          ? isAlreadyActive
-                            ? "bg-slate-100 border-emerald-600 text-emerald-950 cursor-not-allowed select-none"
-                            : "bg-slate-100 border-amber-500 text-amber-950 cursor-not-allowed select-none"
+                          ? "bg-slate-200 border-slate-300 text-slate-500 cursor-not-allowed select-none disabled:pointer-events-none"
                           : checked
                             ? "bg-[#005BAC] border-[#004585] text-white shadow-xs cursor-pointer"
                             : "bg-white border-slate-300 text-slate-800 hover:border-[#005BAC] cursor-pointer"
@@ -1820,36 +1921,42 @@ export function TambahPengajuanModal({
                     >
                       <div className="min-w-0">
                         <div className="text-xs font-black truncate">{div.namaDivisi}</div>
-                        <div
-                          className={`text-[10px] font-mono font-bold ${
-                            blocked
-                              ? isAlreadyActive
-                                ? "text-emerald-700"
-                                : "text-amber-700"
-                              : checked
-                                ? "text-blue-100"
-                                : "text-slate-500"
-                          }`}
-                        >
-                          {isAlreadyActive
-                            ? "Sudah Aktif"
-                            : isInProgress
-                              ? "Sedang Proses"
-                              : div.kodeDivisi}
+                        <div className="mt-0.5">
+                          {isAlreadyActive ? (
+                            <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-700 text-white text-[10px] font-bold">
+                              Sudah Aktif
+                            </span>
+                          ) : isInProgress ? (
+                            <span className="inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold">
+                              Sedang Proses
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-[10px] font-mono font-bold ${
+                                checked ? "text-blue-100" : "text-slate-500"
+                              }`}
+                            >
+                              {div.kodeDivisi}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <span
                         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
                           blocked
                             ? isAlreadyActive
-                              ? "bg-emerald-600 border-emerald-600 text-white"
+                              ? "bg-emerald-700 border-emerald-700 text-white"
                               : "bg-amber-600 border-amber-600 text-white"
                             : checked
                               ? "bg-white border-white text-[#005BAC]"
                               : "bg-white border-slate-300 text-transparent"
                         }`}
                       >
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        {blocked ? (
+                          <Lock className="w-3 h-3 stroke-[2.5]" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        )}
                       </span>
                     </button>
                   );

@@ -36,7 +36,35 @@ export async function POST(
     const body = await request.json();
     const { action = "APPROVE", margin = {}, catatan = "" } = body;
 
-    // Jika aksinya KEMBALIKAN_KE_BC / REVISI
+    // Jika aksinya KEMBALIKAN_KE_BC / REVISI / REVISI_BNM / TOLAK
+    if (action === "TOLAK") {
+      await putuskanPascaSurvei({
+        tiketId: id,
+        userId: user.id,
+        keputusan: "TOLAK",
+        catatan: catatan.trim(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Pengajuan harga wilayah berhasil ditolak.",
+      });
+    }
+
+    if (action === "REVISI_BNM") {
+      await putuskanPascaSurvei({
+        tiketId: id,
+        userId: user.id,
+        keputusan: "REVISI",
+        catatan: catatan.trim(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Pengajuan harga wilayah dikembalikan ke B&M Manager untuk direvisi.",
+      });
+    }
+
     if (action === "KEMBALIKAN_KE_BC" || action === "REVISI") {
       await putuskanPascaSurvei({
         tiketId: id,

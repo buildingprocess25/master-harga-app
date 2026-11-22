@@ -28,6 +28,7 @@ describe("Unit: State Machine Alur Tiket SPARTA-PRICING", () => {
   it("mengizinkan jalur revisi dan pengembalian berjenjang", () => {
     expect(canTransitionStatus("DIAJUKAN", "PERLU_REVISI")).toBe(true);
     expect(canTransitionStatus("PERLU_REVISI", "DIAJUKAN")).toBe(true);
+    expect(canTransitionStatus("PERLU_REVISI", "PENDING_SB_SPECIALIST")).toBe(true);
     expect(canTransitionStatus("SIAP_SURVEI", "RETURNED_TO_BC")).toBe(true);
     expect(canTransitionStatus("PENDING_BM_MGR", "RETURNED_TO_BC")).toBe(true);
     expect(canTransitionStatus("RETURNED_TO_BC", "PENDING_BM_MGR")).toBe(true);

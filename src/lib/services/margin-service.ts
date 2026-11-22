@@ -18,10 +18,17 @@ export type SumberHarga = "SURVEI" | "PUSTAKA" | "SURVEI_KOSONG";
 
 /**
  * Harga acuan efektif komponen: komponen wajib survei memakai rata-rata survei toko;
- * komponen lain memakai harga yang ditetapkan saat mastering.
+ * komponen lain (atau pengajuan harga wilayah input langsung) memakai harga acuan tersimpan.
  */
-export function hargaAcuanEfektif(r: { wajibSurveiToko: boolean; hargaAcuanSatuan: number; hargaSurvei: number[] }) {
-  if (!r.wajibSurveiToko) return { harga: r.hargaAcuanSatuan, sumber: "PUSTAKA" as SumberHarga, stat: null };
+export function hargaAcuanEfektif(r: {
+  wajibSurveiToko: boolean;
+  hargaAcuanSatuan: number;
+  hargaSurvei: number[];
+  abaikanSurvei?: boolean;
+}) {
+  if (!r.wajibSurveiToko || r.abaikanSurvei) {
+    return { harga: r.hargaAcuanSatuan, sumber: "PUSTAKA" as SumberHarga, stat: null };
+  }
   const stat = statistikSurvei(r.hargaSurvei);
   if (!stat) return { harga: r.hargaAcuanSatuan, sumber: "SURVEI_KOSONG" as SumberHarga, stat: null };
   return { harga: stat.rata, sumber: "SURVEI" as SumberHarga, stat };
@@ -105,6 +112,7 @@ export async function simpanEvaluasiMargin({ tiketId, userId, margin, teruskan, 
       where: { id: tiketId },
       select: {
         status: true,
+        cakupanHarga: true,
         rincianAHSP: {
           include: {
             masterKoefisien: { select: { wajibSurveiToko: true } },
@@ -120,10 +128,12 @@ export async function simpanEvaluasiMargin({ tiketId, userId, margin, teruskan, 
     if (tiket.rincianAHSP.length === 0) throw new DomainError("Tiket belum memiliki resep AHSP.", 409);
 
     const baris = tiket.rincianAHSP.map((r) => {
+      const hargaSurvei = r.surveiTokoList.map((s) => s.hargaSatuanSurvei.toNumber());
       const ef = hargaAcuanEfektif({
         wajibSurveiToko: r.masterKoefisien.wajibSurveiToko,
         hargaAcuanSatuan: r.hargaAcuanSatuan.toNumber(),
-        hargaSurvei: r.surveiTokoList.map((s) => s.hargaSatuanSurvei.toNumber()),
+        hargaSurvei,
+        abaikanSurvei: tiket.cakupanHarga === "KHUSUS_WILAYAH" && hargaSurvei.length === 0,
       });
       return { r, ef, kategori: r.kategoriKomponen as KategoriKoefisien, koefisien: r.nilaiKoefisien.toNumber() };
     });

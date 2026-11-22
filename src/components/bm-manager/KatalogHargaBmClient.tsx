@@ -21,6 +21,7 @@ import {
   type ActivationTemplatePayload,
   type BulkPengajuanPayloadItem,
 } from "@/components/bm-manager/TambahPengajuanModal";
+import { ModalPengajuanHargaWilayah } from "@/components/bm-manager/ModalPengajuanHargaWilayah";
 import { submitBulkPengajuanApi } from "@/lib/client/submit-pengajuan";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
 import type { PengajuanHargaItem } from "@/types";
@@ -40,11 +41,16 @@ export function KatalogHargaBmClient({
   const [activationTemplate, setActivationTemplate] =
     useState<ActivationTemplatePayload | null>(null);
   const [isModalAktivasiOpen, setIsModalAktivasiOpen] = useState(false);
+  const [wilayahTarget, setWilayahTarget] = useState<{
+    masterItemId: string;
+    divisiId: string;
+  } | null>(null);
 
   const ajukanAktivasi = async (
     masterItemId: string,
     targetDivisiId?: string,
-    buttonKey?: string
+    buttonKey?: string,
+    rowDivisiStatusList?: BarisKatalogBm["divisiStatusList"]
   ) => {
     const reqKey = buttonKey || `${masterItemId}:${targetDivisiId || "default"}`;
     if (loadingAktivasiKey) return;
@@ -63,8 +69,26 @@ export function KatalogHargaBmClient({
         });
         return;
       }
+      const rowAktif = (rowDivisiStatusList || []).filter((d) => d.status === "AKTIF");
+      const rowProses = (rowDivisiStatusList || []).filter((d) => d.status === "PROSES");
+      const mergedTemplate: ActivationTemplatePayload = {
+        ...json.data,
+        targetDivisiId: json.data.targetDivisiId || targetDivisiId,
+        activeDivisiIds: Array.from(
+          new Set([...(json.data.activeDivisiIds || []), ...rowAktif.map((d) => d.divisiId)])
+        ),
+        activeDivisiCodes: Array.from(
+          new Set([...(json.data.activeDivisiCodes || []), ...rowAktif.map((d) => d.kodeDivisi)])
+        ),
+        inProgressDivisiIds: Array.from(
+          new Set([...(json.data.inProgressDivisiIds || []), ...rowProses.map((d) => d.divisiId)])
+        ),
+        inProgressDivisiCodes: Array.from(
+          new Set([...(json.data.inProgressDivisiCodes || []), ...rowProses.map((d) => d.kodeDivisi)])
+        ),
+      };
       setSelectedRow(null);
-      setActivationTemplate(json.data);
+      setActivationTemplate(mergedTemplate);
       setIsModalAktivasiOpen(true);
     } catch {
       await Swal.fire({
@@ -279,7 +303,8 @@ export function KatalogHargaBmClient({
                             ajukanAktivasi(
                               r.id,
                               belumAktifDivs[0]?.divisiId,
-                              `cta-${r.id}`
+                              `cta-${r.id}`,
+                              r.divisiStatusList
                             )
                           }
                           className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#005BAC] hover:bg-[#004585] text-white text-[11px] font-bold cursor-pointer transition-colors disabled:opacity-60"
@@ -296,6 +321,17 @@ export function KatalogHargaBmClient({
                                 ? "Ajukan Divisi Lain"
                                 : "Ajukan di Cabang Saya"}
                           </span>
+                        </button>
+                      )}
+
+                      {aktifDivs.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRow(r)}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-amber-600 bg-white text-amber-700 hover:bg-amber-600 hover:text-white text-[11px] font-bold cursor-pointer transition-colors"
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Ajukan Harga Wilayah</span>
                         </button>
                       )}
                     </div>
@@ -416,11 +452,26 @@ export function KatalogHargaBmClient({
                                 : "Belum Aktif"}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                           {d.status === "AKTIF" ? (
-                            <span className="font-mono font-black text-sm text-[#005BAC]">
-                              {formatRupiah(d.hargaInduk)} / {selectedRow.satuan}
-                            </span>
+                            <>
+                              <span className="font-mono font-black text-sm text-[#005BAC]">
+                                {formatRupiah(d.hargaInduk)} / {selectedRow.satuan}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setWilayahTarget({
+                                    masterItemId: selectedRow.id,
+                                    divisiId: d.divisiId,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-amber-600 bg-white text-amber-700 hover:bg-amber-600 hover:text-white text-[11px] font-bold transition-colors cursor-pointer"
+                              >
+                                <MapPin className="w-3 h-3" />
+                                <span>Ajukan Harga Wilayah</span>
+                              </button>
+                            </>
                           ) : d.status === "PROSES" ? (
                             <Link
                               href={`/bm-manager/${d.tiketIdProses}`}
@@ -464,7 +515,8 @@ export function KatalogHargaBmClient({
                       selectedRow.id,
                       selectedRow.divisiStatusList.find((d) => d.status === "BELUM_AKTIF")
                         ?.divisiId,
-                      `modal-footer-${selectedRow.id}`
+                      `modal-footer-${selectedRow.id}`,
+                      selectedRow.divisiStatusList
                     )
                   }
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#005BAC] hover:bg-[#004585] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
@@ -498,6 +550,18 @@ export function KatalogHargaBmClient({
         onBulkSubmit={handleBulkAktivasiSubmit}
         activationTemplate={activationTemplate}
         defaultCabang={namaCabang}
+      />
+
+      {/* Modal Pengajuan Harga Wilayah (Input Harga Bahan/Alat -> Approval S&B) */}
+      <ModalPengajuanHargaWilayah
+        isOpen={Boolean(wilayahTarget)}
+        masterItemId={wilayahTarget?.masterItemId ?? ""}
+        divisiId={wilayahTarget?.divisiId ?? ""}
+        onClose={() => setWilayahTarget(null)}
+        onSuccess={() => {
+          setSelectedRow(null);
+          router.refresh();
+        }}
       />
     </>
   );

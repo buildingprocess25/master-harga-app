@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const targetDivisiId = request.nextUrl.searchParams.get("targetDivisiId")?.trim() || undefined;
     const data = await getTemplateAktivasiMasterItem(masterItemId, resolvedCabangId);
     if (!data) {
       return NextResponse.json(
@@ -64,7 +65,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data: targetDivisiId ? { ...data, targetDivisiId } : data,
+    });
   } catch (error: any) {
     console.error("GET /api/bm-manager/aktivasi-template Error:", error);
     return NextResponse.json(

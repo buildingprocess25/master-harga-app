@@ -241,9 +241,24 @@ export async function GET(
       votingKontraktorList.length > 0 &&
       setujuCount > votingKontraktorList.length / 2;
 
+    const indukHargaRow =
+      pengajuan.cakupanHarga === "KHUSUS_WILAYAH" && pengajuan.masterItemId
+        ? await prisma.masterHargaCabang.findUnique({
+            where: {
+              masterItemId_cabangId_divisiId: {
+                masterItemId: pengajuan.masterItemId,
+                cabangId: pengajuan.cabangId,
+                divisiId: pengajuan.divisiId,
+              },
+            },
+            select: { hargaFinalInduk: true, statusHarga: true },
+          })
+        : null;
+
     // Bentuk objek terpadu PengajuanHargaItem
     const formattedItem: PengajuanHargaItem = {
       id: pengajuan.id,
+      masterItemId: pengajuan.masterItemId,
       noTiket: pengajuan.nomorTiket,
       kodePaket:
         pengajuan.kodePaket ||
@@ -278,6 +293,10 @@ export async function GET(
       cakupanHarga: pengajuan.cakupanHarga,
       wilayahCabangId: pengajuan.wilayahCabangId,
       namaWilayah: pengajuan.wilayahCabang?.namaWilayah,
+      hargaIndukCabang:
+        indukHargaRow?.statusHarga === "AKTIF"
+          ? indukHargaRow.hargaFinalInduk.toNumber()
+          : undefined,
 
       status: pengajuan.status,
       tanggalPengajuan: pengajuan.tanggalPengajuan.toISOString(),

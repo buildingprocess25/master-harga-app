@@ -900,40 +900,60 @@ export type BarisKatalogBm = Awaited<ReturnType<typeof getMasterHargaUntukBm>>["
  * untuk pre-fill modal TambahPengajuanModal saat BNM mengajukan aktivasi ke cabang / divisi lain.
  */
 export async function getTemplateAktivasiMasterItem(masterItemId: string, cabangId: string) {
-  const m = await prisma.masterItem.findUnique({
-    where: { id: masterItemId },
-    include: {
-      hargaPerCabang: {
-        where: { cabangId, statusHarga: "AKTIF" },
-        select: { divisiId: true },
-      },
-      pengajuanHargaList: {
-        where: {
-          OR: [{ cabangId }, { status: "RELEASED" }],
+  const [m, tiketBerjalanCabang] = await Promise.all([
+    prisma.masterItem.findUnique({
+      where: { id: masterItemId },
+      include: {
+        hargaPerCabang: {
+          where: { cabangId, statusHarga: "AKTIF" },
+          select: {
+            divisiId: true,
+            divisi: { select: { kodeDivisi: true } },
+          },
         },
-        orderBy: [{ tanggalPengajuan: "desc" }],
-        take: 10,
-        include: {
-          rincianAHSP: {
-            where: { kategoriKomponen: { in: ["MATERIAL", "ALAT"] } },
-            select: {
-              masterKoefisienId: true,
-              kategoriKomponen: true,
-              namaKomponen: true,
-              satuan: true,
+        pengajuanHargaList: {
+          where: {
+            OR: [{ cabangId }, { status: "RELEASED" }],
+          },
+          orderBy: [{ tanggalPengajuan: "desc" }],
+          take: 10,
+          include: {
+            rincianAHSP: {
+              where: { kategoriKomponen: { in: ["MATERIAL", "ALAT"] } },
+              select: {
+                masterKoefisienId: true,
+                kategoriKomponen: true,
+                namaKomponen: true,
+                satuan: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.pengajuanHarga.findMany({
+      where: {
+        masterItemId,
+        cabangId,
+        status: { notIn: ["DITOLAK", "RELEASED"] },
+      },
+      select: {
+        divisiId: true,
+        divisi: { select: { kodeDivisi: true } },
+      },
+    }),
+  ]);
 
   if (!m) return null;
 
-  const activeDivisiIds = m.hargaPerCabang.map((h) => h.divisiId);
-  const inProgressDivisiIds = m.pengajuanHargaList
-    .filter((p) => p.cabangId === cabangId && p.status !== "DITOLAK" && p.status !== "RELEASED")
-    .map((p) => p.divisiId);
+  const activeDivisiIds = Array.from(new Set(m.hargaPerCabang.map((h) => h.divisiId)));
+  const activeDivisiCodes = Array.from(
+    new Set(m.hargaPerCabang.map((h) => h.divisi.kodeDivisi).filter(Boolean))
+  );
+  const inProgressDivisiIds = Array.from(new Set(tiketBerjalanCabang.map((p) => p.divisiId)));
+  const inProgressDivisiCodes = Array.from(
+    new Set(tiketBerjalanCabang.map((p) => p.divisi.kodeDivisi).filter(Boolean))
+  );
 
   const refTiketDenganKomponen = m.pengajuanHargaList.find((p) => p.rincianAHSP.length > 0);
   const komponenMaterial = (refTiketDenganKomponen?.rincianAHSP ?? []).map((r) => ({
@@ -962,7 +982,9 @@ export async function getTemplateAktivasiMasterItem(masterItemId: string, cabang
     satuan: m.satuan,
     deskripsiOtomatis: m.deskripsiOtomatis,
     activeDivisiIds,
+    activeDivisiCodes,
     inProgressDivisiIds,
+    inProgressDivisiCodes,
     komponenMaterial,
   };
 }
