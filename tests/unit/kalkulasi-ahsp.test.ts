@@ -11,6 +11,11 @@ import {
 } from "@/lib/kalkulasi-ahsp";
 import { hargaAcuanEfektif, marginTersimpan } from "@/lib/services/margin-service";
 import { marginDefaultKategori } from "@/lib/services/pengajuan-service";
+import {
+  OPSI_KATEGORI_KOEFISIEN,
+  parseAngka,
+  sanitasiInputKoefisien,
+} from "@/components/sb-specialist/worksheet-util";
 
 describe("Unit: Kalkulasi AHSP, Survei & Margin", () => {
   it("memvalidasi aturan margin 0..25% dengan kelipatan 0.5%", () => {
@@ -105,5 +110,19 @@ describe("Unit: Kalkulasi AHSP, Survei & Margin", () => {
       8
     );
     expect(m).toEqual({ upah: 10, material: 7.5, bongkaran: 8 });
+  });
+
+  it("menyediakan opsi kategori form (Tenaga kerja, Bahan, Peralatan) dan membatasi input koefisien ke angka dan koma", () => {
+    expect(OPSI_KATEGORI_KOEFISIEN.map((o) => o.label)).toEqual([
+      "Tenaga kerja",
+      "Bahan",
+      "Peralatan",
+    ]);
+
+    expect(sanitasiInputKoefisien("abc12,34xyz")).toBe("12,34");
+    expect(sanitasiInputKoefisien("0.0188")).toBe("0,0188");
+    expect(sanitasiInputKoefisien("1,2,34567")).toBe("1,2345");
+    expect(sanitasiInputKoefisien("-5")).toBe("5");
+    expect(parseAngka(sanitasiInputKoefisien("0,25"))).toBe(0.25);
   });
 });
