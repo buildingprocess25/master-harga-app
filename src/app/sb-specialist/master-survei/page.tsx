@@ -38,15 +38,15 @@ export default async function MasterSurveiSnbPage({
       <div className="space-y-5">
         <HeaderHalaman
           icon={Store}
-          judul="Master Survei Material & Peralatan"
-          deskripsi="Pengelolaan komponen Material Bahan dan Peralatan Kerja yang menjadi acuan Master Koefisien beserta riwayat survei 3 toko pasar dan direktori toko lintas cabang."
+          judul="Master Survei Bahan & Peralatan"
+          deskripsi="Pengelolaan harga survei komponen Bahan dan Peralatan beserta riwayat survei 3 toko dan direktori toko lintas cabang."
         />
 
         {/* 3 Kartu Metrik Solid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-2xs">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Material &amp; Peralatan
+              Bahan &amp; Peralatan
             </span>
             <span className="mt-1 text-2xl font-black font-mono text-slate-900 block">
               {totalKomponen}
@@ -83,7 +83,7 @@ export default async function MasterSurveiSnbPage({
               <input
                 name="q"
                 defaultValue={sp.q ?? ""}
-                placeholder="Cari komponen, no tiket, atau toko..."
+                placeholder="Cari komponen, cabang, atau toko..."
                 className="w-full pl-8 pr-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-[#005BAC]"
               />
             </div>
@@ -110,9 +110,9 @@ export default async function MasterSurveiSnbPage({
               aria-label="Filter Kategori"
               className="px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#005BAC]"
             >
-              <option value="">Semua (Material &amp; Peralatan)</option>
-              <option value="MATERIAL">Material Bahan</option>
-              <option value="ALAT">Peralatan Kerja</option>
+              <option value="">Semua (Bahan &amp; Peralatan)</option>
+              <option value="MATERIAL">Bahan</option>
+              <option value="ALAT">Peralatan</option>
             </select>
 
             <select

@@ -196,6 +196,11 @@ export async function POST(
         if (rincianId) {
           const rincianExists = await tx.rincianAhspPengajuan.findUnique({
             where: { id: rincianId },
+            include: {
+              masterKoefisien: {
+                select: { id: true, hargaAcuanDefault: true },
+              },
+            },
           });
 
           if (rincianExists) {
@@ -206,6 +211,19 @@ export async function POST(
                 subtotal,
               },
             });
+
+            // Isi hargaAcuanDefault otomatis hanya jika masih kosong agar survei cabang lain tidak menimpa acuan nasional
+            if (
+              existing.cakupanHarga !== "KHUSUS_WILAYAH" &&
+              rincianExists.masterKoefisien &&
+              rincianExists.masterKoefisien.hargaAcuanDefault === null &&
+              avg > 0
+            ) {
+              await tx.masterKoefisien.update({
+                where: { id: rincianExists.masterKoefisien.id },
+                data: { hargaAcuanDefault: avg },
+              });
+            }
           } else {
             rincianId = undefined;
           }

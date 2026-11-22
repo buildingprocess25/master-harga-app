@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { bulat2 } from "@/lib/kalkulasi-ahsp";
+import { evaluasiAcuanSurveiKomponen } from "@/lib/master-survei-util";
 import { DomainError } from "@/lib/services/transisi-tiket";
 import { KategoriKoefisien, TipeLampiranSurvei } from "@/types";
 
@@ -67,16 +68,16 @@ export async function getMasterSurveiData(filter: MasterSurveiFilter) {
               : {}),
           },
           orderBy: { pengajuanHarga: { tanggalPengajuan: "desc" } },
-          take: 5,
+          take: 25,
           include: {
             pengajuanHarga: {
               select: {
                 id: true,
-                nomorTiket: true,
                 status: true,
                 tanggalPengajuan: true,
                 cabang: { select: { id: true, namaCabang: true } },
                 wilayahCabang: { select: { id: true, namaWilayah: true } },
+                masterItem: { select: { namaItem: true } },
               },
             },
             surveiTokoList: {
@@ -100,7 +101,7 @@ export async function getMasterSurveiData(filter: MasterSurveiFilter) {
           ? {
               OR: [
                 { namaKomponen: { contains: q, mode: "insensitive" } },
-                { pengajuanHarga: { nomorTiket: { contains: q, mode: "insensitive" } } },
+                { pengajuanHarga: { cabang: { namaCabang: { contains: q, mode: "insensitive" } } } },
                 {
                   surveiTokoList: {
                     some: { namaToko: { contains: q, mode: "insensitive" } },
@@ -124,12 +125,11 @@ export async function getMasterSurveiData(filter: MasterSurveiFilter) {
         pengajuanHarga: {
           select: {
             id: true,
-            nomorTiket: true,
             status: true,
             tanggalPengajuan: true,
             cabang: { select: { id: true, namaCabang: true } },
             wilayahCabang: { select: { id: true, namaWilayah: true } },
-            masterItem: { select: { namaItem: true, kodeMaster: true } },
+            masterItem: { select: { namaItem: true } },
           },
         },
         surveiTokoList: {
@@ -214,8 +214,31 @@ export async function getMasterSurveiData(filter: MasterSurveiFilter) {
   };
 
   const komponenSurvei = koefRows.map((k) => {
-    const terbaru = k.rincianAHSP[0];
-    const stats = terbaru ? mapSurveiStats(terbaru.surveiTokoList) : null;
+    const entriSurvei = k.rincianAHSP
+      .map((r) => {
+        const stats = mapSurveiStats(r.surveiTokoList);
+        return {
+          rincianId: r.id,
+          tiketId: r.pengajuanHarga.id,
+          statusTiket: r.pengajuanHarga.status,
+          namaItem: r.pengajuanHarga.masterItem?.namaItem ?? "-",
+          namaCabang: r.pengajuanHarga.cabang.namaCabang,
+          namaWilayah: r.pengajuanHarga.wilayahCabang?.namaWilayah ?? null,
+          tanggalPengajuan: r.pengajuanHarga.tanggalPengajuan.toISOString(),
+          ...stats,
+        };
+      })
+      .filter((e) => e.rataRataHarga > 0);
+
+    const terbaru = entriSurvei[0] ?? null;
+    const hargaDb = k.hargaAcuanDefault?.toNumber() ?? null;
+    const {
+      variasiHargaList,
+      jumlahVariasiHarga,
+      hargaAcuanEfektif,
+      adaKonflikAcuan,
+    } = evaluasiAcuanSurveiKomponen(entriSurvei, hargaDb);
+
     return {
       id: k.id,
       divisiId: k.divisiId,
@@ -224,38 +247,43 @@ export async function getMasterSurveiData(filter: MasterSurveiFilter) {
       namaKomponen: k.namaKomponen,
       satuan: k.satuan,
       nilaiKoefisienDefault: k.nilaiKoefisienDefault.toNumber(),
-      hargaAcuanDefault: k.hargaAcuanDefault?.toNumber() ?? null,
+      hargaAcuanDefault: hargaAcuanEfektif,
+      hargaAcuanTersimpan: hargaDb,
       wajibSurveiToko: k.wajibSurveiToko,
-      riwayatCount: k.rincianAHSP.length,
-      latestSurvei: terbaru && stats
-        ? {
-            rincianId: terbaru.id,
-            tiketId: terbaru.pengajuanHarga.id,
-            nomorTiket: terbaru.pengajuanHarga.nomorTiket,
-            statusTiket: terbaru.pengajuanHarga.status,
-            namaCabang: terbaru.pengajuanHarga.cabang.namaCabang,
-            namaWilayah: terbaru.pengajuanHarga.wilayahCabang?.namaWilayah ?? null,
-            tanggalPengajuan: terbaru.pengajuanHarga.tanggalPengajuan.toISOString(),
-            ...stats,
-          }
-        : null,
+      riwayatCount: entriSurvei.length,
+      jumlahVariasiHarga,
+      adaKonflikAcuan,
+      variasiHargaList,
+      latestSurvei: terbaru,
     };
   });
 
+  // Peta info variasi per masterKoefisienId agar Tab 2 juga konsisten mengetahui komponen mana yang punya perbedaan harga
+  const infoKomponenMap = new Map(
+    komponenSurvei.map((k) => [
+      k.id,
+      {
+        hargaAcuanEfektif: k.hargaAcuanDefault,
+        adaKonflikAcuan: k.adaKonflikAcuan,
+      },
+    ])
+  );
+
   const riwayatSurvei = riwayatRows.map((r) => {
     const stats = mapSurveiStats(r.surveiTokoList);
+    const info = infoKomponenMap.get(r.masterKoefisienId);
+    const hargaAcuanDb = r.masterKoefisien.hargaAcuanDefault?.toNumber() ?? null;
     return {
       id: r.id,
       masterKoefisienId: r.masterKoefisienId,
       namaKomponen: r.namaKomponen,
       kategori: r.kategoriKomponen as KategoriKoefisien,
       satuan: r.satuan,
-      hargaAcuanDefault: r.masterKoefisien.hargaAcuanDefault?.toNumber() ?? null,
+      hargaAcuanDefault: info?.hargaAcuanEfektif ?? hargaAcuanDb,
+      adaKonflikAcuan: info?.adaKonflikAcuan ?? false,
       tiketId: r.pengajuanHarga.id,
-      nomorTiket: r.pengajuanHarga.nomorTiket,
       statusTiket: r.pengajuanHarga.status,
       namaItem: r.pengajuanHarga.masterItem?.namaItem ?? "-",
-      kodeMaster: r.pengajuanHarga.masterItem?.kodeMaster ?? "-",
       namaCabang: r.pengajuanHarga.cabang.namaCabang,
       namaWilayah: r.pengajuanHarga.wilayahCabang?.namaWilayah ?? null,
       tanggalPengajuan: r.pengajuanHarga.tanggalPengajuan.toISOString(),

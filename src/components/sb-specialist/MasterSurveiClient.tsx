@@ -54,6 +54,9 @@ interface DetailSurveiModalData {
   masterKoefisienId: string;
   hargaAcuanSaatIni: number | null;
   rataRataSurvei: number;
+  adaKonflikAcuan: boolean;
+  variasiList?: BarisKomponenSurvei["variasiHargaList"];
+  selectedVariasiIdx?: number;
 }
 
 const INPUT_CLS =
@@ -212,12 +215,7 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
         <Wrench className="w-3 h-3" />
         Peralatan
       </span>
-    ) : (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#005BAC] text-white text-[10px] font-bold uppercase">
-        <Tag className="w-3 h-3" />
-        Material Bahan
-      </span>
-    );
+    ) : null;
 
   const selectedCabangObj = tokoForm
     ? data.cabangList.find((c) => c.id === tokoForm.cabangId)
@@ -239,7 +237,7 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
             )}
           >
             <Tag className="w-3.5 h-3.5" />
-            <span>Material &amp; Peralatan (Koefisien)</span>
+            <span>Bahan &amp; Peralatan</span>
             <span
               className={cn(
                 "px-2 py-0.5 rounded-full text-[10px] font-black",
@@ -313,22 +311,22 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
         )}
       </div>
 
-      {/* TAB 1: MATERIAL & PERALATAN (KOEFISIEN) */}
+      {/* TAB 1: BAHAN & PERALATAN */}
       {activeTab === "acuan_koefisien" && (
         <div className="overflow-x-auto">
           {data.komponenSurvei.length === 0 ? (
             <p className="py-12 text-center text-xs text-slate-500 font-medium">
-              Tidak ada komponen Material Bahan atau Peralatan Kerja yang cocok dengan filter.
+              Tidak ada komponen Bahan atau Peralatan yang cocok dengan filter.
             </p>
           ) : (
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200 text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="py-3 pl-4 pr-2">Komponen (Master Koefisien)</th>
-                  <th className="py-3 px-2">Kategori &amp; Divisi</th>
+                  <th className="py-3 pl-4 pr-2">Komponen</th>
+                  <th className="py-3 px-2">Divisi</th>
                   <th className="py-3 px-2 text-right">Harga Acuan Koefisien</th>
                   <th className="py-3 px-2">Survei 3 Toko Terbaru</th>
-                  <th className="py-3 px-2 text-right">Rata-Rata Pasar</th>
+                  <th className="py-3 px-2 text-right">Rata-Rata Survei</th>
                   <th className="py-3 pl-2 pr-4 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -336,7 +334,23 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
                 {data.komponenSurvei.map((k: BarisKomponenSurvei) => {
                   const rata = k.latestSurvei?.rataRataHarga ?? 0;
                   const acuan = k.hargaAcuanDefault ?? 0;
-                  const samaDenganAcuan = rata > 0 && acuan === rata;
+                  const badgeKat = renderBadgeKategori(k.kategori);
+
+                  const bukaModalRincian = () => {
+                    if (!k.latestSurvei) return;
+                    setDetailModal({
+                      judul: `Hasil Survei: ${k.namaKomponen}`,
+                      subjudul: `Cabang ${k.latestSurvei.namaCabang}${k.latestSurvei.namaWilayah ? ` (${k.latestSurvei.namaWilayah})` : ""} · ${formatTanggal(k.latestSurvei.tanggalPengajuan)}`,
+                      namaMaterial: k.namaKomponen,
+                      surveiList: k.latestSurvei.tokoList,
+                      masterKoefisienId: k.id,
+                      hargaAcuanSaatIni: k.hargaAcuanDefault,
+                      rataRataSurvei: rata,
+                      adaKonflikAcuan: k.adaKonflikAcuan,
+                      variasiList: k.variasiHargaList,
+                      selectedVariasiIdx: 0,
+                    });
+                  };
 
                   return (
                     <tr key={k.id} className="align-top hover:bg-slate-50">
@@ -351,25 +365,40 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
                         </div>
                       </td>
                       <td className="py-3 px-2 whitespace-nowrap">
-                        <div>{renderBadgeKategori(k.kategori)}</div>
-                        <div className="text-[11px] text-slate-500 font-medium mt-1">
+                        {badgeKat && <div className="mb-1">{badgeKat}</div>}
+                        <div className="text-[11px] text-slate-700 font-semibold">
                           {k.namaDivisi}
                         </div>
                       </td>
                       <td className="py-3 px-2 text-right font-mono tabular-nums font-bold text-slate-900 whitespace-nowrap">
-                        {k.hargaAcuanDefault !== null
-                          ? formatRupiah(k.hargaAcuanDefault)
-                          : "-"}
+                        {k.hargaAcuanDefault !== null ? (
+                          formatRupiah(k.hargaAcuanDefault)
+                        ) : k.adaKonflikAcuan ? (
+                          <span className="inline-block px-2 py-0.5 rounded bg-amber-600 text-white font-sans text-[10px] font-bold">
+                            Belum Dipilih
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="py-3 px-2 min-w-60">
                         {k.latestSurvei ? (
                           <div className="space-y-1">
-                            <div className="font-semibold text-slate-800">
-                              {k.latestSurvei.nomorTiket} ·{" "}
-                              {k.latestSurvei.namaCabang}
-                              {k.latestSurvei.namaWilayah
-                                ? ` (${k.latestSurvei.namaWilayah})`
-                                : ""}
+                            <div className="flex flex-wrap items-center gap-1.5 font-semibold text-slate-800">
+                              <span>
+                                {k.latestSurvei.namaCabang}
+                                {k.latestSurvei.namaWilayah
+                                  ? ` (${k.latestSurvei.namaWilayah})`
+                                  : ""}
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-500">
+                                · {formatTanggal(k.latestSurvei.tanggalPengajuan)}
+                              </span>
+                              {k.jumlahVariasiHarga > 1 && (
+                                <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold">
+                                  {k.jumlahVariasiHarga} Harga Berbeda
+                                </span>
+                              )}
                             </div>
                             <div className="text-[11px] text-slate-500">
                               {k.latestSurvei.tokoList
@@ -389,9 +418,9 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
                             <span className="font-mono tabular-nums font-black text-[#005BAC] text-sm">
                               {formatRupiah(rata)}
                             </span>
-                            {samaDenganAcuan && (
+                            {acuan > 0 && Math.round(acuan) === Math.round(rata) && (
                               <span className="block text-[10px] font-bold text-emerald-700 mt-0.5">
-                                Sesuai acuan
+                                Acuan aktif
                               </span>
                             )}
                           </div>
@@ -404,53 +433,45 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
                           {k.latestSurvei && (
                             <button
                               type="button"
-                              onClick={() =>
-                                setDetailModal({
-                                  judul: `Hasil Survei: ${k.namaKomponen}`,
-                                  subjudul: `${k.latestSurvei!.nomorTiket} · Cabang ${k.latestSurvei!.namaCabang}`,
-                                  namaMaterial: k.namaKomponen,
-                                  surveiList: k.latestSurvei!.tokoList,
-                                  masterKoefisienId: k.id,
-                                  hargaAcuanSaatIni: k.hargaAcuanDefault,
-                                  rataRataSurvei: rata,
-                                })
-                              }
+                              onClick={bukaModalRincian}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC] text-[11px] font-bold cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>Rincian</span>
                             </button>
                           )}
-                          {rata > 0 && (
-                            <button
-                              type="button"
-                              disabled={pending || samaDenganAcuan}
-                              onClick={() =>
-                                handleJadikanHargaAcuan(
-                                  k.id,
-                                  k.namaKomponen,
-                                  rata,
-                                  k.hargaAcuanDefault
-                                )
-                              }
-                              className={cn(
-                                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors",
-                                samaDenganAcuan
-                                  ? "bg-emerald-600 text-white opacity-75 cursor-default"
-                                  : "bg-[#005BAC] hover:bg-blue-700 text-white cursor-pointer disabled:opacity-60"
-                              )}
-                            >
-                              {pending ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
+                          {k.adaKonflikAcuan && rata > 0 && (
+                            k.jumlahVariasiHarga > 1 ? (
+                              <button
+                                type="button"
+                                onClick={bukaModalRincian}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#005BAC] hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer"
+                              >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                              )}
-                              <span>
-                                {samaDenganAcuan
-                                  ? "Acuan Aktif"
-                                  : "Jadikan Harga Acuan"}
-                              </span>
-                            </button>
+                                <span>Pilih Acuan</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={() =>
+                                  handleJadikanHargaAcuan(
+                                    k.id,
+                                    k.namaKomponen,
+                                    rata,
+                                    k.hargaAcuanDefault
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#005BAC] hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer disabled:bg-slate-400"
+                              >
+                                {pending ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                )}
+                                <span>Jadikan Acuan</span>
+                              </button>
+                            )
                           )}
                         </div>
                       </td>
@@ -474,7 +495,7 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-200 text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="py-3 pl-4 pr-2">Tiket &amp; Cabang</th>
+                  <th className="py-3 pl-4 pr-2">Cabang &amp; Tanggal</th>
                   <th className="py-3 px-2">Komponen &amp; Item</th>
                   <th className="py-3 px-2">Hasil 3 Toko</th>
                   <th className="py-3 px-2 text-right">Rata-Rata Survei</th>
@@ -482,96 +503,108 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-slate-100">
-                {data.riwayatSurvei.map((r: BarisRiwayatSurvei) => (
-                  <tr key={r.id} className="align-top hover:bg-slate-50">
-                    <td className="py-3 pl-4 pr-2 whitespace-nowrap">
-                      <div className="font-mono font-bold text-[#005BAC]">
-                        {r.nomorTiket}
-                      </div>
-                      <div className="text-[11px] font-semibold text-slate-700">
-                        {r.namaCabang}
-                        {r.namaWilayah ? ` · ${r.namaWilayah}` : ""}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {formatTanggal(r.tanggalPengajuan)}
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 min-w-52">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-slate-900">
-                          {r.namaKomponen}
-                        </span>
-                        {renderBadgeKategori(r.kategori)}
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        Item: {r.namaItem} ({r.kodeMaster})
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 min-w-60 space-y-0.5 text-[11px] text-slate-700">
-                      {r.tokoList.map((t) => (
-                        <div key={t.id} className="flex justify-between gap-2">
-                          <span className="truncate font-medium">
-                            {t.urutanToko}. {t.namaToko}
-                          </span>
-                          <span className="font-mono font-bold text-slate-900">
-                            {formatRupiah(t.harga)}
-                          </span>
+                {data.riwayatSurvei.map((r: BarisRiwayatSurvei) => {
+                  const isAcuanAktif =
+                    r.hargaAcuanDefault !== null &&
+                    Math.round(r.rataRataHarga) === Math.round(r.hargaAcuanDefault);
+                  const bisaPilihAcuan =
+                    r.adaKonflikAcuan && r.rataRataHarga > 0 && !isAcuanAktif;
+
+                  return (
+                    <tr key={r.id} className="align-top hover:bg-slate-50">
+                      <td className="py-3 pl-4 pr-2 whitespace-nowrap">
+                        <div className="font-bold text-slate-900">
+                          {r.namaCabang}
+                          {r.namaWilayah ? ` · ${r.namaWilayah}` : ""}
                         </div>
-                      ))}
-                    </td>
-                    <td className="py-3 px-2 text-right whitespace-nowrap">
-                      <div className="font-mono tabular-nums font-black text-[#005BAC] text-sm">
-                        {formatRupiah(r.rataRataHarga)}
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        Acuan Koef:{" "}
-                        {r.hargaAcuanDefault !== null
-                          ? formatRupiah(r.hargaAcuanDefault)
-                          : "-"}
-                      </div>
-                    </td>
-                    <td className="py-3 pl-2 pr-4 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDetailModal({
-                              judul: `Hasil Survei: ${r.namaKomponen}`,
-                              subjudul: `${r.nomorTiket} · Cabang ${r.namaCabang}`,
-                              namaMaterial: r.namaKomponen,
-                              surveiList: r.tokoList,
-                              masterKoefisienId: r.masterKoefisienId,
-                              hargaAcuanSaatIni: r.hargaAcuanDefault,
-                              rataRataSurvei: r.rataRataHarga,
-                            })
-                          }
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC] text-[11px] font-bold cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Rincian</span>
-                        </button>
-                        {r.rataRataHarga > 0 && (
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          {formatTanggal(r.tanggalPengajuan)}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 min-w-52">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-slate-900">
+                            {r.namaKomponen}
+                          </span>
+                          {renderBadgeKategori(r.kategori)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Item: {r.namaItem}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 min-w-60 space-y-0.5 text-[11px] text-slate-700">
+                        {r.tokoList.map((t) => (
+                          <div key={t.id} className="flex justify-between gap-2">
+                            <span className="truncate font-medium">
+                              {t.urutanToko}. {t.namaToko}
+                            </span>
+                            <span className="font-mono font-bold text-slate-900">
+                              {formatRupiah(t.harga)}
+                            </span>
+                          </div>
+                        ))}
+                      </td>
+                      <td className="py-3 px-2 text-right whitespace-nowrap">
+                        <div className="font-mono tabular-nums font-black text-[#005BAC] text-sm">
+                          {formatRupiah(r.rataRataHarga)}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Acuan Koef:{" "}
+                          {r.hargaAcuanDefault !== null
+                            ? formatRupiah(r.hargaAcuanDefault)
+                            : "-"}
+                        </div>
+                      </td>
+                      <td className="py-3 pl-2 pr-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            disabled={pending}
                             onClick={() =>
-                              handleJadikanHargaAcuan(
-                                r.masterKoefisienId,
-                                r.namaKomponen,
-                                r.rataRataHarga,
-                                r.hargaAcuanDefault
-                              )
+                              setDetailModal({
+                                judul: `Hasil Survei: ${r.namaKomponen}`,
+                                subjudul: `Cabang ${r.namaCabang}${r.namaWilayah ? ` (${r.namaWilayah})` : ""} · ${formatTanggal(r.tanggalPengajuan)}`,
+                                namaMaterial: r.namaKomponen,
+                                surveiList: r.tokoList,
+                                masterKoefisienId: r.masterKoefisienId,
+                                hargaAcuanSaatIni: r.hargaAcuanDefault,
+                                rataRataSurvei: r.rataRataHarga,
+                                adaKonflikAcuan: r.adaKonflikAcuan,
+                              })
                             }
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#005BAC] hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer disabled:opacity-60"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC] text-[11px] font-bold cursor-pointer"
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Jadikan Harga Acuan</span>
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Rincian</span>
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {r.adaKonflikAcuan && isAcuanAktif && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Acuan Aktif</span>
+                            </span>
+                          )}
+                          {bisaPilihAcuan && (
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() =>
+                                handleJadikanHargaAcuan(
+                                  r.masterKoefisienId,
+                                  r.namaKomponen,
+                                  r.rataRataHarga,
+                                  r.hargaAcuanDefault
+                                )
+                              }
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#005BAC] hover:bg-blue-700 text-white text-[11px] font-bold cursor-pointer disabled:bg-slate-400"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Jadikan Acuan</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -684,83 +717,158 @@ export function MasterSurveiClient({ data }: { data: MasterSurveiData }) {
       )}
 
       {/* MODAL RINCIAN SURVEI 3 TOKO */}
-      {detailModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
-        >
-          <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-4xl w-full my-8 overflow-hidden">
-            <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-black text-slate-900">
-                  {detailModal.judul}
-                </h2>
-                <p className="text-xs text-slate-600 font-medium">
-                  {detailModal.subjudul}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailModal(null)}
-                className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {detailModal && (() => {
+        const variasiList = detailModal.variasiList || [];
+        const activeIdx = detailModal.selectedVariasiIdx ?? 0;
+        const activeVar = variasiList[activeIdx];
+        const activeSurveiList = activeVar ? activeVar.tokoList : detailModal.surveiList;
+        const activeRata = activeVar ? activeVar.rataRataHarga : detailModal.rataRataSurvei;
+        const activeSubjudul = activeVar
+          ? `Cabang ${activeVar.namaCabang}${activeVar.namaWilayah ? ` (${activeVar.namaWilayah})` : ""} · ${formatTanggal(activeVar.tanggalPengajuan)}`
+          : detailModal.subjudul;
+        const sudahSamaDenganAcuan =
+          detailModal.hargaAcuanSaatIni !== null &&
+          Math.round(activeRata) === Math.round(detailModal.hargaAcuanSaatIni);
 
-            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-              <RingkasanBiayaMaterial
-                surveiList={detailModal.surveiList}
-                namaMaterial={detailModal.namaMaterial}
-              />
-              <RincianSurvei3TokoCard
-                surveiList={detailModal.surveiList}
-                materialName={detailModal.namaMaterial}
-                readonly={true}
-              />
-            </div>
-
-            <div className="px-5 py-3.5 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between gap-3">
-              <div className="text-xs text-slate-700 font-semibold">
-                Acuan Master Koefisien saat ini:{" "}
-                <span className="font-mono font-black text-slate-900">
-                  {detailModal.hargaAcuanSaatIni !== null
-                    ? formatRupiah(detailModal.hargaAcuanSaatIni)
-                    : "-"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 bg-slate-900/60 flex items-start justify-center p-4 overflow-y-auto"
+          >
+            <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-xl max-w-4xl w-full my-8 overflow-hidden">
+              <div className="px-5 py-4 bg-slate-50 border-b-2 border-slate-200 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-black text-slate-900">
+                    {detailModal.judul}
+                  </h2>
+                  <p className="text-xs text-slate-600 font-medium">
+                    {activeSubjudul}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setDetailModal(null)}
-                  className="px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold cursor-pointer"
+                  className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  Tutup
+                  <X className="w-4 h-4" />
                 </button>
-                {detailModal.rataRataSurvei > 0 && (
+              </div>
+
+              <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                {variasiList.length > 1 && (
+                  <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-3 space-y-2">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                      Pilih Variasi Harga Survei ({variasiList.length} Harga Berbeda)
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {variasiList.map((v, idx) => {
+                        const isSelected = idx === activeIdx;
+                        const isCurrentAcuan =
+                          detailModal.hargaAcuanSaatIni !== null &&
+                          Math.round(v.rataRataHarga) ===
+                            Math.round(detailModal.hargaAcuanSaatIni);
+                        return (
+                          <button
+                            key={v.rincianId}
+                            type="button"
+                            onClick={() =>
+                              setDetailModal({
+                                ...detailModal,
+                                selectedVariasiIdx: idx,
+                              })
+                            }
+                            className={cn(
+                              "text-left p-2.5 rounded-xl border-2 transition-colors cursor-pointer",
+                              isSelected
+                                ? "bg-[#005BAC] border-[#004585] text-white"
+                                : "bg-white border-slate-300 text-slate-800 hover:border-[#005BAC]"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono font-black text-xs">
+                                {formatRupiah(v.rataRataHarga)}
+                              </span>
+                              {isCurrentAcuan && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold uppercase">
+                                  Acuan Aktif
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              className={cn(
+                                "text-[11px] font-semibold mt-0.5 truncate",
+                                isSelected ? "text-blue-100" : "text-slate-600"
+                              )}
+                            >
+                              {v.namaCabang} · {formatTanggal(v.tanggalPengajuan)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <RingkasanBiayaMaterial
+                  surveiList={activeSurveiList}
+                  namaMaterial={detailModal.namaMaterial}
+                />
+                <RincianSurvei3TokoCard
+                  surveiList={activeSurveiList}
+                  materialName={detailModal.namaMaterial}
+                  readonly={true}
+                />
+              </div>
+
+              <div className="px-5 py-3.5 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between gap-3">
+                <div className="text-xs text-slate-700 font-semibold">
+                  Acuan Master Koefisien saat ini:{" "}
+                  <span className="font-mono font-black text-slate-900">
+                    {detailModal.hargaAcuanSaatIni !== null
+                      ? formatRupiah(detailModal.hargaAcuanSaatIni)
+                      : "-"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      handleJadikanHargaAcuan(
-                        detailModal.masterKoefisienId,
-                        detailModal.namaMaterial,
-                        detailModal.rataRataSurvei,
-                        detailModal.hargaAcuanSaatIni
-                      )
-                    }
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                    onClick={() => setDetailModal(null)}
+                    className="px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold cursor-pointer"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Jadikan Harga Acuan</span>
+                    Tutup
                   </button>
-                )}
+                  {detailModal.adaKonflikAcuan && activeRata > 0 && (
+                    sudahSamaDenganAcuan ? (
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Acuan Aktif</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() =>
+                          handleJadikanHargaAcuan(
+                            detailModal.masterKoefisienId,
+                            detailModal.namaMaterial,
+                            activeRata,
+                            detailModal.hargaAcuanSaatIni
+                          )
+                        }
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold cursor-pointer disabled:bg-slate-400"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Jadikan Acuan</span>
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL TAMBAH / EDIT TOKO */}
       {tokoForm && (
