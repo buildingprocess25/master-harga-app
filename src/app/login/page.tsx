@@ -17,19 +17,62 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface QuickAccountItem {
+  label: string;
+  email: string;
+  role: string;
+  group: "HO" | "CKK" | "BLR" | "BDG";
+}
+
+const ACCOUNT_GROUPS: Array<{ id: QuickAccountItem["group"]; label: string }> = [
+  { id: "HO", label: "Head Office" },
+  { id: "CKK", label: "Cikokol" },
+  { id: "BLR", label: "Balaraja" },
+  { id: "BDG", label: "Bandung 1" },
+];
+
 // Akun Pengujian Whitelist dari Seeder untuk kemudahan klik isi cepat
-const SAMPLE_WHITELIST_ACCOUNTS = [
-  { label: "Building Coord (Cikokol)", email: "bc.cikokol@alfamart.co.id", role: "BC" },
-  { label: "B&M Manager (Cikokol)", email: "bm.cikokol@alfamart.co.id", role: "BM" },
-  { label: "S&B Specialist (HO)", email: "snb.specialist@alfamart.co.id", role: "SNB" },
-  { label: "Regional Manager", email: "reg.manager1@alfamart.co.id", role: "RM" },
-  { label: "Kontraktor (PT Cahaya)", email: "vendor.cahaya@rekanan.com", role: "Vendor" },
-  { label: "Admin HO", email: "admin.harga@alfamart.co.id", role: "Admin" },
+const SAMPLE_WHITELIST_ACCOUNTS: QuickAccountItem[] = [
+  // Head Office (HO)
+  { group: "HO", label: "S&B Specialist (HO)", email: "snb.specialist@alfamart.co.id", role: "SNB" },
+  { group: "HO", label: "Regional Manager (HO)", email: "reg.manager1@alfamart.co.id", role: "RM" },
+  { group: "HO", label: "Admin HO", email: "admin.harga@alfamart.co.id", role: "Admin" },
+
+  // Cabang Cikokol (CKK)
+  { group: "CKK", label: "B&M Manager Cikokol", email: "bm.cikokol@alfamart.co.id", role: "BM" },
+  { group: "CKK", label: "Building Coord Cikokol", email: "bc.cikokol@alfamart.co.id", role: "BC" },
+  { group: "CKK", label: "PT Cahaya (BLD/DC)", email: "vendor.cahaya@rekanan.com", role: "KTR" },
+  { group: "CKK", label: "PT Sinar Mitra (BLD/DC)", email: "vendor.sinar@rekanan.com", role: "KTR" },
+  { group: "CKK", label: "CV Graha Indah (BLD/DC)", email: "vendor.graha@rekanan.com", role: "KTR" },
+  { group: "CKK", label: "PT Teknik Pendingin (M/E)", email: "rekanan.teknik@rekanan.com", role: "RKN" },
+  { group: "CKK", label: "CV Mitra Elektrikal (M/E)", email: "rekanan.elektrikal@rekanan.com", role: "RKN" },
+  { group: "CKK", label: "PT Prima Ritel (M/E)", email: "rekanan.prima@rekanan.com", role: "RKN" },
+
+  // Cabang Balaraja (BLR)
+  { group: "BLR", label: "B&M Manager Balaraja", email: "bm.balaraja@alfamart.co.id", role: "BM" },
+  { group: "BLR", label: "Building Coord Balaraja", email: "bc.balaraja@alfamart.co.id", role: "BC" },
+  { group: "BLR", label: "PT Banten Konstruksi (BLD/DC)", email: "vendor.banten@rekanan.com", role: "KTR" },
+  { group: "BLR", label: "CV Tiga Raksa Karya (BLD/DC)", email: "vendor.tigaraksa@rekanan.com", role: "KTR" },
+  { group: "BLR", label: "PT Serang Bangun (BLD/DC)", email: "vendor.serangbangun@rekanan.com", role: "KTR" },
+  { group: "BLR", label: "PT Cikupa Udara (M/E)", email: "rekanan.cikupa@rekanan.com", role: "RKN" },
+  { group: "BLR", label: "CV Balaraja Elektrik (M/E)", email: "rekanan.balarajaelk@rekanan.com", role: "RKN" },
+  { group: "BLR", label: "PT Tangerang Servis (M/E)", email: "rekanan.tangerangsrv@rekanan.com", role: "RKN" },
+
+  // Cabang Bandung 1 (BDG)
+  { group: "BDG", label: "B&M Manager Bandung 1", email: "bm.bandung@alfamart.co.id", role: "BM" },
+  { group: "BDG", label: "Building Coord Bandung 1", email: "bc.bandung@alfamart.co.id", role: "BC" },
+  { group: "BDG", label: "PT Parahyangan Karya (BLD/DC)", email: "vendor.parahyangan@rekanan.com", role: "KTR" },
+  { group: "BDG", label: "CV Pasundan Bangun (BLD/DC)", email: "vendor.pasundan@rekanan.com", role: "KTR" },
+  { group: "BDG", label: "PT Priangan Struktur (BLD/DC)", email: "vendor.priangan@rekanan.com", role: "KTR" },
+  { group: "BDG", label: "PT Bandung Cooling (M/E)", email: "rekanan.bdgcooling@rekanan.com", role: "RKN" },
+  { group: "BDG", label: "CV Daya Pajajaran (M/E)", email: "rekanan.pajajaran@rekanan.com", role: "RKN" },
+  { group: "BDG", label: "PT Jabar Maintenance (M/E)", email: "rekanan.jabarmnt@rekanan.com", role: "RKN" },
 ];
 
 export default function LoginPage() {
   const router = useRouter();
 
+  const [activeGroup, setActiveGroup] = useState<QuickAccountItem["group"]>("CKK");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -94,9 +137,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-4 font-sans text-slate-800">
-      <div className="max-w-md w-full">
+      <div className="max-w-lg w-full">
         {/* Card Form Login */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-lg border-2 border-slate-300 overflow-hidden">
           {/* Header Brand Alfamart */}
           <div className="bg-white p-6 pb-4 border-b border-slate-100 text-center">
             <div className="flex justify-center mb-3">
@@ -227,22 +270,53 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Quick Fill Akun Seeder (Untuk Mempermudah Testing Tim) */}
-            <div className="mt-5 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-2">
+            {/* Quick Fill Akun Seeder Multi-Cabang (Untuk Mempermudah Testing Tim) */}
+            <div className="mt-5 pt-4 border-t-2 border-slate-200 space-y-2.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
                 <Info className="w-3.5 h-3.5 text-[#005BAC]" />
                 <span>Pilih Akun Whitelist Uji Coba:</span>
               </div>
+
+              <div className="grid grid-cols-4 gap-1.5">
+                {ACCOUNT_GROUPS.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => setActiveGroup(g.id)}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg text-[11px] font-bold border-2 transition-colors cursor-pointer truncate",
+                      activeGroup === g.id
+                        ? "bg-[#005BAC] border-[#004585] text-white"
+                        : "bg-white border-slate-300 text-slate-700 hover:border-[#005BAC]"
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex flex-wrap gap-1.5">
-                {SAMPLE_WHITELIST_ACCOUNTS.map((acc) => (
+                {SAMPLE_WHITELIST_ACCOUNTS.filter((a) => a.group === activeGroup).map((acc) => (
                   <button
                     key={acc.email}
                     type="button"
                     onClick={() => handleFillAccount(acc.email)}
-                    className="text-[11px] px-2 py-1 rounded bg-slate-100 hover:bg-blue-50 hover:text-[#005BAC] text-slate-700 border border-slate-200 transition-colors font-medium flex items-center gap-1 cursor-pointer"
+                    className={cn(
+                      "text-[11px] px-2.5 py-1 rounded-lg border-2 transition-colors font-semibold flex items-center gap-1.5 cursor-pointer",
+                      email === acc.email
+                        ? "bg-[#005BAC] border-[#004585] text-white"
+                        : "bg-white border-slate-300 text-slate-800 hover:border-[#005BAC] hover:text-[#005BAC]"
+                    )}
                   >
-                    <span className="font-bold text-[10px] text-slate-400">
-                      [{acc.role}]
+                    <span
+                      className={cn(
+                        "font-bold text-[10px] px-1 rounded",
+                        email === acc.email
+                          ? "bg-white text-[#005BAC]"
+                          : "bg-slate-800 text-white"
+                      )}
+                    >
+                      {acc.role}
                     </span>
                     <span>{acc.label}</span>
                   </button>
