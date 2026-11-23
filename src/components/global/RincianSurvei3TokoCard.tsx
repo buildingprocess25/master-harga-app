@@ -13,12 +13,15 @@ import {
   AlertCircle,
   X,
   ExternalLink,
-  Upload,
   Info,
-  Loader2,
-  Plus,
 } from "lucide-react";
+import { isPdfLampiran } from "@/lib/drive-url";
 import { cn, formatRupiah, formatTanggal } from "@/lib/utils";
+import {
+  LampiranPreviewDialog,
+  LampiranUploader,
+  type UploadedLampiranItem,
+} from "./LampiranUploader";
 
 export interface LampiranItemInput {
   id?: string;
@@ -80,6 +83,7 @@ export function RincianSurvei3TokoCard({
   // Modal Preview Image Zoom State
   const [previewModal, setPreviewModal] = useState<{
     url: string;
+    namaFile?: string;
     title: string;
   } | null>(null);
 
@@ -88,9 +92,6 @@ export function RincianSurvei3TokoCard({
     tokoNama: string;
     lampiranList: LampiranItemInput[];
   } | null>(null);
-
-  // Uploading state per toko index
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   // Normalize inputs: either surveyToko or surveiList
   const rawList = surveyToko || surveiList || [];
@@ -171,80 +172,32 @@ export function RincianSurvei3TokoCard({
   const validCount = [h1, h2, h3].filter((h) => h > 0).length;
   const hargaRataRata = validCount === 3 ? Math.round((h1 + h2 + h3) / 3) : 0;
 
-  // Handler Multi-Upload Berkas Bukti Survei
-  const handleFileUpload = async (
+  // Handler setelah LampiranUploader sukses mengunggah berkas ke Google Drive / storage
+  const handleUploadedLampiran = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    newUploadedItems: UploadedLampiranItem[]
   ) => {
-    const rawFiles = Array.from(e.target.files || []);
-    if (rawFiles.length === 0 || !onChangeToko) return;
+    if (!onChangeToko || newUploadedItems.length === 0) return;
 
-    try {
-      setUploadingIndex(index);
-      const formData = new FormData();
-      rawFiles.forEach((file) => {
-        formData.append("files", file);
-      });
+    const normalizedItems: LampiranItemInput[] = newUploadedItems.map((item) => ({
+      id: item.id,
+      tipe: item.tipe || "NOTA_PEMBELIAN",
+      jenisLampiran: item.jenisLampiran || "NOTA_PEMBELIAN",
+      namaFile: item.namaFile,
+      url: item.url || item.fileUrl,
+      fileUrl: item.fileUrl || item.url,
+      ukuranFile: item.ukuranFile,
+    }));
 
-      const res = await fetch("/api/pengajuan/lampiran", {
-        method: "POST",
-        body: formData,
-      });
+    const existingLampiran = stores[index].lampiranList || [];
+    const combinedLampiran = [...existingLampiran, ...normalizedItems];
 
-      const resJson = await res.json();
-      let newUploadedItems: LampiranItemInput[] = [];
-
-      if (res.ok && resJson.success && Array.isArray(resJson.items)) {
-        newUploadedItems = resJson.items;
-      } else if (res.ok && resJson.success && resJson.data) {
-        newUploadedItems = Array.isArray(resJson.data) ? resJson.data : [resJson.data];
-      } else {
-        // Fallback ke object URL jika endpoint offline
-        newUploadedItems = rawFiles.map((file, fIdx) => ({
-          id: `local-${Date.now()}-${fIdx}`,
-          tipe: "NOTA_PEMBELIAN",
-          jenisLampiran: "NOTA_PEMBELIAN",
-          namaFile: file.name,
-          url: URL.createObjectURL(file),
-          fileUrl: URL.createObjectURL(file),
-          ukuranFile: `${Math.max(1, Math.round(file.size / 1024))} KB`,
-        }));
-      }
-
-      const existingLampiran = stores[index].lampiranList || [];
-      const combinedLampiran = [...existingLampiran, ...newUploadedItems];
-
-      onChangeToko(index, {
-        ...stores[index],
-        lampiranList: combinedLampiran,
-        buktiSurveiUrl: combinedLampiran[0]?.url || "",
-        buktiSurveiName: combinedLampiran[0]?.namaFile || "",
-      });
-    } catch {
-      const fallbackItems = rawFiles.map((file, fIdx) => ({
-        id: `local-${Date.now()}-${fIdx}`,
-        tipe: "NOTA_PEMBELIAN",
-        jenisLampiran: "NOTA_PEMBELIAN",
-        namaFile: file.name,
-        url: URL.createObjectURL(file),
-        fileUrl: URL.createObjectURL(file),
-        ukuranFile: `${Math.max(1, Math.round(file.size / 1024))} KB`,
-      }));
-
-      const existingLampiran = stores[index].lampiranList || [];
-      const combinedLampiran = [...existingLampiran, ...fallbackItems];
-
-      onChangeToko(index, {
-        ...stores[index],
-        lampiranList: combinedLampiran,
-        buktiSurveiUrl: combinedLampiran[0]?.url || "",
-        buktiSurveiName: combinedLampiran[0]?.namaFile || "",
-      });
-    } finally {
-      setUploadingIndex(null);
-      // Reset input agar bisa pilih berkas yang sama jika diinginkan
-      e.target.value = "";
-    }
+    onChangeToko(index, {
+      ...stores[index],
+      lampiranList: combinedLampiran,
+      buktiSurveiUrl: combinedLampiran[0]?.url || combinedLampiran[0]?.fileUrl || "",
+      buktiSurveiName: combinedLampiran[0]?.namaFile || "",
+    });
   };
 
   // Handler Hapus 1 Berkas Lampiran Tertentu
@@ -357,7 +310,6 @@ export function RincianSurvei3TokoCard({
             <tbody className="divide-y-2 divide-slate-200 text-slate-800 font-medium">
               {stores.map((store, idx) => {
                 const storeNum = idx + 1;
-                const isUploading = uploadingIndex === idx;
                 const lampiranCount = store.lampiranList?.length || 0;
 
                 return (
@@ -510,9 +462,7 @@ export function RincianSurvei3TokoCard({
                           <div className="space-y-1 max-h-28 overflow-y-auto pr-0.5">
                             {store.lampiranList?.map((file, fIdx) => {
                               const fileUrl = file.url || file.fileUrl || "";
-                              const isPdf =
-                                fileUrl.toLowerCase().endsWith(".pdf") ||
-                                file.namaFile?.toLowerCase().endsWith(".pdf");
+                              const isPdf = isPdfLampiran(fileUrl, file.namaFile);
 
                               let badgeLabel = "Nota";
                               let badgeColor = "bg-emerald-700 text-white border-emerald-700";
@@ -541,6 +491,7 @@ export function RincianSurvei3TokoCard({
                                     onClick={() =>
                                       setPreviewModal({
                                         url: fileUrl,
+                                        namaFile: file.namaFile,
                                         title: `Toko ${storeNum}: ${file.namaFile}`,
                                       })
                                     }
@@ -589,42 +540,25 @@ export function RincianSurvei3TokoCard({
                           </div>
                         )}
 
-                        {/* Tombol Unggah / Tambah Berkas Multi */}
-                        {isUploading ? (
-                          <div className="flex items-center justify-center gap-1 text-[11px] text-[#005BAC] font-bold py-1.5 bg-white border-2 border-[#005BAC] rounded-lg">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>{compact ? "Upload..." : "Mengunggah berkas..."}</span>
-                          </div>
-                        ) : (
-                          <label
-                            title="Unggah Nota, Foto Toko, atau Sampel"
-                            className={cn(
-                              "flex items-center justify-center gap-1 font-bold text-slate-700 hover:text-white bg-white hover:bg-[#005BAC] border-2 border-slate-300 hover:border-[#005BAC] rounded-lg transition-colors cursor-pointer",
-                              compact
-                                ? "px-2.5 py-1.5 text-[11px] w-full"
-                                : "px-3 py-1.5 text-[11px] border-dashed w-full font-extrabold"
-                            )}
-                          >
-                            {lampiranCount > 0 ? (
-                              <>
-                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                                <span>{compact ? `Tambah (${lampiranCount})` : "+ Tambah Berkas (Foto/PDF)"}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-3.5 h-3.5" />
-                                <span>{compact ? "Unggah" : "Unggah Nota, Tampak & Sampel"}</span>
-                              </>
-                            )}
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*,application/pdf"
-                              onChange={(e) => handleFileUpload(idx, e)}
-                              className="hidden"
-                            />
-                          </label>
-                        )}
+                        {/* Tombol Unggah / Tambah Berkas Multi (Reusable) */}
+                        <LampiranUploader
+                          endpoint="/api/pengajuan/lampiran"
+                          fieldName="files"
+                          uploadMode="batch"
+                          multiple
+                          accept="image/*,application/pdf"
+                          maxSizeBytes={10 * 1024 * 1024}
+                          compact={compact}
+                          dashed={!compact}
+                          itemCount={lampiranCount}
+                          label={compact ? "Unggah" : "Unggah Nota, Tampak & Sampel"}
+                          addMoreLabel={
+                            compact ? `Tambah (${lampiranCount})` : "+ Tambah Berkas (Foto/PDF)"
+                          }
+                          uploadingLabel={compact ? "Upload..." : "Mengunggah berkas..."}
+                          title="Unggah Nota, Foto Toko, atau Sampel"
+                          onUploaded={(uploaded) => handleUploadedLampiran(idx, uploaded)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -644,49 +578,12 @@ export function RincianSurvei3TokoCard({
 
         {/* Modal Preview Gambar / Dokumen Zoom */}
         {previewModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-none flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full border-2 border-slate-300 overflow-hidden flex flex-col max-h-[85vh]">
-              <div className="bg-slate-100 px-5 py-3 border-b-2 border-slate-200 flex items-center justify-between">
-                <h4 className="text-sm font-black text-slate-900 truncate">
-                  {previewModal.title}
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setPreviewModal(null)}
-                  className="text-slate-500 hover:text-slate-800 p-1 rounded-lg cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4 overflow-y-auto flex items-center justify-center bg-slate-50 min-h-[250px]">
-                {previewModal.url.toLowerCase().endsWith(".pdf") ? (
-                  <iframe
-                    src={previewModal.url}
-                    title="Pratinjau Dokumen"
-                    className="w-full h-96 border-2 border-slate-300 rounded-lg"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previewModal.url}
-                    alt="Pratinjau Bukti Survei"
-                    className="max-h-[60vh] max-w-full rounded-lg border-2 border-slate-300 object-contain"
-                  />
-                )}
-              </div>
-
-              <div className="bg-slate-100 px-5 py-2.5 border-t-2 border-slate-200 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPreviewModal(null)}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
-          </div>
+          <LampiranPreviewDialog
+            url={previewModal.url}
+            namaFile={previewModal.namaFile}
+            title={previewModal.title}
+            onClose={() => setPreviewModal(null)}
+          />
         )}
       </div>
     );
@@ -869,7 +766,7 @@ export function RincianSurvei3TokoCard({
               ) : (
                 activeLampiranModal.lampiranList.map((lampiran, lIdx) => {
                   const fileUrl = lampiran.url || lampiran.fileUrl || "";
-                  const isPdf = fileUrl.toLowerCase().endsWith(".pdf") || lampiran.namaFile?.toLowerCase().endsWith(".pdf");
+                  const isPdf = isPdfLampiran(fileUrl, lampiran.namaFile);
 
                   return (
                     <div

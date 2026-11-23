@@ -1,19 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
-  FileText,
   Loader2,
-  Paperclip,
   Scale,
   Send,
-  Trash2,
   XCircle,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import {
+  LampiranUploader,
+  type UploadedLampiranItem,
+} from "@/components/global/LampiranUploader";
 import { cn, formatRupiah } from "@/lib/utils";
 
 type Pilihan = "SETUJU" | "BANDING" | "TOLAK";
@@ -40,7 +41,6 @@ export function FormResponPenawaran({
   bolehBanding,
 }: FormResponPenawaranProps) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [pilihan, setPilihan] = useState<Pilihan | null>(null);
   const [usulanHarga, setUsulanHarga] = useState("");
@@ -71,30 +71,16 @@ export function FormResponPenawaran({
     return null;
   };
 
-  const unggah = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    if (lampiranList.length + files.length > MAKS_LAMPIRAN) {
-      setError(`Maksimal ${MAKS_LAMPIRAN} berkas lampiran.`);
-      return;
-    }
-    setUploading(true);
+  const handleUploadedBanding = (uploaded: UploadedLampiranItem[]) => {
     setError("");
-    try {
-      for (const file of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/kuorum/lampiran", { method: "POST", body: fd });
-        const json = await res.json();
-        if (!res.ok || !json.success)
-          throw new Error(json.message || `Gagal mengunggah ${file.name}.`);
-        setLampiranList((prev) => [...prev, json.data]);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal mengunggah berkas.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    setLampiranList((prev) => [
+      ...prev,
+      ...uploaded.map((u) => ({
+        namaFile: u.namaFile,
+        fileUrl: u.fileUrl,
+        ukuranFile: u.ukuranFile,
+      })),
+    ]);
   };
 
   const handleKirimRespon = async () => {
@@ -304,63 +290,31 @@ export function FormResponPenawaran({
             </span>
           </div>
 
-          {lampiranList.length > 0 && (
-            <ul className="space-y-1.5 pt-1">
-              {lampiranList.map((l) => (
-                <li
-                  key={l.fileUrl}
-                  className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-slate-200 bg-white text-xs"
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-3.5 h-3.5 text-[#005BAC] shrink-0" />
-                    <span className="truncate font-semibold text-slate-800">
-                      {l.namaFile}
-                    </span>
-                    {l.ukuranFile && (
-                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                        {l.ukuranFile}
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setLampiranList((prev) =>
-                        prev.filter((x) => x.fileUrl !== l.fileUrl)
-                      )
-                    }
-                    className="text-slate-400 hover:text-rose-600 cursor-pointer p-1"
-                    aria-label={`Hapus ${l.namaFile}`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
+          <LampiranUploader
+            endpoint="/api/kuorum/lampiran"
+            fieldName="file"
+            uploadMode="per-file"
             multiple
             accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-            className="hidden"
-            onChange={(e) => unggah(e.target.files)}
+            maxFiles={MAKS_LAMPIRAN}
+            maxSizeBytes={5 * 1024 * 1024}
+            label="Tambah Berkas"
+            uploadingLabel="Mengunggah..."
+            title="Unggah berkas bukti pembanding pasar"
+            showList
+            items={lampiranList.map((l) => ({
+              namaFile: l.namaFile,
+              fileUrl: l.fileUrl,
+              url: l.fileUrl,
+              ukuranFile: l.ukuranFile,
+            }))}
+            onUploaded={handleUploadedBanding}
+            onUploadingChange={setUploading}
+            onError={setError}
+            onRemoveItem={(item) =>
+              setLampiranList((prev) => prev.filter((x) => x.fileUrl !== item.fileUrl))
+            }
           />
-
-          <button
-            type="button"
-            disabled={uploading || lampiranList.length >= MAKS_LAMPIRAN}
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-slate-300 bg-white text-xs font-bold text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC] disabled:opacity-50 cursor-pointer transition-colors"
-          >
-            {uploading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Paperclip className="w-3.5 h-3.5" />
-            )}
-            <span>{uploading ? "Mengunggah..." : "Tambah Berkas"}</span>
-          </button>
         </div>
       )}
 
