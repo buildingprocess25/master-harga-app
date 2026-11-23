@@ -236,45 +236,20 @@ export async function deskripsiFilterKatalog(f: FilterKatalog) {
   return bagian.length > 0 ? bagian.join(" | ") : "Semua cabang dan divisi";
 }
 
-/**
- * Mengambil rincian lengkap satu entri MasterHargaCabang (spesifikasi item,
- * harga induk & wilayah, serta resep AHSP dan survei 3 toko dari tiket rilis terakhir).
- */
-export async function getDetailHargaRilis(masterHargaCabangId: string) {
-  const row = await prisma.masterHargaCabang.findUnique({
-    where: { id: masterHargaCabangId },
-    include: {
-      masterItem: { include: { divisi: true } },
-      cabang: true,
-      divisi: true,
-      masterHargaWilayah: {
-        orderBy: { wilayahCabang: { namaWilayah: "asc" } },
-        include: {
-          wilayahCabang: true,
-          pengajuanTerakhir: { select: { nomorTiket: true } },
-        },
-      },
-      pengajuanTerakhir: {
-        include: {
-          rincianAHSP: {
-            include: {
-              masterKoefisien: true,
-              surveiTokoList: {
-                include: { lampiranList: true },
-                orderBy: { urutanToko: "asc" },
-              },
-            },
-          },
-        },
-      },
+const INCLUDE_RINCIAN_AHSP = {
+  include: {
+    masterKoefisien: true,
+    surveiTokoList: {
+      include: { lampiranList: true },
+      orderBy: { urutanToko: "asc" as const },
     },
-  });
+  },
+};
 
-  if (!row) return null;
+type RincianAhspDetailRow = Prisma.RincianAhspPengajuanGetPayload<typeof INCLUDE_RINCIAN_AHSP>;
 
-  const m = row.masterItem;
-  const tiket = row.pengajuanTerakhir;
-  const surveiList = (tiket?.rincianAHSP ?? []).flatMap((r) =>
+function mapRincianDanSurveiDetail(rincianAHSP: RincianAhspDetailRow[]) {
+  const surveiList = rincianAHSP.flatMap((r) =>
     r.surveiTokoList.map((s) => ({
       id: s.id,
       noToko: s.urutanToko,
@@ -295,7 +270,34 @@ export async function getDetailHargaRilis(masterHargaCabangId: string) {
     }))
   );
 
-  const koefisienItems = (tiket?.rincianAHSP ?? []).map((r) => ({
+  const surveiPerKomponen = rincianAHSP
+    .filter((r) => r.surveiTokoList.length > 0)
+    .map((r) => ({
+      rincianId: r.id,
+      namaKomponen: r.namaKomponen,
+      satuan: r.satuan,
+      koefisien: Number(r.nilaiKoefisien),
+      surveiList: r.surveiTokoList.map((s) => ({
+        id: s.id,
+        noToko: s.urutanToko,
+        urutanToko: s.urutanToko,
+        namaToko: s.namaToko,
+        alamatToko: s.alamatToko || "",
+        harga: Number(s.hargaSatuanSurvei),
+        tanggalSurvei: s.tanggalSurvei.toISOString(),
+        catatan: s.catatanSurvei || undefined,
+        namaKomponen: r.namaKomponen,
+        lampiranList: s.lampiranList.map((l) => ({
+          id: l.id,
+          tipe: (l.jenisLampiran as TipeLampiranSurvei) || "NOTA_PEMBELIAN",
+          namaFile: l.namaFile,
+          url: l.fileUrl,
+          keterangan: l.ukuranFile || undefined,
+        })),
+      })),
+    }));
+
+  const koefisienItems = rincianAHSP.map((r) => ({
     id: r.id,
     masterKoefisienId: r.masterKoefisienId,
     kategori: r.kategoriKomponen as "UPAH" | "MATERIAL" | "ALAT" | "BONGKARAN",
@@ -309,13 +311,58 @@ export async function getDetailHargaRilis(masterHargaCabangId: string) {
     total: Number(r.subtotal),
   }));
 
+  return { surveiList, surveiPerKomponen, koefisienItems };
+}
+
+/**
+ * Mengambil rincian lengkap satu entri MasterHargaCabang (spesifikasi item,
+ * harga induk & wilayah, serta resep AHSP dan survei 3 toko dari tiket rilis terakhir).
+ */
+export async function getDetailHargaRilis(masterHargaCabangId: string) {
+  const row = await prisma.masterHargaCabang.findUnique({
+    where: { id: masterHargaCabangId },
+    include: {
+      masterItem: { include: { divisi: true } },
+      cabang: true,
+      divisi: true,
+      masterHargaWilayah: {
+        where: { statusHarga: "AKTIF" },
+        orderBy: { wilayahCabang: { namaWilayah: "asc" } },
+        include: {
+          wilayahCabang: true,
+          pengajuanTerakhir: { select: { nomorTiket: true } },
+        },
+      },
+      pengajuanTerakhir: {
+        include: {
+          rincianAHSP: INCLUDE_RINCIAN_AHSP,
+        },
+      },
+    },
+  });
+
+  if (!row) return null;
+
+  const m = row.masterItem;
+  const tiket = row.pengajuanTerakhir;
+  const { surveiList, surveiPerKomponen, koefisienItems } = mapRincianDanSurveiDetail(
+    tiket?.rincianAHSP ?? []
+  );
+
   return {
     id: row.id,
+    cakupanHarga: "INDUK_CABANG" as const,
+    sumberRincian: "INDUK" as const,
     statusHarga: row.statusHarga,
     hargaFinalInduk: row.hargaFinalInduk.toNumber(),
+    hargaFinalWilayah: null as number | null,
+    selisihRp: null as number | null,
+    selisihPersen: null as number | null,
+    namaWilayah: null as string | null,
     marginTotalPersen: row.marginTotalPersen.toNumber(),
     berlakuSejak: row.berlakuSejak.toISOString(),
     nomorTiket: tiket?.nomorTiket ?? null,
+    surveiPerKomponen,
     item: {
       id: tiket?.id ?? row.id,
       noTiket: tiket?.nomorTiket ?? "-",
@@ -368,7 +415,124 @@ export async function getDetailHargaRilis(masterHargaCabangId: string) {
   };
 }
 
-export type DetailHargaRilis = NonNullable<Awaited<ReturnType<typeof getDetailHargaRilis>>>;
+/**
+ * Mengambil rincian lengkap satu entri MasterHargaWilayah:
+ * komponen AHSP + hasil survei 3 toko per komponen material/peralatan dari tiket wilayah
+ * (atau fallback ke rincian induk jika tiket wilayah lama belum menyimpan rincian).
+ */
+export async function getDetailHargaWilayahRilis(masterHargaWilayahId: string) {
+  const wil = await prisma.masterHargaWilayah.findUnique({
+    where: { id: masterHargaWilayahId },
+    include: {
+      wilayahCabang: true,
+      masterHargaCabang: {
+        include: {
+          masterItem: { include: { divisi: true } },
+          cabang: true,
+          divisi: true,
+          pengajuanTerakhir: {
+            include: {
+              rincianAHSP: INCLUDE_RINCIAN_AHSP,
+            },
+          },
+        },
+      },
+      pengajuanTerakhir: {
+        include: {
+          rincianAHSP: INCLUDE_RINCIAN_AHSP,
+        },
+      },
+    },
+  });
+
+  if (!wil) return null;
+
+  const induk = wil.masterHargaCabang;
+  const m = induk.masterItem;
+  const tiketWilayah = wil.pengajuanTerakhir;
+  const pakaiRincianWilayah = (tiketWilayah?.rincianAHSP?.length ?? 0) > 0;
+  const sumberRincianRows = pakaiRincianWilayah
+    ? tiketWilayah?.rincianAHSP ?? []
+    : induk.pengajuanTerakhir?.rincianAHSP ?? [];
+
+  const { surveiList, surveiPerKomponen, koefisienItems } =
+    mapRincianDanSurveiDetail(sumberRincianRows);
+  const marginTotal =
+    tiketWilayah?.marginSNBPersen?.toNumber() ?? induk.marginTotalPersen.toNumber();
+
+  return {
+    id: wil.id,
+    cakupanHarga: "KHUSUS_WILAYAH" as const,
+    sumberRincian: pakaiRincianWilayah ? ("WILAYAH" as const) : ("FALLBACK_INDUK" as const),
+    statusHarga: wil.statusHarga,
+    hargaFinalInduk: induk.hargaFinalInduk.toNumber(),
+    hargaFinalWilayah: wil.hargaFinalWilayah.toNumber(),
+    selisihRp: wil.selisihDariIndukRp.toNumber(),
+    selisihPersen: wil.selisihDariIndukPersen.toNumber(),
+    namaWilayah: wil.wilayahCabang.namaWilayah,
+    marginTotalPersen: marginTotal,
+    berlakuSejak: wil.berlakuSejak.toISOString(),
+    nomorTiket: tiketWilayah?.nomorTiket ?? null,
+    surveiPerKomponen,
+    item: {
+      id: tiketWilayah?.id ?? wil.id,
+      noTiket: tiketWilayah?.nomorTiket ?? "-",
+      kodeItem: m.kodeItem,
+      kelompokKode: (m.kodeItem.toUpperCase().startsWith("ME-") ? "ME" : "SIP") as "SIP" | "ME",
+      kodeMaster: m.kodeMaster,
+      namaItem: m.namaItem,
+      kategori: m.kategori,
+      jenisCor: m.jenisCor || undefined,
+      merk: m.merk,
+      tipe: m.tipe || undefined,
+      ukuran: m.ukuran,
+      warna: m.warna || undefined,
+      permukaan: m.permukaan || undefined,
+      tebal: m.tebal || undefined,
+      toleransi: m.toleransi || undefined,
+      lokasi: m.lokasi,
+      satuan: m.satuan,
+      deskripsiOtomatis: m.deskripsiOtomatis,
+      divisiId: induk.divisiId,
+      kodeDivisi: induk.divisi.kodeDivisi,
+      namaDivisi: induk.divisi.namaDivisi,
+      cabangId: induk.cabangId,
+      namaCabang: induk.cabang.namaCabang,
+      cakupanHarga: "KHUSUS_WILAYAH" as const,
+      wilayahCabangId: wil.wilayahCabangId,
+      namaWilayah: wil.wilayahCabang.namaWilayah,
+      status: "RELEASED" as const,
+      tanggalPengajuan: (tiketWilayah?.tanggalPengajuan ?? wil.berlakuSejak).toISOString(),
+      surveiTokoList: surveiList,
+      koefisienItems,
+      liveMarginUpah:
+        koefisienItems.find((k) => k.kategori === "UPAH")?.marginPersen ?? marginTotal,
+      liveMarginMaterial:
+        koefisienItems.find((k) => k.kategori === "MATERIAL")?.marginPersen ?? marginTotal,
+      liveMarginBongkaran:
+        koefisienItems.find((k) => k.kategori === "BONGKARAN")?.marginPersen ?? marginTotal,
+      totalHpp: koefisienItems.reduce((s, k) => s + k.koefisien * k.hargaAcuan, 0),
+      totalHargaSatuan: wil.hargaFinalWilayah.toNumber(),
+    },
+    wilayahList: [] as Array<{
+      id: string;
+      namaWilayah: string;
+      kodeWilayah: string;
+      harga: number;
+      selisihRp: number;
+      selisihPersen: number;
+      statusHarga: string;
+      berlakuSejak: string;
+      nomorTiket: string | null;
+    }>,
+  };
+}
+
+export type DetailHargaIndukRilis = NonNullable<Awaited<ReturnType<typeof getDetailHargaRilis>>>;
+export type DetailHargaWilayahRilis = NonNullable<
+  Awaited<ReturnType<typeof getDetailHargaWilayahRilis>>
+>;
+export type DetailHargaRilis = DetailHargaIndukRilis | DetailHargaWilayahRilis;
 
 export async function setStatusHargaCabang(id: string, aktif: boolean) {
   const existing = await prisma.masterHargaCabang.findUnique({ where: { id }, select: { id: true } });
@@ -386,7 +550,16 @@ export async function setStatusHargaCabang(id: string, aktif: boolean) {
 export async function getMasterHargaPerItem(filter: FilterKatalog, page = 1) {
   const hargaSlotFilter: Prisma.MasterHargaCabangWhereInput = {
     statusHarga: "AKTIF",
-    ...(filter.cabangId ? { cabangId: filter.cabangId } : {}),
+    ...(filter.cabangIds
+      ? {
+          cabangId:
+            filter.cabangId && filter.cabangIds.includes(filter.cabangId)
+              ? filter.cabangId
+              : { in: filter.cabangIds },
+        }
+      : filter.cabangId
+        ? { cabangId: filter.cabangId }
+        : {}),
     ...(filter.divisiId ? { divisiId: filter.divisiId } : {}),
     ...(filter.hanyaOverride ? { masterHargaWilayah: { some: { statusHarga: "AKTIF" } } } : {}),
   };
@@ -483,6 +656,7 @@ export type BarisMasterHargaPerItem = Awaited<ReturnType<typeof getMasterHargaPe
 export interface FilterCabangPerItem {
   q?: string;
   cabangId?: string;
+  cabangIds?: string[];
   divisiId?: string;
   hanyaOverride?: boolean;
   page?: number;
@@ -513,7 +687,16 @@ export async function getDaftarHargaCabangPerItem(
   const slotWhere: Prisma.MasterHargaCabangWhereInput = {
     masterItemId,
     statusHarga: "AKTIF",
-    ...(filter.cabangId ? { cabangId: filter.cabangId } : {}),
+    ...(filter.cabangIds
+      ? {
+          cabangId:
+            filter.cabangId && filter.cabangIds.includes(filter.cabangId)
+              ? filter.cabangId
+              : { in: filter.cabangIds },
+        }
+      : filter.cabangId
+        ? { cabangId: filter.cabangId }
+        : {}),
     ...(filter.divisiId ? { divisiId: filter.divisiId } : {}),
     ...(filter.hanyaOverride ? { masterHargaWilayah: { some: { statusHarga: "AKTIF" } } } : {}),
     ...(qClean

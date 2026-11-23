@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRoleAction } from "@/lib/auth/require-role";
+import { getCabangWewenang } from "@/lib/services/kuorum-service";
 import { DomainError } from "@/lib/services/transisi-tiket";
 import {
   getDaftarHargaCabangPerItem,
@@ -11,7 +12,11 @@ export async function GET(
   { params }: { params: Promise<{ masterItemId: string }> }
 ) {
   try {
-    await requireRoleAction(["SB_SPECIALIST", "ADMIN"]);
+    const user = await requireRoleAction(["SB_SPECIALIST", "REGIONAL_MANAGER", "ADMIN"]);
+    const wewenang =
+      user.role === "REGIONAL_MANAGER"
+        ? await getCabangWewenang(user.id, user.role)
+        : "SEMUA";
     const { masterItemId } = await params;
     const sp = request.nextUrl.searchParams;
 
@@ -25,6 +30,7 @@ export async function GET(
     const data = await getDaftarHargaCabangPerItem(masterItemId, {
       q,
       cabangId,
+      cabangIds: wewenang === "SEMUA" ? undefined : wewenang,
       divisiId,
       hanyaOverride,
       page,

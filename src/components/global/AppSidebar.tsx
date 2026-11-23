@@ -185,7 +185,7 @@ export function AppSidebar({
               },
               {
                 label: "Katalog Master Harga",
-                href: "/master-harga",
+                href: "/regional-manager/katalog-harga",
                 icon: Tag,
               },
             ],

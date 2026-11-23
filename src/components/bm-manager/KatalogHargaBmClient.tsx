@@ -14,8 +14,10 @@ import {
   MapPin,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import type { BarisKatalogBm } from "@/lib/services/master-harga-service";
+import type { BarisKatalogBm, DetailHargaRilis } from "@/lib/services/master-harga-service";
 import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
+import { DetailHargaRilisContent } from "@/components/katalog/DetailHargaRilisContent";
+import { ArrowLeft } from "lucide-react";
 import {
   TambahPengajuanModal,
   type ActivationTemplatePayload,
@@ -37,7 +39,49 @@ export function KatalogHargaBmClient({
 }) {
   const router = useRouter();
   const [selectedRow, setSelectedRow] = useState<BarisKatalogBm | null>(null);
+  const [wilayahDetail, setWilayahDetail] = useState<DetailHargaRilis | null>(null);
+  const [loadingWilayahDetailId, setLoadingWilayahDetailId] = useState<string | null>(null);
   const [loadingAktivasiKey, setLoadingAktivasiKey] = useState<string | null>(null);
+
+  const bukaModalRow = (row: BarisKatalogBm) => {
+    setWilayahDetail(null);
+    setSelectedRow(row);
+  };
+
+  const tutupModalRow = () => {
+    setWilayahDetail(null);
+    setSelectedRow(null);
+  };
+
+  const bukaRincianWilayah = async (wilayahId: string) => {
+    if (loadingWilayahDetailId) return;
+    setLoadingWilayahDetailId(wilayahId);
+    try {
+      const res = await fetch(`/api/sb-specialist/master-harga/wilayah/${wilayahId}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success || !json?.data) {
+        await Swal.fire({
+          icon: "error",
+          title: "Gagal Memuat Rincian",
+          text: json?.message || "Rincian harga wilayah tidak dapat dimuat.",
+          confirmButtonColor: "#ED1C24",
+        });
+        return;
+      }
+      setWilayahDetail(json.data as DetailHargaRilis);
+    } catch {
+      await Swal.fire({
+        icon: "error",
+        title: "Koneksi Gagal",
+        text: "Tidak dapat terhubung ke server saat memuat rincian harga wilayah.",
+        confirmButtonColor: "#ED1C24",
+      });
+    } finally {
+      setLoadingWilayahDetailId(null);
+    }
+  };
   const [activationTemplate, setActivationTemplate] =
     useState<ActivationTemplatePayload | null>(null);
   const [isModalAktivasiOpen, setIsModalAktivasiOpen] = useState(false);
@@ -288,7 +332,7 @@ export function KatalogHargaBmClient({
                     <div className="flex flex-col gap-1.5 items-stretch">
                       <button
                         type="button"
-                        onClick={() => setSelectedRow(r)}
+                        onClick={() => bukaModalRow(r)}
                         className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-800 hover:border-[#005BAC] hover:text-[#005BAC] text-[11px] font-bold cursor-pointer transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -327,7 +371,7 @@ export function KatalogHargaBmClient({
                       {aktifDivs.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => setSelectedRow(r)}
+                          onClick={() => bukaModalRow(r)}
                           className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-amber-600 bg-white text-amber-700 hover:bg-amber-600 hover:text-white text-[11px] font-bold cursor-pointer transition-colors"
                         >
                           <MapPin className="w-3.5 h-3.5" />
@@ -377,7 +421,7 @@ export function KatalogHargaBmClient({
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedRow(null)}
+                onClick={tutupModalRow}
                 className="p-2 rounded-xl border-2 border-slate-300 bg-white text-slate-600 hover:bg-slate-100 cursor-pointer"
                 aria-label="Tutup modal"
               >
@@ -386,7 +430,11 @@ export function KatalogHargaBmClient({
             </div>
 
             <div className="p-5 space-y-5 max-h-[78vh] overflow-y-auto">
-              <DetailSpesifikasi item={toDetailItem(selectedRow)} showDeskripsi={true} />
+              {wilayahDetail ? (
+                <DetailHargaRilisContent detail={wilayahDetail} />
+              ) : (
+                <>
+                  <DetailSpesifikasi item={toDetailItem(selectedRow)} showDeskripsi={true} />
 
               {/* Daftar Cabang Aktif (Tanpa Harga Cabang Lain) */}
               <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
@@ -487,15 +535,30 @@ export function KatalogHargaBmClient({
                         </div>
                       </div>
                       {d.status === "AKTIF" && d.wilayahList.length > 0 && (
-                        <div className="w-full pt-2 mt-2 border-t border-slate-200 flex flex-wrap gap-1.5">
+                        <div className="w-full pt-2 mt-2 border-t border-slate-200 flex flex-wrap gap-2">
                           {d.wilayahList.map((w) => (
-                            <span
+                            <div
                               key={w.id}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-600 text-white text-[10px] font-bold"
+                              className="inline-flex items-center rounded-lg border-2 border-amber-600 bg-white overflow-hidden"
                             >
-                              <MapPin className="w-3 h-3" />
-                              {w.namaWilayah}: {formatRupiah(w.harga)}
-                            </span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 text-white text-[10px] font-bold">
+                                <MapPin className="w-3 h-3" />
+                                {w.namaWilayah}: {formatRupiah(w.harga)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => bukaRincianWilayah(w.id)}
+                                disabled={loadingWilayahDetailId === w.id}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white text-amber-800 hover:bg-amber-700 hover:text-white text-[10px] font-bold transition-colors cursor-pointer disabled:bg-slate-200"
+                              >
+                                {loadingWilayahDetailId === w.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Eye className="w-3 h-3" />
+                                )}
+                                <span>Rincian</span>
+                              </button>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -503,10 +566,22 @@ export function KatalogHargaBmClient({
                   ))}
                 </div>
               </div>
+                </>
+              )}
             </div>
 
             <div className="px-5 py-3.5 bg-slate-50 border-t-2 border-slate-200 flex justify-end gap-2">
-              {selectedRow.adaDivisiBelumAktif && (
+              {wilayahDetail && (
+                <button
+                  type="button"
+                  onClick={() => setWilayahDetail(null)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-[#005BAC] bg-white text-[#005BAC] hover:bg-[#005BAC] hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Kembali ke Spesifikasi</span>
+                </button>
+              )}
+              {!wilayahDetail && selectedRow.adaDivisiBelumAktif && (
                 <button
                   type="button"
                   disabled={loadingAktivasiKey !== null}
@@ -529,7 +604,7 @@ export function KatalogHargaBmClient({
               )}
               <button
                 type="button"
-                onClick={() => setSelectedRow(null)}
+                onClick={tutupModalRow}
                 className="px-5 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 text-xs font-bold cursor-pointer"
               >
                 Tutup

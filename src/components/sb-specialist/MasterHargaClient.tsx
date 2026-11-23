@@ -27,9 +27,7 @@ import type {
   SlotHargaCabangSnb,
 } from "@/lib/services/master-harga-service";
 import { setStatusHargaCabangAction } from "@/app/sb-specialist/actions";
-import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
-import { RincianKalkulasiKoefisien } from "@/components/global/RincianKalkulasiKoefisien";
-import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
+import { DetailHargaRilisContent } from "@/components/katalog/DetailHargaRilisContent";
 import {
   solidFilterSelectStyles,
   type SimpleSelectOption,
@@ -76,12 +74,14 @@ export function MasterHargaClient({
   opsiCabang,
   opsiDivisi,
   initialModalFilter,
+  readonly = false,
 }: {
   rows: BarisMasterHargaPerItem[];
   nomorAwal?: number;
   opsiCabang: Array<{ id: string; namaCabang: string }>;
   opsiDivisi: Array<{ id: string; namaDivisi: string }>;
   initialModalFilter: ModalFilterAwal;
+  readonly?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -190,10 +190,10 @@ export function MasterHargaClient({
     modalRefreshTick,
   ]);
 
-  const bukaRincian = async (hargaCabangId: string) => {
+  const bukaRincianDariUrl = async (url: string, loadingKey: string) => {
     try {
-      setLoadingRincianId(hargaCabangId);
-      const res = await fetch(`/api/sb-specialist/master-harga/${hargaCabangId}`);
+      setLoadingRincianId(loadingKey);
+      const res = await fetch(url);
       const json = await res.json();
       if (!res.ok || !json.success) {
         Swal.fire({
@@ -218,7 +218,17 @@ export function MasterHargaClient({
     }
   };
 
+  const bukaRincian = (hargaCabangId: string) =>
+    bukaRincianDariUrl(`/api/sb-specialist/master-harga/${hargaCabangId}`, hargaCabangId);
+
+  const bukaRincianWilayah = (hargaWilayahId: string) =>
+    bukaRincianDariUrl(
+      `/api/sb-specialist/master-harga/wilayah/${hargaWilayahId}`,
+      hargaWilayahId
+    );
+
   const toggleStatus = async (slot: SlotHargaCabangSnb, namaItem: string, aktif: boolean) => {
+    if (readonly) return;
     const confirm = await Swal.fire({
       title: aktif
         ? `Aktifkan "${namaItem}"?`
@@ -557,84 +567,11 @@ export function MasterHargaClient({
                 className="p-5 space-y-4 max-h-[68vh] overflow-y-auto bg-slate-50"
               >
                 {detail ? (
-                  <>
-                    <div className="bg-white border-2 border-slate-300 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                          Harga Resmi Induk Cabang ({detail.item.namaCabang} &bull;{" "}
-                          {detail.item.namaDivisi})
-                        </span>
-                        <span className="text-2xl font-black font-mono text-[#005BAC] tabular-nums">
-                          {formatRupiah(detail.hargaFinalInduk)}
-                        </span>
-                        <span className="text-xs text-slate-600 font-semibold ml-1.5">
-                          / {detail.item.satuan} (Margin {detail.marginTotalPersen}%)
-                        </span>
-                      </div>
-                      {detail.nomorTiket && (
-                        <span className="px-3 py-1.5 rounded-lg bg-[#005BAC] text-white text-xs font-mono font-bold">
-                          Tiket Rilis: {detail.nomorTiket}
-                        </span>
-                      )}
-                    </div>
-
-                    {detail.wilayahList.length > 0 && (
-                      <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
-                        <div className="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 text-xs font-black uppercase text-slate-800">
-                          Harga Wilayah ({detail.wilayahList.length})
-                        </div>
-                        <table className="w-full text-xs text-left">
-                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                            <tr>
-                              <th className="py-2 px-3">Wilayah</th>
-                              <th className="py-2 px-3 text-right">Harga Wilayah</th>
-                              <th className="py-2 px-3 text-right">Selisih Induk</th>
-                              <th className="py-2 px-3">Berlaku Sejak</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {detail.wilayahList.map((w) => (
-                              <tr key={w.id}>
-                                <td className="py-2 px-3 font-bold text-slate-900">
-                                  {w.namaWilayah}
-                                </td>
-                                <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
-                                  {formatRupiah(w.harga)}
-                                </td>
-                                <td className="py-2 px-3 text-right">
-                                  <Selisih rp={w.selisihRp} persen={w.selisihPersen} />
-                                </td>
-                                <td className="py-2 px-3 font-mono text-slate-600">
-                                  {formatTanggal(w.berlakuSejak)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    <DetailSpesifikasi item={detail.item} showDeskripsi={true} />
-
-                    {detail.item.koefisienItems.length > 0 && (
-                      <RincianKalkulasiKoefisien
-                        item={detail.item}
-                        koefisienItems={detail.item.koefisienItems}
-                        mode="readonly"
-                        liveMarginUpah={detail.item.liveMarginUpah}
-                        liveMarginMaterial={detail.item.liveMarginMaterial}
-                        liveMarginBongkaran={detail.item.liveMarginBongkaran}
-                      />
-                    )}
-
-                    {detail.item.surveiTokoList.length > 0 && (
-                      <RincianSurvei3TokoCard
-                        surveiList={detail.item.surveiTokoList}
-                        materialName={detail.item.namaItem}
-                        readonly={true}
-                      />
-                    )}
-                  </>
+                  <DetailHargaRilisContent
+                    detail={detail}
+                    onSelectWilayah={bukaRincianWilayah}
+                    loadingWilayahId={loadingRincianId}
+                  />
                 ) : modalLoading && !modalData ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
                   <Loader2 className="w-4 h-4 animate-spin text-[#005BAC]" />
@@ -752,17 +689,19 @@ export function MasterHargaClient({
                                         )}
                                         <span>Rincian</span>
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          toggleStatus(slot, modalData.item.namaItem, false)
-                                        }
-                                        disabled={pending}
-                                        title="Nonaktifkan Harga Cabang"
-                                        className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
-                                      >
-                                        <Power className="w-3.5 h-3.5" />
-                                      </button>
+                                      {!readonly && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            toggleStatus(slot, modalData.item.namaItem, false)
+                                          }
+                                          disabled={pending}
+                                          title="Nonaktifkan Harga Cabang"
+                                          className="p-1.5 rounded-lg border-2 border-slate-300 bg-white text-slate-600 hover:border-[#ED1C24] hover:bg-[#ED1C24] hover:text-white transition-colors cursor-pointer"
+                                        >
+                                          <Power className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -828,7 +767,21 @@ export function MasterHargaClient({
                                           </div>
                                         )}
                                       </td>
-                                      <td className="py-2 px-3" />
+                                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                                        <button
+                                          type="button"
+                                          onClick={() => bukaRincianWilayah(w.id)}
+                                          disabled={loadingRincianId === w.id}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-amber-600 bg-white text-amber-800 hover:bg-amber-600 hover:text-white text-[11px] font-bold transition-colors cursor-pointer disabled:bg-slate-200"
+                                        >
+                                          {loadingRincianId === w.id ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Eye className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>Rincian</span>
+                                        </button>
+                                      </td>
                                     </tr>
                                   ))}
                               </React.Fragment>
