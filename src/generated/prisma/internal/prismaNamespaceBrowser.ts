@@ -158,6 +158,7 @@ export type UserCabangCoverageScalarFieldEnum = (typeof UserCabangCoverageScalar
 export const KontraktorScalarFieldEnum = {
   id: 'id',
   kodeVendor: 'kodeVendor',
+  jenisMitra: 'jenisMitra',
   namaPerusahaan: 'namaPerusahaan',
   picName: 'picName',
   telepon: 'telepon',
@@ -214,6 +215,7 @@ export const MasterItemScalarFieldEnum = {
   kodeVarian: 'kodeVarian',
   kodeMaster: 'kodeMaster',
   kategori: 'kategori',
+  jenisCor: 'jenisCor',
   namaItem: 'namaItem',
   ukuran: 'ukuran',
   merk: 'merk',
@@ -253,6 +255,7 @@ export const MasterHargaCabangScalarFieldEnum = {
   id: 'id',
   masterItemId: 'masterItemId',
   cabangId: 'cabangId',
+  divisiId: 'divisiId',
   pengajuanTerakhirId: 'pengajuanTerakhirId',
   hargaFinalInduk: 'hargaFinalInduk',
   marginTotalPersen: 'marginTotalPersen',
@@ -283,6 +286,7 @@ export type MasterHargaWilayahScalarFieldEnum = (typeof MasterHargaWilayahScalar
 export const PengajuanHargaScalarFieldEnum = {
   id: 'id',
   nomorTiket: 'nomorTiket',
+  kodePaket: 'kodePaket',
   divisiId: 'divisiId',
   cabangId: 'cabangId',
   wilayahCabangId: 'wilayahCabangId',

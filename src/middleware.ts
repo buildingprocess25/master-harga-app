@@ -5,7 +5,9 @@ export function middleware(request: NextRequest) {
 
   // 1. Ambil sesi resmi terotentikasi dari cookie
   let role: string | null = null;
-  const sessionCookie = request.cookies.get("sparta_harga_session");
+  const sessionCookie =
+    request.cookies.get("sparta_pricing_session") ||
+    request.cookies.get("sparta_harga_session");
 
   if (sessionCookie?.value) {
     try {

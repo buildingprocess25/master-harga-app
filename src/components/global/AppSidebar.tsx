@@ -104,18 +104,13 @@ export function AppSidebar({
                 href: "/bm-manager",
                 icon: LayoutDashboard,
               },
-              {
-                label: "Inisiasi Harga Baru",
-                href: "/bm-manager/buat-pengajuan",
-                icon: PlusCircle,
-              },
-              {
-                label: "Review Survei Toko",
-                href: "/bm-manager/review-survei",
-                icon: CheckSquare,
-                badgeCount: 1,
-                badgeVariant: "amber",
-              },
+              // {
+              //   label: "Review Survei Toko",
+              //   href: "/bm-manager/review-survei",
+              //   icon: CheckSquare,
+              //   badgeCount: 1,
+              //   badgeVariant: "amber",
+              // },
             ],
           },
           {
@@ -133,46 +128,39 @@ export function AppSidebar({
       case "SB_SPECIALIST":
         return [
           {
-            title: "Worksheet & Margin",
+            title: "Pengajuan & AHSP",
             items: [
               {
-                label: "Mastering AHSP",
+                label: "Dashboard Pengajuan",
                 href: "/sb-specialist",
-                icon: FileSpreadsheet,
-                badgeCount: 1,
-                badgeVariant: "blue",
-              },
-              {
-                label: "Evaluasi Live Margin",
-                href: "/sb-specialist/evaluasi-margin",
                 icon: Sliders,
-              },
-              {
-                label: "Banding Kontraktor",
-                href: "/sb-specialist/banding-rekanan",
-                icon: Vote,
-              },
-              {
-                label: "Rekanan Nonaktif (Parked)",
-                href: "/sb-specialist/rekanan-parked",
-                icon: Ban,
-                badgeCount: 1,
-                badgeVariant: "red",
+                badgeCount: 3,
+                badgeVariant: "blue",
               },
             ],
           },
           {
-            title: "Pustaka Standar HO",
+            title: "Master Data & Standar HO",
             items: [
               {
-                label: "Pustaka Koefisien",
+                label: "Master Harga",
+                href: "/sb-specialist/master-harga",
+                icon: Tag,
+              },
+              {
+                label: "Master Koefisien",
                 href: "/sb-specialist/master-koefisien",
                 icon: BookOpen,
               },
               {
-                label: "Master Item Spek",
-                href: "/sb-specialist/master-item",
-                icon: Box,
+                label: "Master Survei",
+                href: "/sb-specialist/master-survei",
+                icon: Store,
+              },
+              {
+                label: "Rekanan Nonaktif",
+                href: "/sb-specialist/rekanan-parked",
+                icon: Ban,
               },
             ],
           },
@@ -184,29 +172,19 @@ export function AppSidebar({
             title: "Persetujuan Regional",
             items: [
               {
-                label: "Approval Layer 3",
+                label: "Approval",
                 href: "/regional-manager",
                 icon: ShieldCheck,
                 badgeCount: 2,
                 badgeVariant: "red",
               },
               {
-                label: "Monitoring Kuorum",
-                href: "/regional-manager/monitoring-kuorum",
-                icon: Users,
-              },
-              {
-                label: "Rekanan Parked",
-                href: "/regional-manager/rekanan-parked",
+                label: "Rekanan Nonaktif",
+                href: "/master-harga/rekanan",
                 icon: Ban,
               },
-            ],
-          },
-          {
-            title: "Master Regional",
-            items: [
               {
-                label: "Katalog Harga Regional",
+                label: "Katalog Master Harga",
                 href: "/regional-manager/katalog-harga",
                 icon: Tag,
               },
@@ -312,7 +290,7 @@ export function AppSidebar({
           {!isCollapsed && (
             <div className="leading-tight">
               <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#005BAC] text-white inline-block">
-                HARGA
+                PRICING
               </span>
               <span className="block text-[11px] font-bold text-slate-900 mt-0.5">
                 SPARTA MODULE

@@ -1,8 +1,9 @@
 import prisma from "@/lib/prisma";
+import { TX_OPTIONS } from "@/lib/services/transisi-tiket";
 import { StatusPengajuanHarga, RoleUser } from "@/types";
 
 /**
- * Matriks Transisi Status Resmi SPARTA-HARGA
+ * Matriks Transisi Status Resmi SPARTA-PRICING
  * Mencegah tiket melompat tahap tanpa melalui rantai persetujuan berjenjang.
  */
 export const VALID_STATUS_TRANSITIONS: Record<
@@ -11,7 +12,7 @@ export const VALID_STATUS_TRANSITIONS: Record<
 > = {
   DRAFT: ["DIAJUKAN"],
   DIAJUKAN: ["SIAP_SURVEI", "PERLU_REVISI", "DITOLAK"],
-  PERLU_REVISI: ["DIAJUKAN", "DITOLAK"],
+  PERLU_REVISI: ["DIAJUKAN", "PENDING_SB_SPECIALIST", "DITOLAK"],
   SIAP_SURVEI: ["PENDING_BM_MGR", "RETURNED_TO_BC"],
   RETURNED_TO_BC: ["PENDING_BM_MGR", "DITOLAK"],
   PENDING_BM_MGR: ["PENDING_SB_SPECIALIST", "RETURNED_TO_BC", "DITOLAK"],
@@ -107,5 +108,5 @@ export async function advanceTicketStatus({
     });
 
     return updated;
-  });
+  }, TX_OPTIONS);
 }

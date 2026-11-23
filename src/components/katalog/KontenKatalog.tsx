@@ -60,17 +60,17 @@ export async function KontenKatalog({
       <div className={cn("flex flex-wrap items-end gap-3", tampilJudul ? "justify-between" : "justify-end")}>
         {tampilJudul && (
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Katalog Harga Satuan Resmi</h1>
-            <p className="text-xs text-slate-600 mt-0.5 max-w-2xl">
-              Harga yang sudah lolos kuorum rekanan (RELEASED) dan berlaku aktif per cabang induk.
-              Wilayah dengan disparitas harga ditampilkan sebagai harga khusus (override) di bawah harga induknya.
+            <h1 className="text-lg md:text-xl font-black text-slate-900 tracking-tight">Katalog Harga Satuan Resmi</h1>
+            <p className="text-xs text-slate-600 font-medium mt-0.5 max-w-2xl">
+              Harga satuan yang telah disetujui kuorum rekanan dan berlaku aktif.
+              Harga wilayah ditampilkan di bawah harga induk cabang.
             </p>
           </div>
         )}
         <div className="flex gap-2">
           <a
             href={`/master-harga/ekspor${qsEkspor}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:border-[#0F8A5F] hover:text-[#085438]"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-xs font-bold text-slate-700 hover:border-emerald-700 hover:bg-emerald-700 hover:text-white transition-colors cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             Ekspor Excel
@@ -79,7 +79,7 @@ export async function KontenKatalog({
             href={`/master-harga/cetak${qsEkspor}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC]"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-xs font-bold text-slate-700 hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white transition-colors cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             Cetak / PDF
@@ -87,27 +87,27 @@ export async function KontenKatalog({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Metrik label="Item harga induk" nilai={total} />
-        <Metrik label="Harga khusus wilayah" nilai={totalOverride} tone="yellow" />
-        <Metrik label="Cabang" nilai={totalCabang} />
+        <Metrik label="Harga wilayah" nilai={totalOverride} tone="yellow" />
+        <Metrik label="Cabang aktif" nilai={totalCabang} />
       </div>
 
-      <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-200">
+      <section className="bg-white rounded-2xl border-2 border-slate-300 overflow-hidden shadow-2xs">
+        <div className="px-4 py-3 bg-slate-50 border-b-2 border-slate-200">
           <FilterKatalog opsi={opsi} />
         </div>
 
         {rows.length === 0 ? (
           <div className="py-14 text-center">
             <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-700">
-              {total === 0 && qs.size === 0 ? "Belum ada harga resmi yang terbit" : "Tidak ada harga yang cocok dengan filter"}
+            <p className="text-sm font-bold text-slate-800">
+              {total === 0 && qs.size === 0 ? "Belum ada harga resmi yang terbit" : "Tidak ada harga yang cocok"}
             </p>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               {qs.size === 0
-                ? "Harga akan muncul di sini setelah kuorum 50% + 1 rekanan menyetujui."
-                : "Ubah kata kunci atau reset filter untuk melihat seluruh katalog."}
+                ? "Harga akan muncul di sini setelah kuorum rekanan menyetujui."
+                : "Ubah kata kunci atau reset filter untuk melihat katalog lengkap."}
             </p>
           </div>
         ) : (
@@ -117,19 +117,19 @@ export async function KontenKatalog({
         )}
 
         {jumlahHalaman > 1 && (
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 text-xs">
-            <span className="text-slate-600">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-t-2 border-slate-200 text-xs">
+            <span className="text-slate-600 font-medium">
               Menampilkan {nomorAwal} sampai {nomorAwal + rows.length - 1} dari {total} item
             </span>
             <div className="flex items-center gap-1">
               <LinkHalaman href={hrefHalaman(halaman - 1)} nonaktif={halaman <= 1} label="Sebelumnya">
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-4 h-4" />
               </LinkHalaman>
-              <span className="px-2 font-mono text-slate-700">
+              <span className="px-2 font-mono font-bold text-slate-800">
                 {halaman} / {jumlahHalaman}
               </span>
               <LinkHalaman href={hrefHalaman(halaman + 1)} nonaktif={halaman >= jumlahHalaman} label="Berikutnya">
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </LinkHalaman>
             </div>
           </div>
@@ -143,12 +143,12 @@ function Metrik({ label, nilai, tone = "blue" }: { label: string; nilai: number;
   return (
     <div
       className={cn(
-        "rounded-lg border px-3 py-2.5",
-        tone === "yellow" ? "bg-[#FFF8DB] border-[#F3D56B] text-[#6E4B00]" : "bg-[#EAF3FB] border-[#B8D8F3] text-[#003A70]"
+        "rounded-2xl border-2 p-4 bg-white shadow-2xs",
+        tone === "yellow" ? "border-amber-400" : "border-slate-300"
       )}
     >
-      <div className="text-[11px] font-semibold">{label}</div>
-      <div className="text-xl font-bold font-mono tabular-nums">{nilai.toLocaleString("id-ID")}</div>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">{label}</span>
+      <div className="mt-1 text-2xl font-black font-mono tabular-nums text-slate-900">{nilai.toLocaleString("id-ID")}</div>
     </div>
   );
 }
@@ -164,16 +164,16 @@ function LinkHalaman({
   label: string;
   children: React.ReactNode;
 }) {
-  const cls = "inline-flex items-center justify-center w-7 h-7 rounded-md border";
+  const cls = "inline-flex items-center justify-center w-8 h-8 rounded-xl border-2 font-bold transition-colors";
   if (nonaktif) {
     return (
-      <span aria-disabled="true" aria-label={label} className={cn(cls, "border-slate-200 text-slate-300")}>
+      <span aria-disabled="true" aria-label={label} className={cn(cls, "border-slate-200 text-slate-300 cursor-not-allowed")}>
         {children}
       </span>
     );
   }
   return (
-    <Link href={href} aria-label={label} className={cn(cls, "border-slate-300 text-slate-700 hover:border-[#005BAC] hover:text-[#005BAC]")}>
+    <Link href={href} aria-label={label} className={cn(cls, "border-slate-300 text-slate-700 bg-white hover:border-[#005BAC] hover:bg-[#005BAC] hover:text-white cursor-pointer")}>
       {children}
     </Link>
   );

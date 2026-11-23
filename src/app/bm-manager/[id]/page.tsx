@@ -16,6 +16,7 @@ import {
   Clock,
   ShieldCheck,
   Building2,
+  MapPin,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
@@ -24,6 +25,7 @@ import { DetailSpesifikasi } from "@/components/global/DetailSpesifikasi";
 import { RincianSurvei3TokoCard } from "@/components/global/RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "@/components/global/RingkasanBiayaMaterial";
 import { TambahPengajuanModal } from "@/components/bm-manager/TambahPengajuanModal";
+import { ModalPengajuanHargaWilayah } from "@/components/bm-manager/ModalPengajuanHargaWilayah";
 import {
   PengajuanHargaItem,
   KoefisienDetailItem,
@@ -410,6 +412,8 @@ export default function BMManagerReviewDetailPage({
       if (!res.ok || !json.success) {
         console.warn("Server PATCH warning:", json.message);
       }
+      const nextStatus = json?.data?.status || updatedItem.status;
+      updatedItem.status = nextStatus;
     } catch (err) {
       console.warn("PATCH API error, fallback lokal:", err);
     }
@@ -465,11 +469,15 @@ export default function BMManagerReviewDetailPage({
     );
   }
 
-  // Tombol edit spesifikasi hanya tersedia jika tiket masih dalam tahap drafting / pengajuan awal
-  const isEditable = item.status === "DRAFT" || item.status === "DIAJUKAN";
+  // Tombol edit spesifikasi tersedia saat drafting, diajukan, atau diminta revisi oleh S&B
+  const isEditable =
+    item.status === "DRAFT" ||
+    item.status === "DIAJUKAN" ||
+    item.status === "PERLU_REVISI";
 
   // Tombol approval (Setujui / Revisi) HANYA boleh muncul saat tiket sedang menunggu persetujuan B&M Manager
   const isPendingBmApproval = item.status === "PENDING_BM_MGR";
+  const isDirectWilayah = item.cakupanHarga === "KHUSUS_WILAYAH";
 
   return (
     <AppLayoutShell
@@ -493,10 +501,14 @@ export default function BMManagerReviewDetailPage({
             <button
               type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="px-3.5 py-1.5 bg-blue-50 border-2 border-blue-300 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="px-3.5 py-1.5 bg-white border-2 border-[#005BAC] text-[#005BAC] hover:bg-[#005BAC] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
-              <span>Edit Spesifikasi</span>
+              <span>
+                {isDirectWilayah && item.status === "PERLU_REVISI"
+                  ? "Revisi Harga Wilayah"
+                  : "Edit Spesifikasi"}
+              </span>
             </button>
           )}
         </div>
@@ -557,6 +569,33 @@ export default function BMManagerReviewDetailPage({
           </div>
         )}
 
+        {/* KONDISI C2: Status PERLU_REVISI khusus pengajuan harga wilayah */}
+        {item.status === "PERLU_REVISI" && isDirectWilayah && (
+          <div className="bg-white border-2 border-amber-500 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-amber-700 shrink-0" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">
+                  Perlu Revisi Harga Wilayah
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#005BAC] hover:bg-[#004585] text-white text-xs font-bold cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Revisi Harga Wilayah</span>
+              </button>
+            </div>
+            {(item.catatanReviewTerakhir || item.catatanReview) && (
+              <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-800 whitespace-pre-wrap">
+                {item.catatanReviewTerakhir || item.catatanReview}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* KONDISI D: Status PENDING_BM_MGR (Tahap 4: Review B&M Manager) ATAU Sudah Melewati Tahap 4 */}
         {(isPendingBmApproval ||
           item.status === "PENDING_SB_SPECIALIST" ||
@@ -564,7 +603,45 @@ export default function BMManagerReviewDetailPage({
           item.status === "PENDING_KONTRAKTOR" ||
           item.status === "RELEASED") && (
           <>
-            {/* Hasil Survei Komponen Material (Accordion) */}
+            {isDirectWilayah && (
+              <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between gap-2 flex-wrap pb-3 border-b-2 border-slate-200">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-amber-600" />
+                    <span>Pengajuan Harga Wilayah ({item.namaWilayah || "Wilayah"})</span>
+                  </h3>
+                  {item.hargaIndukCabang !== undefined && (
+                    <span className="text-xs font-bold text-slate-600">
+                      Induk: <span className="font-mono text-slate-900">{formatRupiah(item.hargaIndukCabang)}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                      Harga Usulan Wilayah
+                    </span>
+                    <span className="text-xl font-black font-mono text-[#005BAC]">
+                      {formatRupiah(item.totalHargaSatuan || 0)}
+                    </span>
+                    {item.satuan && (
+                      <span className="text-xs text-slate-600 font-semibold ml-1">
+                        / {item.satuan}
+                      </span>
+                    )}
+                  </div>
+                  {item.alasanPengajuan && (
+                    <p className="text-xs text-slate-700 font-medium max-w-md">
+                      {item.alasanPengajuan}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(!isDirectWilayah || (item.surveiTokoList?.length ?? 0) > 0) && (
+              <>
+                {/* Hasil Survei Komponen Material (Accordion) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -696,6 +773,8 @@ export default function BMManagerReviewDetailPage({
               materialItems={materialItems}
               totalBiayaMaterial={totalBiayaMaterial}
             />
+              </>
+            )}
           </>
         )}
 
@@ -760,16 +839,18 @@ export default function BMManagerReviewDetailPage({
           /* Status badge informasi untuk tahapan lanjutan */
           <div className="flex items-center justify-end pt-2">
             {item.status === "PENDING_SB_SPECIALIST" && (
-              <span className="text-xs text-blue-700 font-bold bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-white font-bold bg-[#005BAC] px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-white" />
                 <span>
-                  Survei telah disetujui B&amp;M Manager • Sedang ditinjau S&amp;B Controller
+                  {isDirectWilayah
+                    ? "Menunggu Approval S&B Specialist"
+                    : "Survei disetujui B&M Manager • Sedang ditinjau S&B"}
                 </span>
               </span>
             )}
             {item.status === "RELEASED" && (
-              <span className="text-xs text-emerald-800 font-bold bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+              <span className="text-xs text-white font-bold bg-emerald-600 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-white" />
                 <span>Master Harga Resmi Aktif</span>
               </span>
             )}
@@ -777,16 +858,29 @@ export default function BMManagerReviewDetailPage({
         ) : null}
       </div>
 
-      {/* Edit Spesifikasi Modal */}
-      {item && (
-        <TambahPengajuanModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSubmit={handleUpdateSpesifikasi}
-          existingItems={getStoredPengajuan()}
-          itemToEdit={item}
-        />
-      )}
+      {/* Edit Spesifikasi / Revisi Harga Wilayah Modal */}
+      {item &&
+        (isDirectWilayah && item.status === "PERLU_REVISI" ? (
+          <ModalPengajuanHargaWilayah
+            isOpen={isEditModalOpen}
+            masterItemId={item.masterItemId || ""}
+            divisiId={item.divisiId}
+            tiketRevisiId={item.id}
+            onClose={() => setIsEditModalOpen(false)}
+            onSuccess={() => {
+              setIsEditModalOpen(false);
+              window.location.reload();
+            }}
+          />
+        ) : (
+          <TambahPengajuanModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSubmit={handleUpdateSpesifikasi}
+            existingItems={getStoredPengajuan()}
+            itemToEdit={item}
+          />
+        ))}
     </AppLayoutShell>
   );
 }

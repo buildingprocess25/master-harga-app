@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SPARTA-HARGA | Sistem Pengelolaan Master Harga & Negosiasi Rekanan",
+  title: "SPARTA-PRICING | Sistem Pengelolaan Master Harga & Negosiasi Rekanan",
   description:
     "Aplikasi Independen Pengajuan Harga, Kuorum Kontraktor Cabang, dan Evaluasi Spesifikasi Trial 90 Hari PT Sumber Alfaria Trijaya Tbk",
 };

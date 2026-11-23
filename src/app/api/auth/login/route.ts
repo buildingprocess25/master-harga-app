@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyUserWhitelist } from "@/lib/services/whitelist-service";
-import { setSessionCookie } from "@/lib/auth/session";
+import { setSessionCookie, SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/lib/auth/session";
 import { RoleUser } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -25,14 +25,14 @@ export async function POST(request: NextRequest) {
           success: false,
           message:
             check.reason ||
-            "Akun belum terdaftar pada Whitelist SPARTA-HARGA. Silakan hubungi Administrator S&B Controlling HO.",
+            "Akun belum terdaftar pada Whitelist SPARTA-PRICING. Silakan hubungi Administrator S&B Controlling HO.",
         },
         { status: 403 }
       );
     }
 
     // Buat dan simpan session cookie resmi terenkripsi (8 jam)
-    await setSessionCookie(check.profile);
+    const token = await setSessionCookie(check.profile);
 
     // Tentukan URL tujuan berdasarkan role wewenang
     const roleRoutes: Record<RoleUser, string> = {
@@ -47,12 +47,22 @@ export async function POST(request: NextRequest) {
 
     const targetUrl = roleRoutes[check.profile.role] || "/";
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Autentikasi berhasil.",
       targetUrl,
       user: check.profile,
     });
+
+    response.cookies.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+    });
+
+    return response;
   } catch (error) {
     console.error("Local Login API Error:", error);
     return NextResponse.json(

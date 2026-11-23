@@ -1,23 +1,45 @@
 import prisma from "@/lib/prisma";
-import { DomainError, kunciTiket, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import { teruskanKeKontraktor } from "@/lib/services/kuorum-service";
+import { jenisMitraUntukDivisi, labelMitraUntukDivisi } from "@/lib/utils";
 
-/** Jumlah rekanan AKTIF yang akan diundang kuorum (cabang + divisi tiket). */
+/** Jumlah mitra AKTIF (Kontraktor untuk BLD/DC, Rekanan untuk MNT/ENG) yang akan diundang kuorum. */
 export async function hitungRekananAktif(cabangId: string, divisiId: string) {
-  return prisma.kontraktorCabang.count({ where: { cabangId, divisiId, statusKeaktifan: "AKTIF" } });
+  const div = await prisma.divisi.findUnique({
+    where: { id: divisiId },
+    select: { kodeDivisi: true, namaDivisi: true },
+  });
+  const requiredJenis = jenisMitraUntukDivisi(div?.kodeDivisi, div?.namaDivisi);
+  return prisma.kontraktorCabang.count({
+    where: {
+      cabangId,
+      divisiId,
+      statusKeaktifan: "AKTIF",
+      kontraktor: { jenisMitra: requiredJenis },
+    },
+  });
 }
 
 /**
  * Pembanding disparitas: harga resmi aktif item yang sama di seluruh cabang dalam
  * regional yang sama dengan cabang tiket, untuk menilai kewajaran rekomendasi S&B.
  */
-export async function getPerbandinganRegional(params: { masterItemId: string | null; cabangId: string }) {
+export async function getPerbandinganRegional(params: {
+  masterItemId: string | null;
+  cabangId: string;
+  divisiId?: string | null;
+}) {
   if (!params.masterItemId) return null;
   const cabang = await prisma.cabang.findUnique({ where: { id: params.cabangId }, select: { regional: true } });
   if (!cabang) return null;
 
   const rows = await prisma.masterHargaCabang.findMany({
-    where: { masterItemId: params.masterItemId, statusHarga: "AKTIF", cabang: { regional: cabang.regional } },
+    where: {
+      masterItemId: params.masterItemId,
+      ...(params.divisiId ? { divisiId: params.divisiId } : {}),
+      statusHarga: "AKTIF",
+      cabang: { regional: cabang.regional },
+    },
     include: { cabang: { select: { id: true, namaCabang: true } } },
     orderBy: { hargaFinalInduk: "asc" },
   });
@@ -41,7 +63,14 @@ export async function getPerbandinganRegional(params: { masterItemId: string | n
 export async function cekPrasyaratKuorum(tiketId: string) {
   const t = await prisma.pengajuanHarga.findUnique({
     where: { id: tiketId },
-    select: { cabangId: true, divisiId: true, masterItemId: true, hargaDitetapkanSNB: true, cakupanHarga: true },
+    select: {
+      cabangId: true,
+      divisiId: true,
+      divisi: { select: { kodeDivisi: true, namaDivisi: true } },
+      masterItemId: true,
+      hargaDitetapkanSNB: true,
+      cakupanHarga: true,
+    },
   });
   if (!t) return { rekananAktif: 0, masalah: ["Tiket tidak ditemukan."] };
   const masalah: string[] = [];
@@ -49,13 +78,20 @@ export async function cekPrasyaratKuorum(tiketId: string) {
   if (!t.hargaDitetapkanSNB) masalah.push("Harga rekomendasi S&B belum ada.");
   if (t.cakupanHarga === "KHUSUS_WILAYAH" && t.masterItemId) {
     const induk = await prisma.masterHargaCabang.findUnique({
-      where: { masterItemId_cabangId: { masterItemId: t.masterItemId, cabangId: t.cabangId } },
+      where: {
+        masterItemId_cabangId_divisiId: {
+          masterItemId: t.masterItemId,
+          cabangId: t.cabangId,
+          divisiId: t.divisiId,
+        },
+      },
       select: { id: true },
     });
-    if (!induk) masalah.push("Harga induk cabang untuk item ini belum dirilis, harga khusus wilayah belum dapat ditawarkan.");
+    if (!induk) masalah.push("Harga induk cabang untuk item dan divisi ini belum dirilis, harga khusus wilayah belum dapat ditawarkan.");
   }
   const rekananAktif = await hitungRekananAktif(t.cabangId, t.divisiId);
-  if (rekananAktif === 0) masalah.push("Tidak ada rekanan kontraktor aktif di cabang dan divisi ini.");
+  const labelMitra = labelMitraUntukDivisi(t.divisi.kodeDivisi, t.divisi.namaDivisi).toLowerCase();
+  if (rekananAktif === 0) masalah.push(`Tidak ada ${labelMitra} aktif di cabang dan divisi ini.`);
   return { rekananAktif, masalah };
 }
 
@@ -108,7 +144,7 @@ export async function putuskanLayer3(params: {
       aksi: params.keputusan === "KEMBALI_SNB" ? "KEMBALIKAN_TINJAUAN_MARGIN" : "TOLAK_PENGAJUAN",
       catatan,
     });
-  });
+  }, TX_OPTIONS);
   return { status: keStatus };
 }
 
@@ -140,7 +176,7 @@ export async function putuskanKuorumGagal(params: {
       aksi: params.keputusan === "BUKA_ULANG" ? "BUKA_ULANG_SETELAH_MEDIASI" : "TOLAK_PENGAJUAN",
       catatan,
     });
-  });
+  }, TX_OPTIONS);
 
   if (params.keputusan === "TOLAK") return { status: "DITOLAK" as const };
 

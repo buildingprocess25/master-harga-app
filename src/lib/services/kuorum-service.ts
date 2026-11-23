@@ -1,12 +1,13 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { DomainError, kunciTiket, Tx, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, Tx, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import {
   RoleUser,
   StatusPengajuanHarga,
   StatusVoteKontraktor,
   VotingKontraktorItem,
 } from "@/types";
+import { jenisMitraUntukDivisi, labelMitraUntukDivisi } from "@/lib/utils";
 
 /** SLA respon voting rekanan: 3 x 24 jam sejak putaran dibuka. */
 export const SLA_VOTING_JAM = 72;
@@ -48,6 +49,7 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
       id: true,
       cabangId: true,
       divisiId: true,
+      divisi: { select: { kodeDivisi: true, namaDivisi: true } },
       masterItemId: true,
       cakupanHarga: true,
       wilayahCabangId: true,
@@ -57,7 +59,7 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
   if (!tiket) throw new KuorumError("Tiket tidak ditemukan.", 404);
 
   // Prasyarat rilis dicek di awal, agar masalah data muncul ke Regional Manager
-  // dan bukan saat kontraktor terakhir menekan tombol Setuju.
+  // dan bukan saat kontraktor/rekanan terakhir menekan tombol Setuju.
   if (!tiket.masterItemId) {
     throw new KuorumError("Tiket belum terhubung ke Master Item.");
   }
@@ -70,31 +72,36 @@ async function bukaPutaranBaru(tx: Tx, tiketId: string) {
     }
     const induk = await tx.masterHargaCabang.findUnique({
       where: {
-        masterItemId_cabangId: {
+        masterItemId_cabangId_divisiId: {
           masterItemId: tiket.masterItemId,
           cabangId: tiket.cabangId,
+          divisiId: tiket.divisiId,
         },
       },
       select: { id: true },
     });
     if (!induk) {
       throw new KuorumError(
-        "Harga induk cabang untuk item ini belum dirilis, sehingga harga khusus wilayah belum dapat ditawarkan."
+        "Harga induk cabang untuk item dan divisi ini belum dirilis, sehingga harga khusus wilayah belum dapat ditawarkan."
       );
     }
   }
+
+  const requiredJenis = jenisMitraUntukDivisi(tiket.divisi.kodeDivisi, tiket.divisi.namaDivisi);
+  const labelMitra = labelMitraUntukDivisi(tiket.divisi.kodeDivisi, tiket.divisi.namaDivisi).toLowerCase();
 
   const relasiAktif = await tx.kontraktorCabang.findMany({
     where: {
       cabangId: tiket.cabangId,
       divisiId: tiket.divisiId,
       statusKeaktifan: "AKTIF",
+      kontraktor: { jenisMitra: requiredJenis },
     },
     select: { id: true },
   });
   if (relasiAktif.length === 0) {
     throw new KuorumError(
-      "Tidak ada rekanan kontraktor aktif pada cabang dan divisi ini, kuorum tidak dapat dibuka."
+      `Tidak ada ${labelMitra} aktif pada cabang dan divisi ini, kuorum tidak dapat dibuka.`
     );
   }
 
@@ -144,6 +151,7 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
     select: {
       id: true,
       cabangId: true,
+      divisiId: true,
       masterItemId: true,
       cakupanHarga: true,
       wilayahCabangId: true,
@@ -163,9 +171,10 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
   if (tiket.cakupanHarga === "INDUK_CABANG") {
     const induk = await tx.masterHargaCabang.upsert({
       where: {
-        masterItemId_cabangId: {
+        masterItemId_cabangId_divisiId: {
           masterItemId: tiket.masterItemId,
           cabangId: tiket.cabangId,
+          divisiId: tiket.divisiId,
         },
       },
       update: {
@@ -178,6 +187,7 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
       create: {
         masterItemId: tiket.masterItemId,
         cabangId: tiket.cabangId,
+        divisiId: tiket.divisiId,
         pengajuanTerakhirId: tiket.id,
         hargaFinalInduk: hargaFinal,
         marginTotalPersen: tiket.marginSNBPersen ?? tiket.marginAwalPersen,
@@ -204,9 +214,10 @@ async function rilisHargaResmi(tx: Tx, tiketId: string) {
   }
   const induk = await tx.masterHargaCabang.findUnique({
     where: {
-      masterItemId_cabangId: {
+      masterItemId_cabangId_divisiId: {
         masterItemId: tiket.masterItemId,
         cabangId: tiket.cabangId,
+        divisiId: tiket.divisiId,
       },
     },
     select: { id: true, hargaFinalInduk: true },
@@ -418,7 +429,7 @@ export async function teruskanKeKontraktor({
       `Tiket berstatus ${tiket.status} tidak dapat diteruskan ke kontraktor.`,
       409
     );
-  });
+  }, TX_OPTIONS);
 }
 
 /** Evaluasi kuorum satu tiket (dipakai saat halaman dibuka atau oleh job terjadwal). */
@@ -429,7 +440,7 @@ export async function evaluasiKuorum(
   return prisma.$transaction(async (tx) => {
     await kunciTiket(tx, tiketId);
     return evaluasiPutaran(tx, tiketId, actor);
-  });
+  }, TX_OPTIONS);
 }
 
 /**
@@ -561,6 +572,9 @@ export async function submitVoteKontraktor(params: SubmitVoteParams) {
     if (isBanding && !(typeof usulanHarga === "number" && usulanHarga > 0)) {
       throw new KuorumError("Harga usulan banding wajib diisi dan lebih dari 0.");
     }
+    if (isBanding && (!lampiranList || lampiranList.length === 0)) {
+      throw new KuorumError("Bukti pembanding pasar wajib diunggah saat mengajukan banding.");
+    }
     if (keputusan === "TOLAK" && !isBanding && (usulanHarga || lampiranList?.length)) {
       throw new KuorumError(
         "Kesempatan banding sudah digunakan. Pada putaran ini hanya dapat Setuju atau Tolak."
@@ -631,7 +645,7 @@ export async function submitVoteKontraktor(params: SubmitVoteParams) {
     });
 
     return { statusVote: keputusan, isBanding, diparkir, hasilKuorum };
-  });
+  }, TX_OPTIONS);
 }
 
 // ============================================================================
@@ -665,6 +679,7 @@ export async function getRingkasanKuorum(tiketId: string) {
   const votingKontraktorList: VotingKontraktorItem[] = rows.map((v) => ({
     id: v.id,
     kontraktorId: v.kontraktorCabang.kontraktorId,
+    jenisMitra: v.kontraktorCabang.kontraktor.jenisMitra as "KONTRAKTOR" | "REKANAN",
     namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
     email: v.kontraktorCabang.kontraktor.email,
     statusVote: v.statusVote as StatusVoteKontraktor,
@@ -805,6 +820,8 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
     tiketId: tiket.id,
     nomorTiket: tiket.nomorTiket,
     statusTiket: tiket.status as StatusPengajuanHarga,
+    tanggalPengajuan: tiket.tanggalPengajuan.toISOString().slice(0, 10),
+    catatanReview: tiket.catatanReview ?? null,
     namaDivisi: tiket.divisi.namaDivisi,
     namaCabang: tiket.cabang.namaCabang,
     cakupanHarga: tiket.cakupanHarga,
@@ -813,6 +830,7 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
     deadlineVoting: tiket.deadlineVoting?.toISOString() ?? null,
     item: m
       ? {
+          kodeItem: m.kodeItem,
           kodeMaster: m.kodeMaster,
           namaItem: m.namaItem,
           kategori: m.kategori,
@@ -820,6 +838,9 @@ export async function getDetailPenawaranKontraktor(tiketId: string, kontraktorId
           ukuran: m.ukuran,
           tipe: m.tipe,
           warna: m.warna,
+          permukaan: m.permukaan,
+          tebal: m.tebal,
+          toleransi: m.toleransi,
           lokasi: m.lokasi,
           satuan: m.satuan,
           deskripsi: m.deskripsiOtomatis,

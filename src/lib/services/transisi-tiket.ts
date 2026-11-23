@@ -5,6 +5,12 @@ import { StatusPengajuanHarga } from "@/types";
 export type Tx = Prisma.TransactionClient;
 
 /**
+ * Opsi default transaksi interaktif untuk layanan multi-langkah agar tidak
+ * gagal timeout 5000ms saat terhubung ke database PostgreSQL jarak jauh.
+ */
+export const TX_OPTIONS = { maxWait: 10000, timeout: 30000 } as const;
+
+/**
  * Error domain dengan HTTP status, agar route handler / server action dapat
  * meneruskan pesan yang jelas ke pengguna tanpa membocorkan error internal.
  */

@@ -40,6 +40,7 @@ export type MasterHargaCabangMinAggregateOutputType = {
   id: string | null
   masterItemId: string | null
   cabangId: string | null
+  divisiId: string | null
   pengajuanTerakhirId: string | null
   hargaFinalInduk: runtime.Decimal | null
   marginTotalPersen: runtime.Decimal | null
@@ -52,6 +53,7 @@ export type MasterHargaCabangMaxAggregateOutputType = {
   id: string | null
   masterItemId: string | null
   cabangId: string | null
+  divisiId: string | null
   pengajuanTerakhirId: string | null
   hargaFinalInduk: runtime.Decimal | null
   marginTotalPersen: runtime.Decimal | null
@@ -64,6 +66,7 @@ export type MasterHargaCabangCountAggregateOutputType = {
   id: number
   masterItemId: number
   cabangId: number
+  divisiId: number
   pengajuanTerakhirId: number
   hargaFinalInduk: number
   marginTotalPersen: number
@@ -88,6 +91,7 @@ export type MasterHargaCabangMinAggregateInputType = {
   id?: true
   masterItemId?: true
   cabangId?: true
+  divisiId?: true
   pengajuanTerakhirId?: true
   hargaFinalInduk?: true
   marginTotalPersen?: true
@@ -100,6 +104,7 @@ export type MasterHargaCabangMaxAggregateInputType = {
   id?: true
   masterItemId?: true
   cabangId?: true
+  divisiId?: true
   pengajuanTerakhirId?: true
   hargaFinalInduk?: true
   marginTotalPersen?: true
@@ -112,6 +117,7 @@ export type MasterHargaCabangCountAggregateInputType = {
   id?: true
   masterItemId?: true
   cabangId?: true
+  divisiId?: true
   pengajuanTerakhirId?: true
   hargaFinalInduk?: true
   marginTotalPersen?: true
@@ -211,6 +217,7 @@ export type MasterHargaCabangGroupByOutputType = {
   id: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId: string | null
   hargaFinalInduk: runtime.Decimal
   marginTotalPersen: runtime.Decimal
@@ -246,6 +253,7 @@ export type MasterHargaCabangWhereInput = {
   id?: Prisma.StringFilter<"MasterHargaCabang"> | string
   masterItemId?: Prisma.StringFilter<"MasterHargaCabang"> | string
   cabangId?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  divisiId?: Prisma.StringFilter<"MasterHargaCabang"> | string
   pengajuanTerakhirId?: Prisma.StringNullableFilter<"MasterHargaCabang"> | string | null
   hargaFinalInduk?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -254,6 +262,7 @@ export type MasterHargaCabangWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
   masterItem?: Prisma.XOR<Prisma.MasterItemScalarRelationFilter, Prisma.MasterItemWhereInput>
   cabang?: Prisma.XOR<Prisma.CabangScalarRelationFilter, Prisma.CabangWhereInput>
+  divisi?: Prisma.XOR<Prisma.DivisiScalarRelationFilter, Prisma.DivisiWhereInput>
   pengajuanTerakhir?: Prisma.XOR<Prisma.PengajuanHargaNullableScalarRelationFilter, Prisma.PengajuanHargaWhereInput> | null
   masterHargaWilayah?: Prisma.MasterHargaWilayahListRelationFilter
 }
@@ -262,6 +271,7 @@ export type MasterHargaCabangOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   masterItemId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
+  divisiId?: Prisma.SortOrder
   pengajuanTerakhirId?: Prisma.SortOrderInput | Prisma.SortOrder
   hargaFinalInduk?: Prisma.SortOrder
   marginTotalPersen?: Prisma.SortOrder
@@ -270,18 +280,20 @@ export type MasterHargaCabangOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   masterItem?: Prisma.MasterItemOrderByWithRelationInput
   cabang?: Prisma.CabangOrderByWithRelationInput
+  divisi?: Prisma.DivisiOrderByWithRelationInput
   pengajuanTerakhir?: Prisma.PengajuanHargaOrderByWithRelationInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahOrderByRelationAggregateInput
 }
 
 export type MasterHargaCabangWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  masterItemId_cabangId?: Prisma.MasterHargaCabangMasterItemIdCabangIdCompoundUniqueInput
+  masterItemId_cabangId_divisiId?: Prisma.MasterHargaCabangMasterItemIdCabangIdDivisiIdCompoundUniqueInput
   AND?: Prisma.MasterHargaCabangWhereInput | Prisma.MasterHargaCabangWhereInput[]
   OR?: Prisma.MasterHargaCabangWhereInput[]
   NOT?: Prisma.MasterHargaCabangWhereInput | Prisma.MasterHargaCabangWhereInput[]
   masterItemId?: Prisma.StringFilter<"MasterHargaCabang"> | string
   cabangId?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  divisiId?: Prisma.StringFilter<"MasterHargaCabang"> | string
   pengajuanTerakhirId?: Prisma.StringNullableFilter<"MasterHargaCabang"> | string | null
   hargaFinalInduk?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -290,14 +302,16 @@ export type MasterHargaCabangWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
   masterItem?: Prisma.XOR<Prisma.MasterItemScalarRelationFilter, Prisma.MasterItemWhereInput>
   cabang?: Prisma.XOR<Prisma.CabangScalarRelationFilter, Prisma.CabangWhereInput>
+  divisi?: Prisma.XOR<Prisma.DivisiScalarRelationFilter, Prisma.DivisiWhereInput>
   pengajuanTerakhir?: Prisma.XOR<Prisma.PengajuanHargaNullableScalarRelationFilter, Prisma.PengajuanHargaWhereInput> | null
   masterHargaWilayah?: Prisma.MasterHargaWilayahListRelationFilter
-}, "id" | "masterItemId_cabangId">
+}, "id" | "masterItemId_cabangId_divisiId">
 
 export type MasterHargaCabangOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   masterItemId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
+  divisiId?: Prisma.SortOrder
   pengajuanTerakhirId?: Prisma.SortOrderInput | Prisma.SortOrder
   hargaFinalInduk?: Prisma.SortOrder
   marginTotalPersen?: Prisma.SortOrder
@@ -318,6 +332,7 @@ export type MasterHargaCabangScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"MasterHargaCabang"> | string
   masterItemId?: Prisma.StringWithAggregatesFilter<"MasterHargaCabang"> | string
   cabangId?: Prisma.StringWithAggregatesFilter<"MasterHargaCabang"> | string
+  divisiId?: Prisma.StringWithAggregatesFilter<"MasterHargaCabang"> | string
   pengajuanTerakhirId?: Prisma.StringNullableWithAggregatesFilter<"MasterHargaCabang"> | string | null
   hargaFinalInduk?: Prisma.DecimalWithAggregatesFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalWithAggregatesFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -335,6 +350,7 @@ export type MasterHargaCabangCreateInput = {
   updatedAt?: Date | string
   masterItem: Prisma.MasterItemCreateNestedOneWithoutHargaPerCabangInput
   cabang: Prisma.CabangCreateNestedOneWithoutMasterHargaListInput
+  divisi: Prisma.DivisiCreateNestedOneWithoutMasterHargaCabangListInput
   pengajuanTerakhir?: Prisma.PengajuanHargaCreateNestedOneWithoutHargaCabangListInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahCreateNestedManyWithoutMasterHargaCabangInput
 }
@@ -343,6 +359,7 @@ export type MasterHargaCabangUncheckedCreateInput = {
   id?: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -361,6 +378,7 @@ export type MasterHargaCabangUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItem?: Prisma.MasterItemUpdateOneRequiredWithoutHargaPerCabangNestedInput
   cabang?: Prisma.CabangUpdateOneRequiredWithoutMasterHargaListNestedInput
+  divisi?: Prisma.DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput
   pengajuanTerakhir?: Prisma.PengajuanHargaUpdateOneWithoutHargaCabangListNestedInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahUpdateManyWithoutMasterHargaCabangNestedInput
 }
@@ -369,6 +387,7 @@ export type MasterHargaCabangUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -382,6 +401,7 @@ export type MasterHargaCabangCreateManyInput = {
   id?: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -403,6 +423,7 @@ export type MasterHargaCabangUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -421,15 +442,17 @@ export type MasterHargaCabangOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type MasterHargaCabangMasterItemIdCabangIdCompoundUniqueInput = {
+export type MasterHargaCabangMasterItemIdCabangIdDivisiIdCompoundUniqueInput = {
   masterItemId: string
   cabangId: string
+  divisiId: string
 }
 
 export type MasterHargaCabangCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   masterItemId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
+  divisiId?: Prisma.SortOrder
   pengajuanTerakhirId?: Prisma.SortOrder
   hargaFinalInduk?: Prisma.SortOrder
   marginTotalPersen?: Prisma.SortOrder
@@ -447,6 +470,7 @@ export type MasterHargaCabangMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   masterItemId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
+  divisiId?: Prisma.SortOrder
   pengajuanTerakhirId?: Prisma.SortOrder
   hargaFinalInduk?: Prisma.SortOrder
   marginTotalPersen?: Prisma.SortOrder
@@ -459,6 +483,7 @@ export type MasterHargaCabangMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   masterItemId?: Prisma.SortOrder
   cabangId?: Prisma.SortOrder
+  divisiId?: Prisma.SortOrder
   pengajuanTerakhirId?: Prisma.SortOrder
   hargaFinalInduk?: Prisma.SortOrder
   marginTotalPersen?: Prisma.SortOrder
@@ -475,6 +500,48 @@ export type MasterHargaCabangSumOrderByAggregateInput = {
 export type MasterHargaCabangScalarRelationFilter = {
   is?: Prisma.MasterHargaCabangWhereInput
   isNot?: Prisma.MasterHargaCabangWhereInput
+}
+
+export type MasterHargaCabangCreateNestedManyWithoutDivisiInput = {
+  create?: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput> | Prisma.MasterHargaCabangCreateWithoutDivisiInput[] | Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput[]
+  connectOrCreate?: Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput | Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput[]
+  createMany?: Prisma.MasterHargaCabangCreateManyDivisiInputEnvelope
+  connect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+}
+
+export type MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput = {
+  create?: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput> | Prisma.MasterHargaCabangCreateWithoutDivisiInput[] | Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput[]
+  connectOrCreate?: Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput | Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput[]
+  createMany?: Prisma.MasterHargaCabangCreateManyDivisiInputEnvelope
+  connect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+}
+
+export type MasterHargaCabangUpdateManyWithoutDivisiNestedInput = {
+  create?: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput> | Prisma.MasterHargaCabangCreateWithoutDivisiInput[] | Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput[]
+  connectOrCreate?: Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput | Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput[]
+  upsert?: Prisma.MasterHargaCabangUpsertWithWhereUniqueWithoutDivisiInput | Prisma.MasterHargaCabangUpsertWithWhereUniqueWithoutDivisiInput[]
+  createMany?: Prisma.MasterHargaCabangCreateManyDivisiInputEnvelope
+  set?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  disconnect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  delete?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  connect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  update?: Prisma.MasterHargaCabangUpdateWithWhereUniqueWithoutDivisiInput | Prisma.MasterHargaCabangUpdateWithWhereUniqueWithoutDivisiInput[]
+  updateMany?: Prisma.MasterHargaCabangUpdateManyWithWhereWithoutDivisiInput | Prisma.MasterHargaCabangUpdateManyWithWhereWithoutDivisiInput[]
+  deleteMany?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
+}
+
+export type MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput = {
+  create?: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput> | Prisma.MasterHargaCabangCreateWithoutDivisiInput[] | Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput[]
+  connectOrCreate?: Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput | Prisma.MasterHargaCabangCreateOrConnectWithoutDivisiInput[]
+  upsert?: Prisma.MasterHargaCabangUpsertWithWhereUniqueWithoutDivisiInput | Prisma.MasterHargaCabangUpsertWithWhereUniqueWithoutDivisiInput[]
+  createMany?: Prisma.MasterHargaCabangCreateManyDivisiInputEnvelope
+  set?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  disconnect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  delete?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  connect?: Prisma.MasterHargaCabangWhereUniqueInput | Prisma.MasterHargaCabangWhereUniqueInput[]
+  update?: Prisma.MasterHargaCabangUpdateWithWhereUniqueWithoutDivisiInput | Prisma.MasterHargaCabangUpdateWithWhereUniqueWithoutDivisiInput[]
+  updateMany?: Prisma.MasterHargaCabangUpdateManyWithWhereWithoutDivisiInput | Prisma.MasterHargaCabangUpdateManyWithWhereWithoutDivisiInput[]
+  deleteMany?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
 }
 
 export type MasterHargaCabangCreateNestedManyWithoutCabangInput = {
@@ -621,6 +688,74 @@ export type MasterHargaCabangUncheckedUpdateManyWithoutPengajuanTerakhirNestedIn
   deleteMany?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
 }
 
+export type MasterHargaCabangCreateWithoutDivisiInput = {
+  id?: string
+  hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: $Enums.StatusHargaCabang
+  berlakuSejak?: Date | string
+  updatedAt?: Date | string
+  masterItem: Prisma.MasterItemCreateNestedOneWithoutHargaPerCabangInput
+  cabang: Prisma.CabangCreateNestedOneWithoutMasterHargaListInput
+  pengajuanTerakhir?: Prisma.PengajuanHargaCreateNestedOneWithoutHargaCabangListInput
+  masterHargaWilayah?: Prisma.MasterHargaWilayahCreateNestedManyWithoutMasterHargaCabangInput
+}
+
+export type MasterHargaCabangUncheckedCreateWithoutDivisiInput = {
+  id?: string
+  masterItemId: string
+  cabangId: string
+  pengajuanTerakhirId?: string | null
+  hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: $Enums.StatusHargaCabang
+  berlakuSejak?: Date | string
+  updatedAt?: Date | string
+  masterHargaWilayah?: Prisma.MasterHargaWilayahUncheckedCreateNestedManyWithoutMasterHargaCabangInput
+}
+
+export type MasterHargaCabangCreateOrConnectWithoutDivisiInput = {
+  where: Prisma.MasterHargaCabangWhereUniqueInput
+  create: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput>
+}
+
+export type MasterHargaCabangCreateManyDivisiInputEnvelope = {
+  data: Prisma.MasterHargaCabangCreateManyDivisiInput | Prisma.MasterHargaCabangCreateManyDivisiInput[]
+  skipDuplicates?: boolean
+}
+
+export type MasterHargaCabangUpsertWithWhereUniqueWithoutDivisiInput = {
+  where: Prisma.MasterHargaCabangWhereUniqueInput
+  update: Prisma.XOR<Prisma.MasterHargaCabangUpdateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedUpdateWithoutDivisiInput>
+  create: Prisma.XOR<Prisma.MasterHargaCabangCreateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedCreateWithoutDivisiInput>
+}
+
+export type MasterHargaCabangUpdateWithWhereUniqueWithoutDivisiInput = {
+  where: Prisma.MasterHargaCabangWhereUniqueInput
+  data: Prisma.XOR<Prisma.MasterHargaCabangUpdateWithoutDivisiInput, Prisma.MasterHargaCabangUncheckedUpdateWithoutDivisiInput>
+}
+
+export type MasterHargaCabangUpdateManyWithWhereWithoutDivisiInput = {
+  where: Prisma.MasterHargaCabangScalarWhereInput
+  data: Prisma.XOR<Prisma.MasterHargaCabangUpdateManyMutationInput, Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiInput>
+}
+
+export type MasterHargaCabangScalarWhereInput = {
+  AND?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
+  OR?: Prisma.MasterHargaCabangScalarWhereInput[]
+  NOT?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
+  id?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  masterItemId?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  cabangId?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  divisiId?: Prisma.StringFilter<"MasterHargaCabang"> | string
+  pengajuanTerakhirId?: Prisma.StringNullableFilter<"MasterHargaCabang"> | string | null
+  hargaFinalInduk?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: Prisma.EnumStatusHargaCabangFilter<"MasterHargaCabang"> | $Enums.StatusHargaCabang
+  berlakuSejak?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
+}
+
 export type MasterHargaCabangCreateWithoutCabangInput = {
   id?: string
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -629,6 +764,7 @@ export type MasterHargaCabangCreateWithoutCabangInput = {
   berlakuSejak?: Date | string
   updatedAt?: Date | string
   masterItem: Prisma.MasterItemCreateNestedOneWithoutHargaPerCabangInput
+  divisi: Prisma.DivisiCreateNestedOneWithoutMasterHargaCabangListInput
   pengajuanTerakhir?: Prisma.PengajuanHargaCreateNestedOneWithoutHargaCabangListInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahCreateNestedManyWithoutMasterHargaCabangInput
 }
@@ -636,6 +772,7 @@ export type MasterHargaCabangCreateWithoutCabangInput = {
 export type MasterHargaCabangUncheckedCreateWithoutCabangInput = {
   id?: string
   masterItemId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -671,21 +808,6 @@ export type MasterHargaCabangUpdateManyWithWhereWithoutCabangInput = {
   data: Prisma.XOR<Prisma.MasterHargaCabangUpdateManyMutationInput, Prisma.MasterHargaCabangUncheckedUpdateManyWithoutCabangInput>
 }
 
-export type MasterHargaCabangScalarWhereInput = {
-  AND?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
-  OR?: Prisma.MasterHargaCabangScalarWhereInput[]
-  NOT?: Prisma.MasterHargaCabangScalarWhereInput | Prisma.MasterHargaCabangScalarWhereInput[]
-  id?: Prisma.StringFilter<"MasterHargaCabang"> | string
-  masterItemId?: Prisma.StringFilter<"MasterHargaCabang"> | string
-  cabangId?: Prisma.StringFilter<"MasterHargaCabang"> | string
-  pengajuanTerakhirId?: Prisma.StringNullableFilter<"MasterHargaCabang"> | string | null
-  hargaFinalInduk?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  marginTotalPersen?: Prisma.DecimalFilter<"MasterHargaCabang"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  statusHarga?: Prisma.EnumStatusHargaCabangFilter<"MasterHargaCabang"> | $Enums.StatusHargaCabang
-  berlakuSejak?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"MasterHargaCabang"> | Date | string
-}
-
 export type MasterHargaCabangCreateWithoutMasterItemInput = {
   id?: string
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -694,6 +816,7 @@ export type MasterHargaCabangCreateWithoutMasterItemInput = {
   berlakuSejak?: Date | string
   updatedAt?: Date | string
   cabang: Prisma.CabangCreateNestedOneWithoutMasterHargaListInput
+  divisi: Prisma.DivisiCreateNestedOneWithoutMasterHargaCabangListInput
   pengajuanTerakhir?: Prisma.PengajuanHargaCreateNestedOneWithoutHargaCabangListInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahCreateNestedManyWithoutMasterHargaCabangInput
 }
@@ -701,6 +824,7 @@ export type MasterHargaCabangCreateWithoutMasterItemInput = {
 export type MasterHargaCabangUncheckedCreateWithoutMasterItemInput = {
   id?: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -745,6 +869,7 @@ export type MasterHargaCabangCreateWithoutMasterHargaWilayahInput = {
   updatedAt?: Date | string
   masterItem: Prisma.MasterItemCreateNestedOneWithoutHargaPerCabangInput
   cabang: Prisma.CabangCreateNestedOneWithoutMasterHargaListInput
+  divisi: Prisma.DivisiCreateNestedOneWithoutMasterHargaCabangListInput
   pengajuanTerakhir?: Prisma.PengajuanHargaCreateNestedOneWithoutHargaCabangListInput
 }
 
@@ -752,6 +877,7 @@ export type MasterHargaCabangUncheckedCreateWithoutMasterHargaWilayahInput = {
   id?: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -785,6 +911,7 @@ export type MasterHargaCabangUpdateWithoutMasterHargaWilayahInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItem?: Prisma.MasterItemUpdateOneRequiredWithoutHargaPerCabangNestedInput
   cabang?: Prisma.CabangUpdateOneRequiredWithoutMasterHargaListNestedInput
+  divisi?: Prisma.DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput
   pengajuanTerakhir?: Prisma.PengajuanHargaUpdateOneWithoutHargaCabangListNestedInput
 }
 
@@ -792,6 +919,7 @@ export type MasterHargaCabangUncheckedUpdateWithoutMasterHargaWilayahInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -809,6 +937,7 @@ export type MasterHargaCabangCreateWithoutPengajuanTerakhirInput = {
   updatedAt?: Date | string
   masterItem: Prisma.MasterItemCreateNestedOneWithoutHargaPerCabangInput
   cabang: Prisma.CabangCreateNestedOneWithoutMasterHargaListInput
+  divisi: Prisma.DivisiCreateNestedOneWithoutMasterHargaCabangListInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahCreateNestedManyWithoutMasterHargaCabangInput
 }
 
@@ -816,6 +945,7 @@ export type MasterHargaCabangUncheckedCreateWithoutPengajuanTerakhirInput = {
   id?: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
   statusHarga?: $Enums.StatusHargaCabang
@@ -850,9 +980,60 @@ export type MasterHargaCabangUpdateManyWithWhereWithoutPengajuanTerakhirInput = 
   data: Prisma.XOR<Prisma.MasterHargaCabangUpdateManyMutationInput, Prisma.MasterHargaCabangUncheckedUpdateManyWithoutPengajuanTerakhirInput>
 }
 
+export type MasterHargaCabangCreateManyDivisiInput = {
+  id?: string
+  masterItemId: string
+  cabangId: string
+  pengajuanTerakhirId?: string | null
+  hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: $Enums.StatusHargaCabang
+  berlakuSejak?: Date | string
+  updatedAt?: Date | string
+}
+
+export type MasterHargaCabangUpdateWithoutDivisiInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: Prisma.EnumStatusHargaCabangFieldUpdateOperationsInput | $Enums.StatusHargaCabang
+  berlakuSejak?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  masterItem?: Prisma.MasterItemUpdateOneRequiredWithoutHargaPerCabangNestedInput
+  cabang?: Prisma.CabangUpdateOneRequiredWithoutMasterHargaListNestedInput
+  pengajuanTerakhir?: Prisma.PengajuanHargaUpdateOneWithoutHargaCabangListNestedInput
+  masterHargaWilayah?: Prisma.MasterHargaWilayahUpdateManyWithoutMasterHargaCabangNestedInput
+}
+
+export type MasterHargaCabangUncheckedUpdateWithoutDivisiInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
+  cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: Prisma.EnumStatusHargaCabangFieldUpdateOperationsInput | $Enums.StatusHargaCabang
+  berlakuSejak?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  masterHargaWilayah?: Prisma.MasterHargaWilayahUncheckedUpdateManyWithoutMasterHargaCabangNestedInput
+}
+
+export type MasterHargaCabangUncheckedUpdateManyWithoutDivisiInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
+  cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  statusHarga?: Prisma.EnumStatusHargaCabangFieldUpdateOperationsInput | $Enums.StatusHargaCabang
+  berlakuSejak?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type MasterHargaCabangCreateManyCabangInput = {
   id?: string
   masterItemId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -869,6 +1050,7 @@ export type MasterHargaCabangUpdateWithoutCabangInput = {
   berlakuSejak?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItem?: Prisma.MasterItemUpdateOneRequiredWithoutHargaPerCabangNestedInput
+  divisi?: Prisma.DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput
   pengajuanTerakhir?: Prisma.PengajuanHargaUpdateOneWithoutHargaCabangListNestedInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahUpdateManyWithoutMasterHargaCabangNestedInput
 }
@@ -876,6 +1058,7 @@ export type MasterHargaCabangUpdateWithoutCabangInput = {
 export type MasterHargaCabangUncheckedUpdateWithoutCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -888,6 +1071,7 @@ export type MasterHargaCabangUncheckedUpdateWithoutCabangInput = {
 export type MasterHargaCabangUncheckedUpdateManyWithoutCabangInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -899,6 +1083,7 @@ export type MasterHargaCabangUncheckedUpdateManyWithoutCabangInput = {
 export type MasterHargaCabangCreateManyMasterItemInput = {
   id?: string
   cabangId: string
+  divisiId: string
   pengajuanTerakhirId?: string | null
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -915,6 +1100,7 @@ export type MasterHargaCabangUpdateWithoutMasterItemInput = {
   berlakuSejak?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cabang?: Prisma.CabangUpdateOneRequiredWithoutMasterHargaListNestedInput
+  divisi?: Prisma.DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput
   pengajuanTerakhir?: Prisma.PengajuanHargaUpdateOneWithoutHargaCabangListNestedInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahUpdateManyWithoutMasterHargaCabangNestedInput
 }
@@ -922,6 +1108,7 @@ export type MasterHargaCabangUpdateWithoutMasterItemInput = {
 export type MasterHargaCabangUncheckedUpdateWithoutMasterItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -934,6 +1121,7 @@ export type MasterHargaCabangUncheckedUpdateWithoutMasterItemInput = {
 export type MasterHargaCabangUncheckedUpdateManyWithoutMasterItemInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   pengajuanTerakhirId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -946,6 +1134,7 @@ export type MasterHargaCabangCreateManyPengajuanTerakhirInput = {
   id?: string
   masterItemId: string
   cabangId: string
+  divisiId: string
   hargaFinalInduk: runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: runtime.Decimal | runtime.DecimalJsLike | number | string
   statusHarga?: $Enums.StatusHargaCabang
@@ -962,6 +1151,7 @@ export type MasterHargaCabangUpdateWithoutPengajuanTerakhirInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItem?: Prisma.MasterItemUpdateOneRequiredWithoutHargaPerCabangNestedInput
   cabang?: Prisma.CabangUpdateOneRequiredWithoutMasterHargaListNestedInput
+  divisi?: Prisma.DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput
   masterHargaWilayah?: Prisma.MasterHargaWilayahUpdateManyWithoutMasterHargaCabangNestedInput
 }
 
@@ -969,6 +1159,7 @@ export type MasterHargaCabangUncheckedUpdateWithoutPengajuanTerakhirInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   statusHarga?: Prisma.EnumStatusHargaCabangFieldUpdateOperationsInput | $Enums.StatusHargaCabang
@@ -981,6 +1172,7 @@ export type MasterHargaCabangUncheckedUpdateManyWithoutPengajuanTerakhirInput = 
   id?: Prisma.StringFieldUpdateOperationsInput | string
   masterItemId?: Prisma.StringFieldUpdateOperationsInput | string
   cabangId?: Prisma.StringFieldUpdateOperationsInput | string
+  divisiId?: Prisma.StringFieldUpdateOperationsInput | string
   hargaFinalInduk?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   marginTotalPersen?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   statusHarga?: Prisma.EnumStatusHargaCabangFieldUpdateOperationsInput | $Enums.StatusHargaCabang
@@ -1023,6 +1215,7 @@ export type MasterHargaCabangSelect<ExtArgs extends runtime.Types.Extensions.Int
   id?: boolean
   masterItemId?: boolean
   cabangId?: boolean
+  divisiId?: boolean
   pengajuanTerakhirId?: boolean
   hargaFinalInduk?: boolean
   marginTotalPersen?: boolean
@@ -1031,6 +1224,7 @@ export type MasterHargaCabangSelect<ExtArgs extends runtime.Types.Extensions.Int
   updatedAt?: boolean
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
   masterHargaWilayah?: boolean | Prisma.MasterHargaCabang$masterHargaWilayahArgs<ExtArgs>
   _count?: boolean | Prisma.MasterHargaCabangCountOutputTypeDefaultArgs<ExtArgs>
@@ -1040,6 +1234,7 @@ export type MasterHargaCabangSelectCreateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   masterItemId?: boolean
   cabangId?: boolean
+  divisiId?: boolean
   pengajuanTerakhirId?: boolean
   hargaFinalInduk?: boolean
   marginTotalPersen?: boolean
@@ -1048,6 +1243,7 @@ export type MasterHargaCabangSelectCreateManyAndReturn<ExtArgs extends runtime.T
   updatedAt?: boolean
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
 }, ExtArgs["result"]["masterHargaCabang"]>
 
@@ -1055,6 +1251,7 @@ export type MasterHargaCabangSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   masterItemId?: boolean
   cabangId?: boolean
+  divisiId?: boolean
   pengajuanTerakhirId?: boolean
   hargaFinalInduk?: boolean
   marginTotalPersen?: boolean
@@ -1063,6 +1260,7 @@ export type MasterHargaCabangSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   updatedAt?: boolean
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
 }, ExtArgs["result"]["masterHargaCabang"]>
 
@@ -1070,6 +1268,7 @@ export type MasterHargaCabangSelectScalar = {
   id?: boolean
   masterItemId?: boolean
   cabangId?: boolean
+  divisiId?: boolean
   pengajuanTerakhirId?: boolean
   hargaFinalInduk?: boolean
   marginTotalPersen?: boolean
@@ -1078,10 +1277,11 @@ export type MasterHargaCabangSelectScalar = {
   updatedAt?: boolean
 }
 
-export type MasterHargaCabangOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "masterItemId" | "cabangId" | "pengajuanTerakhirId" | "hargaFinalInduk" | "marginTotalPersen" | "statusHarga" | "berlakuSejak" | "updatedAt", ExtArgs["result"]["masterHargaCabang"]>
+export type MasterHargaCabangOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "masterItemId" | "cabangId" | "divisiId" | "pengajuanTerakhirId" | "hargaFinalInduk" | "marginTotalPersen" | "statusHarga" | "berlakuSejak" | "updatedAt", ExtArgs["result"]["masterHargaCabang"]>
 export type MasterHargaCabangInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
   masterHargaWilayah?: boolean | Prisma.MasterHargaCabang$masterHargaWilayahArgs<ExtArgs>
   _count?: boolean | Prisma.MasterHargaCabangCountOutputTypeDefaultArgs<ExtArgs>
@@ -1089,11 +1289,13 @@ export type MasterHargaCabangInclude<ExtArgs extends runtime.Types.Extensions.In
 export type MasterHargaCabangIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
 }
 export type MasterHargaCabangIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   masterItem?: boolean | Prisma.MasterItemDefaultArgs<ExtArgs>
   cabang?: boolean | Prisma.CabangDefaultArgs<ExtArgs>
+  divisi?: boolean | Prisma.DivisiDefaultArgs<ExtArgs>
   pengajuanTerakhir?: boolean | Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>
 }
 
@@ -1102,6 +1304,7 @@ export type $MasterHargaCabangPayload<ExtArgs extends runtime.Types.Extensions.I
   objects: {
     masterItem: Prisma.$MasterItemPayload<ExtArgs>
     cabang: Prisma.$CabangPayload<ExtArgs>
+    divisi: Prisma.$DivisiPayload<ExtArgs>
     pengajuanTerakhir: Prisma.$PengajuanHargaPayload<ExtArgs> | null
     masterHargaWilayah: Prisma.$MasterHargaWilayahPayload<ExtArgs>[]
   }
@@ -1109,6 +1312,7 @@ export type $MasterHargaCabangPayload<ExtArgs extends runtime.Types.Extensions.I
     id: string
     masterItemId: string
     cabangId: string
+    divisiId: string
     pengajuanTerakhirId: string | null
     hargaFinalInduk: runtime.Decimal
     marginTotalPersen: runtime.Decimal
@@ -1511,6 +1715,7 @@ export interface Prisma__MasterHargaCabangClient<T, Null = never, ExtArgs extend
   readonly [Symbol.toStringTag]: "PrismaPromise"
   masterItem<T extends Prisma.MasterItemDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MasterItemDefaultArgs<ExtArgs>>): Prisma.Prisma__MasterItemClient<runtime.Types.Result.GetResult<Prisma.$MasterItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   cabang<T extends Prisma.CabangDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CabangDefaultArgs<ExtArgs>>): Prisma.Prisma__CabangClient<runtime.Types.Result.GetResult<Prisma.$CabangPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  divisi<T extends Prisma.DivisiDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DivisiDefaultArgs<ExtArgs>>): Prisma.Prisma__DivisiClient<runtime.Types.Result.GetResult<Prisma.$DivisiPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   pengajuanTerakhir<T extends Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MasterHargaCabang$pengajuanTerakhirArgs<ExtArgs>>): Prisma.Prisma__PengajuanHargaClient<runtime.Types.Result.GetResult<Prisma.$PengajuanHargaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   masterHargaWilayah<T extends Prisma.MasterHargaCabang$masterHargaWilayahArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MasterHargaCabang$masterHargaWilayahArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MasterHargaWilayahPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1545,6 +1750,7 @@ export interface MasterHargaCabangFieldRefs {
   readonly id: Prisma.FieldRef<"MasterHargaCabang", 'String'>
   readonly masterItemId: Prisma.FieldRef<"MasterHargaCabang", 'String'>
   readonly cabangId: Prisma.FieldRef<"MasterHargaCabang", 'String'>
+  readonly divisiId: Prisma.FieldRef<"MasterHargaCabang", 'String'>
   readonly pengajuanTerakhirId: Prisma.FieldRef<"MasterHargaCabang", 'String'>
   readonly hargaFinalInduk: Prisma.FieldRef<"MasterHargaCabang", 'Decimal'>
   readonly marginTotalPersen: Prisma.FieldRef<"MasterHargaCabang", 'Decimal'>

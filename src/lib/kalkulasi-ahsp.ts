@@ -3,7 +3,7 @@
  * identik dengan angka yang disimpan server.
  *
  * Rumus resmi: Subtotal Komponen = (Koefisien x Harga Acuan) x (1 + Margin% / 100)
- * Margin diatur per kategori (Upah, Material, Bongkaran); Alat tanpa margin.
+ * Margin diatur per kategori (Upah, Material termasuk Bahan & Peralatan, Bongkaran).
  */
 import type { KategoriKoefisien } from "@/types";
 
@@ -28,6 +28,7 @@ export function marginUntuk(kategori: KategoriKoefisien, m: MarginKategori): num
     case "UPAH":
       return m.upah;
     case "MATERIAL":
+    case "ALAT":
       return m.material;
     case "BONGKARAN":
       return m.bongkaran;

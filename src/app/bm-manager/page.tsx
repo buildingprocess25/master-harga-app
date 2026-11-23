@@ -13,7 +13,11 @@ import {
 import Swal from "sweetalert2";
 import { AppLayoutShell } from "@/components/global/AppLayoutShell";
 import { PengajuanHargaTable } from "@/components/global/table/PengajuanHargaTable";
-import { TambahPengajuanModal } from "@/components/bm-manager/TambahPengajuanModal";
+import {
+  TambahPengajuanModal,
+  BulkPengajuanPayloadItem,
+  type ActivationTemplatePayload,
+} from "@/components/bm-manager/TambahPengajuanModal";
 import { ReviewUlangSpesifikasiModal } from "@/components/bm-manager/ReviewUlangSpesifikasiModal";
 import { ModalCatatanReview } from "@/components/bm-manager/ModalCatatanReview";
 import {
@@ -25,6 +29,7 @@ import {
   getStoredPengajuan,
   saveStoredPengajuan,
 } from "@/lib/pengajuanStorage";
+import { submitBulkPengajuanApi } from "@/lib/client/submit-pengajuan";
 
 export default function BMManagerPage() {
   // Tab State: 'materials' (Pengajuan Spesifikasi) vs 'approvals' (Persetujuan Harga Layer 1)
@@ -35,6 +40,7 @@ export default function BMManagerPage() {
   const [isTambahModalOpen, setIsTambahModalOpen] = useState(false);
   const [isReviewUlangModalOpen, setIsReviewUlangModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PengajuanHargaItem | null>(null);
+  const [activationTemplate, setActivationTemplate] = useState<ActivationTemplatePayload | null>(null);
   const [viewingCatatanItem, setViewingCatatanItem] = useState<PengajuanHargaItem | null>(null);
   const [isCatatanModalOpen, setIsCatatanModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -121,6 +127,34 @@ export default function BMManagerPage() {
     fetchItems();
   }, []);
 
+  // Tangkap query ?aktivasiMasterItemId=... dari halaman Katalog Harga BNM
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const aktivasiMasterItemId = params.get("aktivasiMasterItemId")?.trim();
+    const targetDivisiId = params.get("targetDivisiId")?.trim() || undefined;
+    if (!aktivasiMasterItemId) return;
+
+    fetch(
+      `/api/bm-manager/aktivasi-template?masterItemId=${encodeURIComponent(aktivasiMasterItemId)}`
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!json?.success || !json.data) return;
+        setEditingItem(null);
+        setActivationTemplate({
+          ...json.data,
+          targetDivisiId,
+        });
+        setIsTambahModalOpen(true);
+        // Bersihkan query URL setelah modal aktivasi terbuka
+        window.history.replaceState({}, "", "/bm-manager");
+      })
+      .catch((err) => {
+        console.warn("Gagal memuat template aktivasi item:", err);
+      });
+  }, []);
+
   // Dropdown Categories & Brands
   const categories = useMemo(() => {
     return Array.from(new Set(items.map((i) => i.kategori).filter(Boolean)));
@@ -146,7 +180,7 @@ export default function BMManagerPage() {
         const merk = (item.merk || "").toLowerCase();
         const tipe = (item.tipe || "").toLowerCase();
         const warna = (item.warna || "").toLowerCase();
-        const lokasi = (item.lokasi || "").toLowerCase();
+        const lokasi = (Array.isArray(item.lokasi) ? item.lokasi.join(" ") : (item.lokasi || "")).toLowerCase();
         const kat = (item.kategori || "").toLowerCase();
         const cab = (item.cabang || item.namaCabang || "").toLowerCase();
         const desc = (item.deskripsiOtomatis || "").toLowerCase();
@@ -168,8 +202,9 @@ export default function BMManagerPage() {
 
       if (filters.kategori !== "all" && item.kategori !== filters.kategori) return false;
       if (filters.merk && filters.merk !== "all" && item.merk !== filters.merk) return false;
-      if (filters.implementasi && filters.implementasi !== "all" && item.implementasi !== filters.implementasi) {
-        return false;
+      if (filters.implementasi && filters.implementasi !== "all") {
+        const impStr = Array.isArray(item.implementasi) ? item.implementasi.join(", ") : (item.implementasi || "");
+        if (!impStr.toLowerCase().includes(filters.implementasi.toLowerCase())) return false;
       }
 
       return true;
@@ -191,7 +226,7 @@ export default function BMManagerPage() {
       const kode = (i.kode || i.kodeItem || i.noTiket || "").toLowerCase();
       const nama = (i.item || i.namaItem || "").toLowerCase();
       const merk = (i.merk || "").toLowerCase();
-      const lokasi = (i.lokasi || "").toLowerCase();
+      const lokasi = (Array.isArray(i.lokasi) ? i.lokasi.join(" ") : (i.lokasi || "")).toLowerCase();
       const cab = (i.cabang || i.namaCabang || "").toLowerCase();
 
       return (
@@ -249,9 +284,11 @@ export default function BMManagerPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            kelompokKode: newItem.kelompokKode,
             item: newItem.item || newItem.namaItem,
             namaItem: newItem.namaItem || newItem.item,
             kategori: newItem.kategori,
+            jenisCor: newItem.jenisCor,
             merk: newItem.merk,
             ukuran: newItem.ukuran,
             tipe: newItem.tipe,
@@ -261,6 +298,13 @@ export default function BMManagerPage() {
             toleransi: newItem.toleransi,
             lokasi: newItem.lokasi,
             satuan: newItem.satuan,
+            jenisPengajuan: newItem.satuan === "ls" ? "Hanya Jasa" : "Material",
+            komponenMaterial: (newItem.koefisienItems || []).map((k) => ({
+              masterKoefisienId: k.masterKoefisienId,
+              kategori: k.kategori,
+              namaKomponen: k.namaKomponen,
+              satuan: k.satuan,
+            })),
             cakupanHarga: newItem.cakupanHarga || "INDUK_CABANG",
             alasanPengajuan: newItem.alasanPengajuan,
           }),
@@ -302,9 +346,13 @@ export default function BMManagerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "new",
+          kelompokKode: newItem.kelompokKode,
+          kodeItem: newItem.kodeItem,
+          kodeMaster: newItem.kodeMaster,
           item: newItem.item || newItem.namaItem,
           namaItem: newItem.namaItem || newItem.item,
           kategori: newItem.kategori,
+          jenisCor: newItem.jenisCor,
           merk: newItem.merk,
           ukuran: newItem.ukuran,
           tipe: newItem.tipe,
@@ -314,6 +362,13 @@ export default function BMManagerPage() {
           toleransi: newItem.toleransi,
           lokasi: newItem.lokasi,
           satuan: newItem.satuan,
+          jenisPengajuan: newItem.satuan === "ls" ? "Hanya Jasa" : "Material",
+          komponenMaterial: (newItem.koefisienItems || []).map((k) => ({
+            masterKoefisienId: k.masterKoefisienId,
+            kategori: k.kategori,
+            namaKomponen: k.namaKomponen,
+            satuan: k.satuan,
+          })),
           cabang: actualCabang,
           cakupanHarga: newItem.cakupanHarga || "INDUK_CABANG",
           alasanPengajuan: newItem.alasanPengajuan,
@@ -358,6 +413,14 @@ export default function BMManagerPage() {
       title: "Material Diajukan",
       text: "Material baru berhasil diajukan ke antrean verifikasi S&B Controller.",
       confirmButtonColor: "#ED1C24",
+    });
+  };
+
+  const handleBulkAddItems = async (bulkItems: BulkPengajuanPayloadItem[]) => {
+    await submitBulkPengajuanApi({
+      bulkItems,
+      defaultCabang: userCabang || "Cikokol",
+      onCreated: fetchItems,
     });
   };
 
@@ -606,23 +669,27 @@ export default function BMManagerPage() {
         )}
       </div>
 
-      {/* Modal Tambah Spesifikasi Baru / Edit Resubmit */}
+      {/* Modal Tambah Spesifikasi Baru / Edit Resubmit / Aktivasi Divisi */}
       <TambahPengajuanModal
         isOpen={isTambahModalOpen}
-        onClose={() => setIsTambahModalOpen(false)}
+        onClose={() => {
+          setIsTambahModalOpen(false);
+          setActivationTemplate(null);
+        }}
         onSubmit={handleAddItem}
+        onBulkSubmit={handleBulkAddItems}
         nextIndex={items.length + 1}
         existingItems={items}
         itemToEdit={editingItem}
+        activationTemplate={activationTemplate}
         defaultCabang={userCabang}
       />
 
-      {/* Modal Review Ulang Spesifikasi (Khusus Item dari Master Katalog) */}
+      {/* Modal Review Ulang Spesifikasi (Khusus Item Aktif dari Katalog Cabang) */}
       <ReviewUlangSpesifikasiModal
         isOpen={isReviewUlangModalOpen}
         onClose={() => setIsReviewUlangModalOpen(false)}
-        onSubmit={handleAddItem}
-        existingItems={items}
+        onSubmitted={fetchItems}
         defaultCabang={userCabang}
       />
 

@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { DomainError, kunciTiket, ubahStatusTiket } from "@/lib/services/transisi-tiket";
+import { DomainError, kunciTiket, TX_OPTIONS, ubahStatusTiket } from "@/lib/services/transisi-tiket";
 import { getRingkasanKuorum } from "@/lib/services/kuorum-service";
 import { bulat2 } from "@/lib/kalkulasi-ahsp";
 
@@ -78,6 +78,6 @@ export async function putuskanBanding(params: {
       aksi: t.aksi,
       catatan,
     });
-  });
+  }, TX_OPTIONS);
   return { status: t.status };
 }

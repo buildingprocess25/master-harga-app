@@ -54,6 +54,7 @@ export interface RincianSurvei3TokoCardProps {
   readonly?: boolean;
   mode?: "edit" | "readonly";
   hideHeader?: boolean;
+  compact?: boolean;
   satuan?: string;
   materialCode?: string;
   materialName?: string;
@@ -69,6 +70,7 @@ export function RincianSurvei3TokoCard({
   readonly = true,
   mode = "readonly",
   hideHeader = false,
+  compact = false,
   satuan = "m2",
   materialName,
   masterTokoList = [],
@@ -302,20 +304,52 @@ export function RincianSurvei3TokoCard({
           <table className="w-full text-xs text-left border-collapse">
             <thead>
               <tr className="bg-slate-100 text-slate-700 font-bold border-b-2 border-slate-300 uppercase tracking-wider text-[11px]">
-                <th className="px-3 py-3 text-center w-12 border-r-2 border-slate-300">No</th>
-                <th className="px-3.5 py-3 min-w-[200px] border-r-2 border-slate-300">
-                  Nama Toko / Supplier
+                <th
+                  className={cn(
+                    "py-3 text-center border-r-2 border-slate-300",
+                    compact ? "px-2 w-10" : "px-3 w-12"
+                  )}
+                >
+                  No
                 </th>
-                <th className="px-3.5 py-3 min-w-[220px] border-r-2 border-slate-300">
-                  Alamat / Lokasi Toko
+                <th
+                  className={cn(
+                    "py-3 border-r-2 border-slate-300",
+                    compact ? "px-2.5 min-w-[155px]" : "px-3.5 min-w-[200px]"
+                  )}
+                >
+                  Nama Toko
                 </th>
-                <th className="px-3 py-3 text-center w-24 border-r-2 border-slate-300">
-                  Volume
+                <th
+                  className={cn(
+                    "py-3 border-r-2 border-slate-300",
+                    compact ? "px-2.5 min-w-[165px]" : "px-3.5 min-w-[220px]"
+                  )}
+                >
+                  Alamat Toko
                 </th>
-                <th className="px-3.5 py-3 text-right w-44 border-r-2 border-slate-300">
+                <th
+                  className={cn(
+                    "py-3 text-center border-r-2 border-slate-300",
+                    compact ? "px-2 w-20" : "px-3 w-24"
+                  )}
+                >
+                  Vol
+                </th>
+                <th
+                  className={cn(
+                    "py-3 text-right border-r-2 border-slate-300",
+                    compact ? "px-2.5 min-w-[210px] w-52" : "px-3.5 w-44"
+                  )}
+                >
                   Harga Survei (Rp)
                 </th>
-                <th className="px-3.5 py-3 min-w-[260px] text-center">
+                <th
+                  className={cn(
+                    "py-3 text-center",
+                    compact ? "px-2.5 min-w-[136px] w-36" : "px-3.5 min-w-[260px]"
+                  )}
+                >
                   Lampiran
                 </th>
               </tr>
@@ -329,14 +363,24 @@ export function RincianSurvei3TokoCard({
                 return (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors align-top">
                     {/* No */}
-                    <td className="px-3 py-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">
+                    <td
+                      className={cn(
+                        "py-3 text-center font-bold text-slate-500 border-r-2 border-slate-200",
+                        compact ? "px-2" : "px-3"
+                      )}
+                    >
                       <span className="w-6 h-6 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center font-black mx-auto text-xs">
                         {storeNum}
                       </span>
                     </td>
 
                     {/* Nama Toko */}
-                    <td className="px-3.5 py-3 border-r-2 border-slate-200">
+                    <td
+                      className={cn(
+                        "py-3 border-r-2 border-slate-200",
+                        compact ? "px-2.5" : "px-3.5"
+                      )}
+                    >
                       <div className="space-y-1">
                         <div className="relative">
                           <Store className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -369,7 +413,12 @@ export function RincianSurvei3TokoCard({
                     </td>
 
                     {/* Alamat Toko */}
-                    <td className="px-3.5 py-3 border-r-2 border-slate-200">
+                    <td
+                      className={cn(
+                        "py-3 border-r-2 border-slate-200",
+                        compact ? "px-2.5" : "px-3.5"
+                      )}
+                    >
                       <div className="relative">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                         <input
@@ -391,15 +440,25 @@ export function RincianSurvei3TokoCard({
                     </td>
 
                     {/* Volume Acuan */}
-                    <td className="px-3 py-3 text-center border-r-2 border-slate-200">
-                      <span className="inline-block px-2.5 py-1 bg-slate-100 border-2 border-slate-300 text-slate-700 rounded-lg text-xs font-bold font-mono">
+                    <td
+                      className={cn(
+                        "py-3 text-center border-r-2 border-slate-200",
+                        compact ? "px-2" : "px-3"
+                      )}
+                    >
+                      <span className="inline-block px-2 py-1 bg-slate-100 border-2 border-slate-300 text-slate-700 rounded-lg text-xs font-bold font-mono whitespace-nowrap">
                         1 {satuan}
                       </span>
                     </td>
 
                     {/* Harga Survei (Rp) */}
-                    <td className="px-3.5 py-3 border-r-2 border-slate-200">
-                      <div className="flex items-center bg-white border-2 border-slate-300 focus-within:border-[#005BAC] rounded-lg px-2.5 py-1">
+                    <td
+                      className={cn(
+                        "py-3 border-r-2 border-slate-200",
+                        compact ? "px-2.5" : "px-3.5"
+                      )}
+                    >
+                      <div className="flex items-center bg-white border-2 border-slate-300 focus-within:border-[#005BAC] rounded-lg px-2.5 py-1.5">
                         <span className="text-slate-500 text-xs font-bold mr-1.5 select-none">
                           Rp
                         </span>
@@ -426,10 +485,15 @@ export function RincianSurvei3TokoCard({
                     </td>
 
                     {/* Multi-Upload Lampiran Bukti Survei */}
-                    <td className="px-3.5 py-3">
-                      <div className="space-y-2 max-w-[280px] mx-auto">
+                    <td className={cn("py-3", compact ? "px-2.5" : "px-3.5")}>
+                      <div
+                        className={cn(
+                          "space-y-1.5 mx-auto",
+                          compact ? "max-w-[140px]" : "max-w-[280px]"
+                        )}
+                      >
                         {/* Status Count Badge jika sudah ada berkas */}
-                        {lampiranCount > 0 && (
+                        {lampiranCount > 0 && !compact && (
                           <div className="flex items-center justify-between pb-1 border-b border-slate-200">
                             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-300">
                               <Paperclip className="w-3 h-3 text-[#005BAC]" />
@@ -443,7 +507,7 @@ export function RincianSurvei3TokoCard({
 
                         {/* List Berkas Terunggah (Chips Interaktif) */}
                         {lampiranCount > 0 && (
-                          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                          <div className="space-y-1 max-h-28 overflow-y-auto pr-0.5">
                             {store.lampiranList?.map((file, fIdx) => {
                               const fileUrl = file.url || file.fileUrl || "";
                               const isPdf =
@@ -451,26 +515,26 @@ export function RincianSurvei3TokoCard({
                                 file.namaFile?.toLowerCase().endsWith(".pdf");
 
                               let badgeLabel = "Nota";
-                              let badgeColor = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                              let badgeColor = "bg-emerald-700 text-white border-emerald-700";
 
                               if (
                                 file.tipe === "FOTO_TOKO" ||
                                 file.jenisLampiran === "FOTO_TOKO"
                               ) {
                                 badgeLabel = "Toko";
-                                badgeColor = "bg-blue-100 text-blue-800 border-blue-300";
+                                badgeColor = "bg-[#005BAC] text-white border-[#005BAC]";
                               } else if (
                                 file.tipe === "FOTO_MATERIAL" ||
                                 file.jenisLampiran === "FOTO_MATERIAL"
                               ) {
                                 badgeLabel = "Sampel";
-                                badgeColor = "bg-amber-100 text-amber-800 border-amber-300";
+                                badgeColor = "bg-amber-600 text-white border-amber-600";
                               }
 
                               return (
                                 <div
                                   key={file.id || fIdx}
-                                  className="flex items-center justify-between p-1.5 px-2 bg-white rounded-lg border-2 border-slate-300 text-xs shadow-2xs gap-1.5 hover:border-slate-400 transition-colors"
+                                  className="flex items-center justify-between p-1 px-1.5 bg-white rounded-lg border-2 border-slate-300 text-xs gap-1 hover:border-slate-400 transition-colors"
                                 >
                                   <button
                                     type="button"
@@ -480,36 +544,43 @@ export function RincianSurvei3TokoCard({
                                         title: `Toko ${storeNum}: ${file.namaFile}`,
                                       })
                                     }
-                                    className="flex items-center gap-1.5 hover:text-[#005BAC] cursor-pointer truncate text-left flex-1"
-                                    title="Klik untuk zoom pratinjau berkas"
+                                    className="flex items-center gap-1 hover:text-[#005BAC] cursor-pointer truncate text-left flex-1 min-w-0"
+                                    title={`Pratinjau ${file.namaFile}`}
                                   >
                                     {isPdf ? (
-                                      <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                      <FileText className="w-3 h-3 text-rose-600 shrink-0" />
                                     ) : (
-                                      <ImageIcon className="w-3.5 h-3.5 text-[#005BAC] shrink-0" />
+                                      <ImageIcon className="w-3 h-3 text-[#005BAC] shrink-0" />
                                     )}
-                                    <span className="truncate max-w-[130px] text-[11px] font-bold text-slate-800">
+                                    <span
+                                      className={cn(
+                                        "truncate font-bold text-slate-800",
+                                        compact ? "text-[10px]" : "max-w-[130px] text-[11px]"
+                                      )}
+                                    >
                                       {file.namaFile}
                                     </span>
                                   </button>
 
                                   <div className="flex items-center gap-1 shrink-0">
-                                    <span
-                                      className={cn(
-                                        "text-[9px] px-1.5 py-0.5 rounded font-black border uppercase",
-                                        badgeColor
-                                      )}
-                                    >
-                                      {badgeLabel}
-                                    </span>
+                                    {!compact && (
+                                      <span
+                                        className={cn(
+                                          "text-[9px] px-1.5 py-0.5 rounded font-black border uppercase",
+                                          badgeColor
+                                        )}
+                                      >
+                                        {badgeLabel}
+                                      </span>
+                                    )}
 
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveLampiranItem(idx, file.id || fIdx)}
-                                      className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                      className="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-rose-700 hover:bg-rose-100 rounded transition-colors cursor-pointer"
                                       title="Hapus berkas ini"
                                     >
-                                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                      <X className="w-3 h-3 stroke-[2.5]" />
                                     </button>
                                   </div>
                                 </div>
@@ -520,21 +591,29 @@ export function RincianSurvei3TokoCard({
 
                         {/* Tombol Unggah / Tambah Berkas Multi */}
                         {isUploading ? (
-                          <div className="flex items-center justify-center gap-1.5 text-xs text-blue-700 font-bold py-1.5 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                          <div className="flex items-center justify-center gap-1 text-[11px] text-[#005BAC] font-bold py-1.5 bg-white border-2 border-[#005BAC] rounded-lg">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Mengunggah berkas...</span>
+                            <span>{compact ? "Upload..." : "Mengunggah berkas..."}</span>
                           </div>
                         ) : (
-                          <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold text-slate-700 hover:text-[#005BAC] bg-white hover:bg-slate-50 border-2 border-dashed border-slate-300 hover:border-[#005BAC] rounded-lg transition-colors cursor-pointer w-full">
+                          <label
+                            title="Unggah Nota, Foto Toko, atau Sampel"
+                            className={cn(
+                              "flex items-center justify-center gap-1 font-bold text-slate-700 hover:text-white bg-white hover:bg-[#005BAC] border-2 border-slate-300 hover:border-[#005BAC] rounded-lg transition-colors cursor-pointer",
+                              compact
+                                ? "px-2.5 py-1.5 text-[11px] w-full"
+                                : "px-3 py-1.5 text-[11px] border-dashed w-full font-extrabold"
+                            )}
+                          >
                             {lampiranCount > 0 ? (
                               <>
-                                <Plus className="w-3.5 h-3.5 text-[#005BAC] stroke-[2.5]" />
-                                <span>+ Tambah Berkas (Foto/PDF)</span>
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{compact ? `Tambah (${lampiranCount})` : "+ Tambah Berkas (Foto/PDF)"}</span>
                               </>
                             ) : (
                               <>
-                                <Upload className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Unggah Nota, Tampak &amp; Sampel</span>
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>{compact ? "Unggah" : "Unggah Nota, Tampak & Sampel"}</span>
                               </>
                             )}
                             <input

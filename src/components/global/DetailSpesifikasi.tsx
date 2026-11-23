@@ -32,10 +32,21 @@ export function DetailSpesifikasi({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const resolvedKelompok =
+    item.kelompokKode ||
+    ((item.kode || item.kodeItem || "").toUpperCase().startsWith("ME-") ? "ME" : "SIP");
+
   const specFields: { label: string; value?: string | number }[] = [
     { label: "Cabang Pengaju", value: item.cabang || item.namaCabang },
     { label: "Tanggal Pengajuan", value: item.tanggalPengajuan },
+    {
+      label: "Kelompok Pekerjaan",
+      value: resolvedKelompok === "ME" ? "ME (Mekanikal & Elektrikal)" : "SIP (Sipil)",
+    },
     { label: "Kategori Pekerjaan", value: item.kategori },
+    ...(item.kategori?.toLowerCase().includes("cor") || item.jenisCor
+      ? [{ label: "Jenis Cor", value: item.jenisCor }]
+      : []),
     { label: "Nama Material", value: item.item || item.namaItem },
     { label: "Ukuran / Dimensi", value: item.ukuran },
     { label: "Merk / Brand", value: item.merk },

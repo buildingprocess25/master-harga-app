@@ -27,7 +27,10 @@ export function exportToCSV(
     "Status",
   ];
 
-  const escapeCSV = (val: string | number | undefined | null) => {
+  const escapeCSV = (val: string | number | undefined | null | string[]) => {
+    if (Array.isArray(val)) {
+      val = val.join(", ");
+    }
     const str = String(val ?? "");
     if (str.includes(",") || str.includes('"') || str.includes("\n")) {
       return `"${str.replace(/"/g, '""')}"`;
@@ -113,8 +116,8 @@ export function exportToExcel(
       <td>${item.tebal || "-"}</td>
       <td>${item.permukaan || "-"}</td>
       <td>${item.kategori || "-"}</td>
-      <td>${item.implementasi || "-"}</td>
-      <td>${item.lokasi || "-"}</td>
+      <td>${Array.isArray(item.implementasi) ? item.implementasi.join(", ") : (item.implementasi || "-")}</td>
+      <td>${Array.isArray(item.lokasi) ? item.lokasi.join(", ") : (item.lokasi || "-")}</td>
       <td>${item.informasiTambahan || "-"}</td>
       <td style="font-size: 11px;">${item.deskripsiOtomatis || "-"}</td>
       <td style="text-align: center; font-weight: bold;">${item.status || "DIAJUKAN"}</td>

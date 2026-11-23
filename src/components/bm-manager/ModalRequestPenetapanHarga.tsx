@@ -338,24 +338,24 @@ export function ModalRequestPenetapanHarga({
                 className="w-full px-3 py-2 rounded-lg border-2 border-slate-300 bg-white text-slate-800 font-semibold focus:border-[#005BAC] focus:outline-hidden"
               >
                 <option value="INDUK_CABANG">Induk Cabang (Standar Seluruh Toko)</option>
-                <option value="KHUSUS_WILAYAH">Khusus Sub-Wilayah (Override Disparitas)</option>
+                <option value="KHUSUS_WILAYAH">Harga Wilayah (1 Wilayah)</option>
               </select>
             </div>
           </div>
 
-          {/* 3. Sub-Wilayah jika cakupan Khusus Wilayah */}
+          {/* 3. Sub-Wilayah jika cakupan Wilayah */}
           {cakupanHarga === "KHUSUS_WILAYAH" && (
             <div className="p-3 bg-amber-50 rounded-lg border-2 border-amber-300">
               <label className="block font-bold text-amber-900 mb-1 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-amber-700" />
-                <span>Pilih Sub-Wilayah Spesifik di Bawah Cabang Anda:</span>
+                <span>Pilih 1 Wilayah Spesifik di Bawah Cabang Anda:</span>
               </label>
               <select
                 value={wilayahCabangId}
                 onChange={(e) => setWilayahCabangId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border-2 border-amber-300 bg-white text-slate-800 font-semibold focus:border-[#005BAC] focus:outline-hidden"
               >
-                <option value="">-- Pilih Sub-Wilayah --</option>
+                <option value="">-- Pilih Wilayah --</option>
                 {wilayahList.map((w) => (
                   <option key={w.id} value={w.id}>
                     [{w.kodeWilayah}] {w.namaWilayah}
@@ -363,7 +363,7 @@ export function ModalRequestPenetapanHarga({
                 ))}
               </select>
               <p className="text-[11px] text-amber-800 mt-1">
-                *Harga yang disetujui akan menjadi acuan khusus toko di wilayah ini, menimpa harga induk cabang.
+                *1 pengajuan berlaku untuk 1 wilayah saja. Ajukan terpisah untuk wilayah lain.
               </p>
             </div>
           )}

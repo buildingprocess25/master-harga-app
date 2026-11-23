@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
+import { buatDeskripsiOtomatis } from "@/lib/services/master-item-service";
+import { buatKodePaket } from "@/lib/utils";
 import {
   PengajuanHargaItem,
   SurveyTokoItem,
@@ -21,8 +23,16 @@ export async function GET(
     // Fallback user di dev/preview
     if (!user) {
       const referer = request.headers.get("referer") || "";
-      const isBuildingCoord = referer.includes("building-coordinator");
-      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+      let targetRole: any = "BM_MANAGER";
+      if (referer.includes("sb-specialist")) {
+        targetRole = "SB_SPECIALIST";
+      } else if (referer.includes("regional-manager")) {
+        targetRole = "REGIONAL_MANAGER";
+      } else if (referer.includes("building-coordinator")) {
+        targetRole = "BUILDING_COORDINATOR";
+      } else if (referer.includes("kontraktor")) {
+        targetRole = "KONTRAKTOR";
+      }
 
       const defaultUser = await prisma.user.findFirst({
         where: { role: targetRole },
@@ -100,39 +110,40 @@ export async function GET(
       );
     }
 
-    // Ekstrak data survei 3 toko (diambil dari komponen material rincian AHSP atau survei yang ada)
+    // Ekstrak komponen AHSP sekaligus data survei 3 toko per komponen
     const allSurvei: SurveyTokoItem[] = [];
-    for (const rincian of pengajuan.rincianAHSP) {
-      for (const s of rincian.surveiTokoList) {
-        const lampiranList: LampiranSurveiItem[] = s.lampiranList.map((l) => ({
-          id: l.id,
-          tipe: (l.jenisLampiran as TipeLampiranSurvei) || "NOTA_PEMBELIAN",
-          namaFile: l.namaFile,
-          url: l.fileUrl,
-          keterangan: l.ukuranFile || undefined,
-        }));
-
-        allSurvei.push({
-          id: s.id,
-          noToko: s.urutanToko,
-          namaToko: s.namaToko,
-          alamat: s.alamatToko || "",
-          kota: "",
-          kontak: "",
-          tanggalSurvei: s.tanggalSurvei.toISOString(),
-          harga: Number(s.hargaSatuanSurvei),
-          catatan: s.catatanSurvei || "",
-          lampiranList,
-        });
-      }
-    }
-
-    // Ekstrak komponen AHSP
     let calcTotalHpp = 0;
     let calcTotalHargaSatuan = 0;
 
     const koefisienItems: KoefisienDetailItem[] = pengajuan.rincianAHSP.map(
       (r) => {
+        const componentSurvei: SurveyTokoItem[] = [...r.surveiTokoList]
+          .sort((a, b) => a.urutanToko - b.urutanToko)
+          .map((s) => {
+            const lampiranList: LampiranSurveiItem[] = s.lampiranList.map((l) => ({
+              id: l.id,
+              tipe: (l.jenisLampiran as TipeLampiranSurvei) || "NOTA_PEMBELIAN",
+              namaFile: l.namaFile,
+              url: l.fileUrl,
+              keterangan: l.ukuranFile || undefined,
+            }));
+
+            return {
+              id: s.id,
+              noToko: s.urutanToko,
+              namaToko: s.namaToko,
+              alamat: s.alamatToko || "",
+              kota: "",
+              kontak: "",
+              tanggalSurvei: s.tanggalSurvei.toISOString(),
+              harga: Number(s.hargaSatuanSurvei),
+              catatan: s.catatanSurvei || "",
+              lampiranList,
+            };
+          });
+
+        allSurvei.push(...componentSurvei);
+
         const koefisien = Number(r.nilaiKoefisien);
         const hargaAcuan = Number(r.hargaAcuanSatuan);
         const subtotal = koefisien * hargaAcuan;
@@ -144,6 +155,7 @@ export async function GET(
 
         return {
           id: r.id,
+          masterKoefisienId: r.masterKoefisienId,
           kodeKomponen: r.masterKoefisienId,
           kategori: (r.kategoriKomponen as KategoriKoefisien) || "MATERIAL",
           namaKomponen: r.namaKomponen,
@@ -152,34 +164,75 @@ export async function GET(
           hargaAcuan,
           subtotal,
           marginPersen,
+          wajibSurveiToko: r.masterKoefisien?.wajibSurveiToko ?? false,
           total,
+          surveiTokoList: componentSurvei,
         };
       }
     );
 
-    // Ekstrak voting kontraktor
-    const votingKontraktorList: VotingKontraktorItem[] =
-      pengajuan.votingKontraktorList.map((v) => {
-        const lampiranBandingList: LampiranBandingItem[] =
-          v.lampiranBandingList.map((l) => ({
-            id: l.id,
-            namaFile: l.namaFile,
-            url: l.fileUrl,
-            keterangan: l.ukuranFile || undefined,
-          }));
-
+    const koefisienMaterialItems = koefisienItems
+      .filter((k) => k.kategori === "MATERIAL" || k.kategori === "ALAT")
+      .map((k) => {
+        const stores = k.surveiTokoList || [];
+        const validHarga = stores.map((s) => s.harga).filter((h) => h > 0);
+        const rataRata =
+          validHarga.length > 0
+            ? Math.round(validHarga.reduce((a, b) => a + b, 0) / validHarga.length)
+            : k.hargaAcuan;
         return {
-          id: v.id,
-          kontraktorId: v.kontraktorCabang.kontraktorId,
-          namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
-          email: v.kontraktorCabang.kontraktor.email,
-          statusVote: v.statusVote,
-          tanggalVote: v.tanggalRespon ? v.tanggalRespon.toISOString() : undefined,
-          hargaBanding: v.usulanHarga ? Number(v.usulanHarga) : undefined,
-          catatanBanding: v.catatanPenolakan || undefined,
-          lampiranBandingList,
+          id: k.id,
+          rincianAhspId: k.id,
+          label: k.namaKomponen,
+          unit: k.satuan,
+          value: String(k.koefisien),
+          koefisien: k.koefisien,
+          surveyToko: stores,
+          hargaSurveiRataRata: rataRata,
+          hargaAcuan: rataRata,
+          subtotal: Math.round(rataRata * k.koefisien),
         };
       });
+
+    // Ekstrak voting kontraktor pada putaran terakhir (jika ada)
+    const maxPutaran = pengajuan.votingKontraktorList.reduce(
+      (max, v) => Math.max(max, v.putaranVote),
+      0
+    );
+    const latestRoundVotes =
+      maxPutaran > 0
+        ? pengajuan.votingKontraktorList.filter((v) => v.putaranVote === maxPutaran)
+        : pengajuan.votingKontraktorList;
+
+    const votingKontraktorList: VotingKontraktorItem[] = latestRoundVotes.map((v) => {
+      const lampiranBandingList: LampiranBandingItem[] =
+        v.lampiranBandingList.map((l) => ({
+          id: l.id,
+          namaFile: l.namaFile,
+          url: l.fileUrl,
+          keterangan: l.ukuranFile || undefined,
+        }));
+
+      return {
+        id: v.id,
+        kontraktorId: v.kontraktorCabang.kontraktorId,
+        namaPerusahaan: v.kontraktorCabang.kontraktor.namaPerusahaan,
+        email: v.kontraktorCabang.kontraktor.email,
+        statusVote: v.statusVote,
+        tanggalVote: v.tanggalRespon ? v.tanggalRespon.toISOString() : undefined,
+        hargaBanding: v.usulanHarga ? Number(v.usulanHarga) : undefined,
+        catatanBanding: v.catatanPenolakan || undefined,
+        lampiranBandingList,
+      };
+    });
+
+    const lastSignificantAuditLog = pengajuan.auditLogs.find(
+      (l) => l.action !== "SIMPAN_DRAFT_MARGIN"
+    );
+    const isRevisiMargin =
+      pengajuan.status === "PENDING_SB_SPECIALIST" &&
+      (lastSignificantAuditLog?.action === "BANDING_REVISI_MARGIN" ||
+        lastSignificantAuditLog?.action === "KEMBALIKAN_TINJAUAN_MARGIN");
 
     const setujuCount = votingKontraktorList.filter(
       (v) => v.statusVote === "SETUJU"
@@ -188,18 +241,46 @@ export async function GET(
       votingKontraktorList.length > 0 &&
       setujuCount > votingKontraktorList.length / 2;
 
+    const indukHargaRow =
+      pengajuan.cakupanHarga === "KHUSUS_WILAYAH" && pengajuan.masterItemId
+        ? await prisma.masterHargaCabang.findUnique({
+            where: {
+              masterItemId_cabangId_divisiId: {
+                masterItemId: pengajuan.masterItemId,
+                cabangId: pengajuan.cabangId,
+                divisiId: pengajuan.divisiId,
+              },
+            },
+            select: { hargaFinalInduk: true, statusHarga: true },
+          })
+        : null;
+
     // Bentuk objek terpadu PengajuanHargaItem
     const formattedItem: PengajuanHargaItem = {
       id: pengajuan.id,
+      masterItemId: pengajuan.masterItemId,
       noTiket: pengajuan.nomorTiket,
+      kodePaket:
+        pengajuan.kodePaket ||
+        buatKodePaket(pengajuan.cabang.kodeCabang, pengajuan.tanggalPengajuan),
       kodeItem: pengajuan.masterItem?.kodeItem || "ITEM-CUSTOM",
+      kelompokKode: (pengajuan.masterItem?.kodeItem || "").toUpperCase().startsWith("ME-")
+        ? "ME"
+        : "SIP",
+      kodeMaster: pengajuan.masterItem?.kodeMaster || undefined,
       namaItem: pengajuan.masterItem?.namaItem || "Item Tidak Ditemukan",
       kategori: pengajuan.masterItem?.kategori || "Pekerjaan",
+      jenisCor: pengajuan.masterItem?.jenisCor || undefined,
       merk: pengajuan.masterItem?.merk,
       tipe: pengajuan.masterItem?.tipe || undefined,
       ukuran: pengajuan.masterItem?.ukuran,
       warna: pengajuan.masterItem?.warna || undefined,
+      permukaan: pengajuan.masterItem?.permukaan || undefined,
+      tebal: pengajuan.masterItem?.tebal || undefined,
+      toleransi: pengajuan.masterItem?.toleransi || undefined,
       lokasi: pengajuan.masterItem?.lokasi,
+      satuan: pengajuan.masterItem?.satuan || undefined,
+      deskripsiOtomatis: pengajuan.masterItem?.deskripsiOtomatis || undefined,
 
       divisiId: pengajuan.divisiId,
       namaDivisi: pengajuan.divisi.namaDivisi,
@@ -212,12 +293,17 @@ export async function GET(
       cakupanHarga: pengajuan.cakupanHarga,
       wilayahCabangId: pengajuan.wilayahCabangId,
       namaWilayah: pengajuan.wilayahCabang?.namaWilayah,
+      hargaIndukCabang:
+        indukHargaRow?.statusHarga === "AKTIF"
+          ? indukHargaRow.hargaFinalInduk.toNumber()
+          : undefined,
 
       status: pengajuan.status,
       tanggalPengajuan: pengajuan.tanggalPengajuan.toISOString(),
       alasanPengajuan: pengajuan.catatanReview || undefined,
       catatanReviewTerakhir:
         pengajuan.auditLogs[0]?.catatan || pengajuan.catatanReview || undefined,
+      isRevisiMargin,
 
       surveiTokoList: allSurvei,
       hargaAcuanPasar: pengajuan.rataRataSurveiMaterial
@@ -225,9 +311,16 @@ export async function GET(
         : undefined,
 
       koefisienItems,
-      liveMarginUpah: Number(pengajuan.marginAwalPersen) || 8.0,
-      liveMarginMaterial: Number(pengajuan.marginAwalPersen) || 8.0,
-      liveMarginBongkaran: Number(pengajuan.marginAwalPersen) || 8.0,
+      koefisienMaterialItems,
+      liveMarginUpah:
+        koefisienItems.find((k) => k.kategori === "UPAH")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
+      liveMarginMaterial:
+        koefisienItems.find((k) => k.kategori === "MATERIAL")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
+      liveMarginBongkaran:
+        koefisienItems.find((k) => k.kategori === "BONGKARAN")?.marginPersen ??
+        (Number(pengajuan.marginAwalPersen) || 8.0),
       totalHpp: calcTotalHpp,
       totalHargaSatuan: calcTotalHargaSatuan,
 
@@ -265,8 +358,16 @@ export async function PATCH(
     // Fallback user di dev/preview
     if (!user) {
       const referer = request.headers.get("referer") || "";
-      const isBuildingCoord = referer.includes("building-coordinator");
-      const targetRole = isBuildingCoord ? "BUILDING_COORDINATOR" : "BM_MANAGER";
+      let targetRole: any = "BM_MANAGER";
+      if (referer.includes("sb-specialist")) {
+        targetRole = "SB_SPECIALIST";
+      } else if (referer.includes("regional-manager")) {
+        targetRole = "REGIONAL_MANAGER";
+      } else if (referer.includes("building-coordinator")) {
+        targetRole = "BUILDING_COORDINATOR";
+      } else if (referer.includes("kontraktor")) {
+        targetRole = "KONTRAKTOR";
+      }
 
       const defaultUser = await prisma.user.findFirst({
         where: { role: targetRole },
@@ -311,10 +412,22 @@ export async function PATCH(
       );
     }
 
+    if (user.role === "SB_SPECIALIST" && existing.status !== "DIAJUKAN") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "S&B Specialist hanya dapat mengubah redaksi spesifikasi saat tiket berstatus DIAJUKAN.",
+        },
+        { status: 409 }
+      );
+    }
+
     const {
       item,
       namaItem,
+      kelompokKode,
       kategori,
+      jenisCor,
       merk,
       ukuran,
       tipe,
@@ -330,46 +443,119 @@ export async function PATCH(
     } = body;
 
     const actualItemName = (namaItem || item || existing.masterItem?.namaItem || "").trim();
+    const resolvedKategori = (kategori ?? existing.masterItem?.kategori ?? "").trim();
+    const isKategoriCor = resolvedKategori.toLowerCase().includes("cor");
+    const resolvedJenisCor = isKategoriCor
+      ? jenisCor !== undefined
+        ? jenisCor?.trim() || null
+        : existing.masterItem?.jenisCor ?? null
+      : null;
+    const resolvedUkuran = ukuran ?? existing.masterItem?.ukuran ?? "-";
+    const resolvedMerk = merk ?? existing.masterItem?.merk ?? "-";
+    const resolvedTipe = tipe !== undefined ? tipe?.trim() || null : existing.masterItem?.tipe ?? null;
+    const resolvedWarna = warna !== undefined ? warna?.trim() || null : existing.masterItem?.warna ?? null;
+    const resolvedPermukaan = permukaan !== undefined ? permukaan?.trim() || null : existing.masterItem?.permukaan ?? null;
+    const resolvedTebal = tebal !== undefined ? tebal?.trim() || null : existing.masterItem?.tebal ?? null;
+    const resolvedToleransi = toleransi !== undefined ? toleransi?.trim() || null : existing.masterItem?.toleransi ?? null;
+    const resolvedLokasi = lokasi ?? existing.masterItem?.lokasi ?? "Area Toko";
+    const resolvedSatuan = satuan ? satuan.toUpperCase() : existing.masterItem?.satuan ?? "M2";
 
-    // Deskripsi otomatis terstandar
-    const autoDesc = [
-      actualItemName,
-      ukuran ?? existing.masterItem?.ukuran,
-      merk ?? existing.masterItem?.merk,
-      warna ?? existing.masterItem?.warna,
-      (tipe ?? existing.masterItem?.tipe) ? `Tipe ${tipe ?? existing.masterItem?.tipe}` : "",
-      (tebal ?? existing.masterItem?.tebal) ? `Tebal ${tebal ?? existing.masterItem?.tebal}` : "",
-      permukaan ?? existing.masterItem?.permukaan,
-      (toleransi ?? existing.masterItem?.toleransi) ? `Toleransi ${toleransi ?? existing.masterItem?.toleransi}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    // Deskripsi otomatis selalu dihasilkan dari kolom terstruktur (tidak boleh diedit bebas)
+    const autoDesc = buatDeskripsiOtomatis({
+      kategori: resolvedKategori,
+      jenisCor: resolvedJenisCor,
+      namaItem: actualItemName,
+      ukuran: resolvedUkuran,
+      merk: resolvedMerk,
+      tipe: resolvedTipe,
+      warna: resolvedWarna,
+      permukaan: resolvedPermukaan,
+      tebal: resolvedTebal,
+      toleransi: resolvedToleransi,
+      lokasi: resolvedLokasi,
+      satuan: resolvedSatuan,
+    });
 
     // Update MasterItem dan PengajuanHarga dalam transaksi
+    const currentPrefix: "SIP" | "ME" = (existing.masterItem?.kodeItem || "")
+      .toUpperCase()
+      .startsWith("ME-")
+      ? "ME"
+      : "SIP";
+    const requestedPrefix: "SIP" | "ME" =
+      kelompokKode === "ME"
+        ? "ME"
+        : kelompokKode === "SIP"
+        ? "SIP"
+        : currentPrefix;
+
     const updated = await prisma.$transaction(async (tx) => {
-      if (existing.masterItemId) {
+      let nextKodeItem = existing.masterItem?.kodeItem;
+      let nextKodeMaster = existing.masterItem?.kodeMaster;
+
+      if (existing.masterItemId && existing.masterItem) {
+        if (requestedPrefix !== currentPrefix) {
+          const allCodes = await tx.masterItem.findMany({
+            select: { kodeItem: true },
+          });
+          const seqRegex = new RegExp(`^${requestedPrefix}-(\\d+)`, "i");
+          let maxSeq = 0;
+          for (const row of allCodes) {
+            const m = row.kodeItem.match(seqRegex);
+            if (m) {
+              const num = parseInt(m[1], 10);
+              if (num > maxSeq) maxSeq = num;
+            }
+          }
+          const varianToken = (existing.masterItem.kodeVarian || "A").trim().toUpperCase();
+          const cleanKatToken = (resolvedKategori || "Umum").replace(/\s+/g, "");
+          let guard = 0;
+          do {
+            maxSeq += 1;
+            nextKodeItem = `${requestedPrefix}-${String(maxSeq).padStart(3, "0")}`;
+            nextKodeMaster = `${nextKodeItem}-${varianToken}-${cleanKatToken}`;
+            const conflict = await tx.masterItem.findFirst({
+              where: {
+                id: { not: existing.masterItemId },
+                OR: [
+                  { kodeMaster: nextKodeMaster },
+                  { kodeItem: nextKodeItem, kodeVarian: varianToken },
+                ],
+              },
+              select: { id: true },
+            });
+            if (!conflict) break;
+            guard++;
+          } while (guard < 50);
+        }
+
         await tx.masterItem.update({
           where: { id: existing.masterItemId },
           data: {
+            kodeItem: nextKodeItem,
+            kodeMaster: nextKodeMaster,
             namaItem: actualItemName,
-            kategori: kategori ?? existing.masterItem?.kategori,
-            merk: merk ?? existing.masterItem?.merk,
-            ukuran: ukuran ?? existing.masterItem?.ukuran,
-            tipe: tipe ?? existing.masterItem?.tipe,
-            warna: warna ?? existing.masterItem?.warna,
-            permukaan: permukaan ?? existing.masterItem?.permukaan,
-            tebal: tebal ?? existing.masterItem?.tebal,
-            toleransi: toleransi ?? existing.masterItem?.toleransi,
-            lokasi: lokasi ?? existing.masterItem?.lokasi,
-            satuan: satuan ? satuan.toUpperCase() : existing.masterItem?.satuan,
+            kategori: resolvedKategori,
+            jenisCor: resolvedJenisCor,
+            merk: resolvedMerk,
+            ukuran: resolvedUkuran,
+            tipe: resolvedTipe,
+            warna: resolvedWarna,
+            permukaan: resolvedPermukaan,
+            tebal: resolvedTebal,
+            toleransi: resolvedToleransi,
+            lokasi: resolvedLokasi,
+            satuan: resolvedSatuan,
             deskripsiOtomatis: autoDesc || existing.masterItem?.deskripsiOtomatis,
           },
         });
       }
 
+      const isResubmittingRevision = existing.status === "PERLU_REVISI";
       const pUpdate = await tx.pengajuanHarga.update({
         where: { id: existing.id },
         data: {
+          ...(isResubmittingRevision ? { status: "DIAJUKAN" } : {}),
           cakupanHarga: cakupanHarga ?? existing.cakupanHarga,
           catatanReview: catatanReview ?? alasanPengajuan ?? existing.catatanReview,
         },
@@ -381,14 +567,21 @@ export async function PATCH(
         },
       });
 
+      const kodeChangeNote =
+        requestedPrefix !== currentPrefix && nextKodeItem
+          ? ` (Kelompok diubah ${currentPrefix} → ${requestedPrefix}, kode baru: ${nextKodeItem})`
+          : "";
+
       // Audit Log
       await tx.approvalAuditLog.create({
         data: {
           pengajuanHargaId: existing.id,
           userId: user.id,
           roleActor: user.role,
-          action: "UPDATE_SPESIFIKASI",
-          catatan: catatanReview || `Spesifikasi material diperbarui oleh ${user.fullName}`,
+          action: isResubmittingRevision ? "AJUKAN_ULANG_REVISI" : "UPDATE_SPESIFIKASI",
+          catatan:
+            (catatanReview || `Spesifikasi material diperbarui oleh ${user.fullName}`) +
+            kodeChangeNote,
         },
       });
 

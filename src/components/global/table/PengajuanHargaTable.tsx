@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   FileText,
@@ -8,10 +8,14 @@ import {
   Building2,
   Download,
   FileSpreadsheet,
+  Package,
+  ChevronDown,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { PengajuanHargaItem } from "@/types";
-import { formatTanggal } from "@/lib/utils";
+import { buatKodePaket, formatTanggal } from "@/lib/utils";
 import { exportToCSV, exportToExcel } from "@/lib/export-utils";
 
 import { CodeBadge } from "./atoms/CodeBadge";
@@ -43,6 +47,7 @@ export interface PengajuanHargaTableProps {
   getDetailHref?: (item: PengajuanHargaItem) => string;
   enableExport?: boolean;
   exportFilename?: string;
+  groupByPaket?: boolean;
 }
 
 export function PengajuanHargaTable({
@@ -63,8 +68,60 @@ export function PengajuanHargaTable({
   getDetailHref,
   enableExport = true,
   exportFilename = "Daftar_Antrean_Harga",
+  groupByPaket = true,
 }: PengajuanHargaTableProps) {
   const pathname = usePathname();
+  const [isGrouped, setIsGrouped] = useState(groupByPaket);
+  const [collapsedPakets, setCollapsedPakets] = useState<Record<string, boolean>>({});
+
+  const paketGroups = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        paketKey: string;
+        cabangLabel: string;
+        tanggalLabel: string;
+        items: PengajuanHargaItem[];
+        statusCounts: Record<string, number>;
+      }
+    >();
+    for (const item of items) {
+      const tglRaw = item.tanggalPengajuan || item.createdAt;
+      const tglDate = tglRaw ? new Date(tglRaw) : new Date();
+      const paketKey =
+        item.kodePaket ||
+        buatKodePaket(
+          item.kodeCabang || item.cabang || item.namaCabang,
+          isNaN(tglDate.getTime()) ? new Date() : tglDate
+        );
+      const cabangLabel =
+        item.cabang ||
+        item.namaCabang ||
+        (item.cakupanHarga === "KHUSUS_WILAYAH"
+          ? item.namaWilayah || "Wilayah"
+          : "Induk Cabang");
+      if (!map.has(paketKey)) {
+        map.set(paketKey, {
+          paketKey,
+          cabangLabel,
+          tanggalLabel: formatTanggal(tglRaw),
+          items: [],
+          statusCounts: {},
+        });
+      }
+      const group = map.get(paketKey)!;
+      group.items.push(item);
+      group.statusCounts[item.status] = (group.statusCounts[item.status] || 0) + 1;
+    }
+    return Array.from(map.values());
+  }, [items]);
+
+  const togglePaketCollapse = (paketKey: string) => {
+    setCollapsedPakets((prev) => ({
+      ...prev,
+      [paketKey]: !prev[paketKey],
+    }));
+  };
 
   // Hitung jumlah kolom dinamis untuk skeleton & empty state
   // Base: No (1) + Kode (1) + Material (1) + Deskripsi (1) + Kategori (1) + Aksi (1) = 6
@@ -105,41 +162,62 @@ export function PengajuanHargaTable({
     <div
       className={`bg-white rounded-xl border-2 border-slate-300 shadow-xs overflow-hidden ${className}`}
     >
-      {/* Table Card Header with Counter & Export Actions */}
+      {/* Table Card Header with Counter, Paket Grouping Toggle & Export Actions */}
       <div className="px-5 py-3.5 border-b-2 border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <span className="text-xs font-black uppercase tracking-wider text-slate-800">
             {title}
           </span>
           <span className="text-[11px] bg-[#005BAC] text-white px-2.5 py-0.5 rounded-full font-bold">
             {items.length} Material
           </span>
+          {isGrouped && paketGroups.length > 0 && (
+            <span className="text-[11px] bg-slate-800 text-white px-2.5 py-0.5 rounded-full font-bold">
+              {paketGroups.length} Paket
+            </span>
+          )}
         </div>
 
-        {enableExport && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => exportToCSV(items, exportFilename)}
-              disabled={loading || items.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-              title="Ekspor data ke format CSV"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-600" />
-              <span>CSV</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => exportToExcel(items, exportFilename)}
-              disabled={loading || items.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-[#0F8A5F] bg-white hover:bg-emerald-50 text-[#0F8A5F] text-xs font-bold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-              title="Ekspor data ke format Excel"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F8A5F]" />
-              <span>Excel</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsGrouped((prev) => !prev)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-xs font-bold cursor-pointer transition-colors shadow-xs ${
+              isGrouped
+                ? "bg-[#005BAC] border-[#005BAC] text-white hover:bg-[#004585]"
+                : "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+            }`}
+            title="Alihkan tampilan grup paket pengajuan harian"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{isGrouped ? "Grup Paket" : "Semua Baris"}</span>
+          </button>
+
+          {enableExport && (
+            <>
+              <button
+                type="button"
+                onClick={() => exportToCSV(items, exportFilename)}
+                disabled={loading || items.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                title="Ekspor data ke format CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>CSV</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => exportToExcel(items, exportFilename)}
+                disabled={loading || items.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-[#0F8A5F] bg-white hover:bg-emerald-50 text-[#0F8A5F] text-xs font-bold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                title="Ekspor data ke format Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F8A5F]" />
+                <span>Excel</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Table Container */}
@@ -210,15 +288,16 @@ export function PengajuanHargaTable({
                 onReset={onResetFilter}
               />
             ) : (
-              items.map((item, idx) => {
-                const kode = item.kode || item.kodeItem || item.noTiket || "-";
+              (() => {
+                const renderItemRow = (item: PengajuanHargaItem, idx: number) => {
+                  const kode = item.kode || item.kodeItem || item.noTiket || "-";
                 const nama = item.item || item.namaItem || "-";
                 const tgl = item.tanggalPengajuan || item.createdAt;
                 const cabangName =
                   item.cabang ||
                   item.namaCabang ||
                   (item.cakupanHarga === "KHUSUS_WILAYAH"
-                    ? item.namaWilayah || "Khusus Wilayah"
+                    ? item.namaWilayah || "Wilayah"
                     : "Induk Cabang");
                 const deskripsi =
                   item.deskripsiOtomatis ||
@@ -355,7 +434,63 @@ export function PengajuanHargaTable({
                     </td>
                   </tr>
                 );
-              })
+              };
+
+              if (!isGrouped) {
+                return items.map((item, idx) => renderItemRow(item, idx));
+              }
+
+              return paketGroups.map((group) => {
+                const isCollapsed = Boolean(collapsedPakets[group.paketKey]);
+                const statusEntries = Object.entries(group.statusCounts);
+                return (
+                  <React.Fragment key={group.paketKey}>
+                    <tr
+                      onClick={() => togglePaketCollapse(group.paketKey)}
+                      className="bg-slate-800 hover:bg-slate-900 text-white cursor-pointer select-none border-b-2 border-slate-300"
+                    >
+                      <td colSpan={totalCols} className="px-4 py-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            {isCollapsed ? (
+                              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-300 shrink-0" />
+                            )}
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#005BAC] text-white font-mono text-[11px] font-black">
+                              <Package className="w-3.5 h-3.5" />
+                              {group.paketKey}
+                            </span>
+                            <span className="text-xs font-bold text-white">
+                              {group.cabangLabel}
+                            </span>
+                            <span className="text-[11px] font-semibold text-slate-300">
+                              &bull; {group.tanggalLabel}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black">
+                              {group.items.length} Item
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {statusEntries.map(([st, count]) => (
+                              <span
+                                key={st}
+                                className="px-2 py-0.5 rounded bg-slate-700 border border-slate-500 text-white text-[10px] font-bold"
+                              >
+                                {count} {st.replace(/_/g, " ")}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    {!isCollapsed &&
+                      group.items.map((item, idx) => renderItemRow(item, idx))}
+                  </React.Fragment>
+                );
+              });
+            })()
             )}
           </tbody>
         </table>

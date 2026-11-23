@@ -42,7 +42,7 @@ export default function BuildingCoordinatorDashboardPage() {
     if (!val) return "";
     return val
       .toLowerCase()
-      .replace(/^(cabang\s*)+/i, "")
+      .replace(/\bcabang\b/gi, "")
       .replace(/\s+/g, " ")
       .trim();
   };
@@ -107,7 +107,11 @@ export default function BuildingCoordinatorDashboardPage() {
     fetchData();
   }, []);
 
-  const userCabang = (user?.namaCabang || "Cikokol").replace(/^(cabang\s*)+/i, "").trim() || "Cikokol";
+  const userCabang =
+    (user?.namaCabang || "Cikokol")
+      .replace(/\bcabang\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim() || "Cikokol";
 
   // Filter Koleksi Data Berdasarkan Cabang Pengguna
   const branchScopedItems = useMemo(() => {

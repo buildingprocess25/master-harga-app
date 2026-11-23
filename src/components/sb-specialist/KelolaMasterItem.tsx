@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Pencil, Plus } from "lucide-react";
 import type { BarisMasterItem, SpesifikasiItem } from "@/lib/services/master-item-service";
 import { simpanMasterItemAction } from "@/app/sb-specialist/actions";
 import { notifikasi } from "@/components/pengajuan/konfirmasi";
+import { buatDeskripsiOtomatis } from "@/lib/utils";
 
 const INPUT =
   "w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#005BAC]/20 focus:border-[#005BAC] disabled:bg-slate-100 disabled:text-slate-500";
@@ -22,6 +23,7 @@ const KOSONG = (divisiId: string): FormItem => ({
   kodeItem: "",
   kodeVarian: "01",
   kategori: "",
+  jenisCor: "",
   namaItem: "",
   ukuran: "",
   merk: "",
@@ -36,25 +38,13 @@ const KOSONG = (divisiId: string): FormItem => ({
 
 /** Pratinjau deskripsi otomatis (selaras buatDeskripsiOtomatis di server). */
 function pratinjauDeskripsi(f: FormItem) {
-  const r = (s: string) => s.trim().replace(/\s+/g, " ");
-  return [
-    r(f.namaItem),
-    f.ukuran && `ukuran ${r(f.ukuran)}`,
-    f.merk && `merk ${r(f.merk)}`,
-    f.tipe && `tipe ${r(f.tipe)}`,
-    f.warna && `warna ${r(f.warna)}`,
-    f.permukaan && `permukaan ${r(f.permukaan)}`,
-    f.tebal && `tebal ${r(f.tebal)}`,
-    f.toleransi && `toleransi ${r(f.toleransi)}`,
-    f.lokasi && `lokasi ${r(f.lokasi)}`,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  return buatDeskripsiOtomatis(f);
 }
 
 const FIELD: { key: keyof SpesifikasiItem; label: string; wajib?: boolean; contoh?: string }[] = [
   { key: "namaItem", label: "Nama item", wajib: true, contoh: "Pasang Keramik Lantai" },
   { key: "kategori", label: "Kategori pekerjaan", wajib: true, contoh: "Pekerjaan Lantai" },
+  { key: "jenisCor", label: "Jenis cor (jika Pekerjaan Cor)", contoh: "Ready Mix K-225" },
   { key: "ukuran", label: "Ukuran / dimensi", wajib: true, contoh: "60x60 cm" },
   { key: "merk", label: "Merk", wajib: true, contoh: "Granito" },
   { key: "tipe", label: "Tipe / varian" },
@@ -86,6 +76,7 @@ export function KelolaMasterItem({
       kodeItem: r.kodeItem,
       kodeVarian: r.kodeVarian,
       kategori: r.kategori,
+      jenisCor: r.jenisCor ?? "",
       namaItem: r.namaItem,
       ukuran: r.ukuran,
       merk: r.merk,
@@ -203,7 +194,7 @@ export function KelolaMasterItem({
               </div>
               <div>
                 <label htmlFor="mi-kode" className="block text-xs font-bold text-slate-700 mb-1">Kode item</label>
-                <input id="mi-kode" value={form.kodeItem} disabled={!!form.id} onChange={(e) => setForm({ ...form, kodeItem: e.target.value.toUpperCase() })} placeholder="SIP-001" className={`${INPUT} font-mono`} />
+                <input id="mi-kode" value={form.kodeItem} disabled={!!form.id} onChange={(e) => setForm({ ...form, kodeItem: e.target.value.toUpperCase() })} placeholder="SIP-001 / ME-001" className={`${INPUT} font-mono`} />
               </div>
               <div>
                 <label htmlFor="mi-varian" className="block text-xs font-bold text-slate-700 mb-1">Kode varian</label>

@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronRight, FileText, ShieldCheck } from "lucide-react";
 import { PengajuanHargaItem, RoleUser } from "@/types";
 import { cn } from "@/lib/utils";
 import { PengajuanTimelineBar } from "./PengajuanTimelineBar";
-import { DetailSpesifikasiCard } from "./DetailSpesifikasiCard";
+import { DetailSpesifikasi } from "./DetailSpesifikasi";
 import { RincianSurvei3TokoCard } from "./RincianSurvei3TokoCard";
 import { RingkasanBiayaMaterial } from "./RingkasanBiayaMaterial";
 import { RincianKalkulasiKoefisien } from "./RincianKalkulasiKoefisien";
@@ -61,7 +61,7 @@ export function PengajuanDetailLayout({
         </Link>
 
         <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-          <span>SPARTA-HARGA</span>
+          <span>SPARTA-PRICING</span>
           <ChevronRight className="w-3 h-3" />
           <span>Pengajuan</span>
           <ChevronRight className="w-3 h-3" />
@@ -75,7 +75,7 @@ export function PengajuanDetailLayout({
       <PengajuanTimelineBar item={item} />
 
       {/* 2. Kartu Spesifikasi Master Item */}
-      <DetailSpesifikasiCard item={item} />
+      <DetailSpesifikasi item={item} showDeskripsi={true} />
 
       {/* 3. Hasil Survei 3 Toko Pasar (Jika status sudah masuk tahap survei atau setelahnya) */}
       {(hasSurvei || item.status !== "DIAJUKAN") && (
@@ -106,11 +106,13 @@ export function PengajuanDetailLayout({
         />
       )}
 
-      {/* 5. Pemantauan Kuorum Rekanan Kontraktor (Jika tahap kuorum aktif) */}
+      {/* 5. Pemantauan Kuorum Rekanan / Kontraktor (Jika tahap kuorum aktif) */}
       {isTahapKontraktor && item.votingKontraktorList && (
         <VotingKontraktorMonitorCard
           votingList={item.votingKontraktorList}
           deadlineVoting={item.deadlineVoting}
+          kodeDivisi={item.kodeDivisi}
+          namaDivisi={item.namaDivisi}
         />
       )}
 

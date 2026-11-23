@@ -1,5 +1,5 @@
 /**
- * SPARTA-HARGA: Shared TypeScript Data Contracts
+ * SPARTA-PRICING: Shared TypeScript Data Contracts
  * Single Source of Truth (SSOT) untuk modul pengajuan harga, survei pasar 3 toko,
  * kalkulasi koefisien AHSP, live margin, dan kuorum rekanan kontraktor.
  */
@@ -81,16 +81,19 @@ export interface SurveyTokoItem {
 
 export interface KoefisienDetailItem {
   id: string;
+  masterKoefisienId?: string;
   kodeKomponen?: string;
   kategori: KategoriKoefisien;
   namaKomponen: string;
   satuan: string;
   koefisien: number; // e.g. 0.0188
   hargaAcuan: number; // Harga acuan rupiah dari rata-rata survei
-  subtotal: number; // koefisien * hargaAcuan
-  marginPersen: number; // e.g. 8%
-  total: number; // subtotal * (1 + marginPersen / 100)
+  subtotal?: number; // koefisien * hargaAcuan
+  marginPersen?: number; // e.g. 8%
+  total?: number; // subtotal * (1 + marginPersen / 100)
+  wajibSurveiToko?: boolean;
   isCustom?: boolean;
+  surveiTokoList?: SurveyTokoItem[];
 }
 
 // ============================================================================
@@ -109,6 +112,7 @@ export interface LampiranBandingItem {
 export interface VotingKontraktorItem {
   id: string;
   kontraktorId: string;
+  jenisMitra?: "KONTRAKTOR" | "REKANAN";
   namaPerusahaan: string;
   email?: string;
   statusVote: StatusVoteKontraktor;
@@ -160,17 +164,23 @@ export interface UserSessionProfile {
 // CORE TICKET: PENGAJUAN HARGA LENGKAP
 // ============================================================================
 
+export type KelompokKodeItem = "SIP" | "ME";
+
 export interface PengajuanHargaItem {
   id: string;
+  masterItemId?: string | null;
   noTiket: string;
+  kodePaket?: string;
   kodeItem: string;
+  kelompokKode?: KelompokKodeItem;
   namaItem: string;
   kategori: string;
+  jenisCor?: string;
   merk?: string;
   tipe?: string;
   ukuran?: string;
   warna?: string;
-  lokasi?: string;
+  lokasi?: string | string[];
 
   // Organisasi & Lokasi
   divisiId: string;
@@ -182,12 +192,14 @@ export interface PengajuanHargaItem {
   cakupanHarga: CakupanHarga;
   wilayahCabangId?: string | null;
   namaWilayah?: string | null;
+  hargaIndukCabang?: number;
 
   // Siklus Status & Audit
   status: StatusPengajuanHarga;
   tanggalPengajuan: string;
   alasanPengajuan?: string;
   catatanReviewTerakhir?: string;
+  isRevisiMargin?: boolean;
 
   // Survei 3 Toko Pasar
   surveiTokoList: SurveyTokoItem[];
@@ -216,12 +228,18 @@ export interface PengajuanHargaItem {
   estimasiHarga?: number;
   hargaRataRata?: number;
   satuan?: string;
-  implementasi?: string;
+  implementasi?: string | string[];
   tebal?: string;
   permukaan?: string;
   toleransi?: string;
   informasiTambahan?: string;
   isTrial?: boolean;
+  trialDurationDays?: number;
+  alasanTrial?: string;
+  trialCatatanEvaluasi?: string;
+  isHasilNegosiasi?: boolean;
+  usulanHargaKontraktor?: number;
+  votingKontraktor?: any;
   catatanReview?: string;
   koefisienMaterial?: string;
   koefisienMaterialItems?: any[];
@@ -272,6 +290,7 @@ export const DAFTAR_CABANG_ALFAMART: string[] = [
 
 export function generateDeskripsiOtomatis(data: {
   item: string;
+  jenisCor?: string;
   ukuran: string;
   merk: string;
   warna: string;
@@ -286,6 +305,10 @@ export function generateDeskripsiOtomatis(data: {
   const parts: string[] = [];
 
   if (data.item?.trim()) parts.push(data.item.trim());
+  if (data.jenisCor?.trim()) {
+    const cleanJenis = data.jenisCor.trim();
+    parts.push(cleanJenis.toLowerCase().startsWith("jenis") ? cleanJenis : `Jenis ${cleanJenis}`);
+  }
   if (data.ukuran?.trim()) parts.push(data.ukuran.trim());
   if (data.merk?.trim()) parts.push(data.merk.trim());
   if (data.warna?.trim()) parts.push(data.warna.trim());
@@ -337,6 +360,8 @@ export function generateDeskripsiOtomatis(data: {
 
 export function getKodeData(data: {
   kategori?: string;
+  prefixKode?: KelompokKodeItem;
+  jenisCor?: string;
   item: string;
   implementasi?: string | string[];
   lokasi: string | string[];
@@ -360,11 +385,17 @@ export function getKodeData(data: {
   const normUkuran = (s?: string) => (s || "").trim().replace(/\s*cm$/i, "").replace(/\s+/g, "").toLowerCase();
   const normTebal = (s?: string) => (s || "").trim().replace(/\s*mm$/i, "").replace(/\s+/g, "").toLowerCase();
 
+  const activePrefix: KelompokKodeItem = data.prefixKode === "ME" ? "ME" : "SIP";
+  const itemPrefixMatchRegex = new RegExp(`^(${activePrefix}-\\d+)`, "i");
+  const prefixNumRegex = new RegExp(`^${activePrefix}-(\\d+)`, "i");
+  const variantMatchRegex = /(?:SIP|ME)-\d+-([A-Z])-/i;
+
   const cleanKategori = (data.kategori || data.item || "Kategori").trim().replace(/\s+/g, "");
   const existingItems = data.existingItems || [];
   const nextIndex = data.nextIndex || (existingItems.length + 1);
 
   const cItem = norm(data.item);
+  const cJenisCor = norm(data.jenisCor);
   const cUkuran = normUkuran(data.ukuran);
   const cMerk = norm(data.merk);
   const cWarna = norm(data.warna);
@@ -376,12 +407,26 @@ export function getKodeData(data: {
       ? data.lokasi.map((l) => norm(l)).sort().join(",")
       : norm(data.lokasi)
     : "";
+  const cImplementasi = data.implementasi
+    ? Array.isArray(data.implementasi)
+      ? data.implementasi.map((i) => norm(i)).sort().join(",")
+      : norm(data.implementasi)
+    : "";
+
+  const resolveItemPrefix = (i: PengajuanHargaItem): KelompokKodeItem => {
+    if (i.kelompokKode === "ME") return "ME";
+    if (i.kelompokKode === "SIP") return "SIP";
+    const code = (i.kode || i.kodeItem || "").toUpperCase();
+    return code.startsWith("ME-") ? "ME" : "SIP";
+  };
 
   const isPhysicalMatch = (i: PengajuanHargaItem) => {
     const iItem = i.item || i.namaItem;
     if (!cItem || !iItem) return false;
+    if (resolveItemPrefix(i) !== activePrefix) return false;
     return (
       norm(iItem) === cItem &&
+      norm(i.jenisCor) === cJenisCor &&
       normUkuran(i.ukuran) === cUkuran &&
       norm(i.merk) === cMerk &&
       norm(i.warna) === cWarna &&
@@ -400,10 +445,12 @@ export function getKodeData(data: {
 
   if (physicalMatches.length > 0) {
     const existingCode = physicalMatches[0].kode || physicalMatches[0].kodeItem || "";
-    const matchSIP = existingCode.match(/^(SIP-\d+)/i);
-    kodeItem = matchSIP ? matchSIP[1].toUpperCase() : `SIP-${String(nextIndex).padStart(3, "0")}`;
+    const matchCode = existingCode.match(itemPrefixMatchRegex);
+    kodeItem = matchCode
+      ? matchCode[1].toUpperCase()
+      : `${activePrefix}-${String(nextIndex).padStart(3, "0")}`;
 
-    const matchedLocationItem = physicalMatches.find((i) => {
+    const matchedTargetItem = physicalMatches.find((i) => {
       const iLok = i.lokasi;
       const iLokStr = Array.isArray(iLok)
         ? iLok.map((l) => norm(l)).sort().join(",")
@@ -411,17 +458,24 @@ export function getKodeData(data: {
       return iLokStr === cLokasi;
     });
 
-    if (matchedLocationItem && cLokasi) {
+    if (matchedTargetItem && cLokasi) {
       isDuplicate = true;
-      duplicateItem = matchedLocationItem;
-      const vMatch = (matchedLocationItem.kodeItem || matchedLocationItem.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+      duplicateItem = matchedTargetItem;
+      const vMatch = (
+        matchedTargetItem.kodeMaster ||
+        matchedTargetItem.kodeItem ||
+        matchedTargetItem.noTiket ||
+        ""
+      ).match(variantMatchRegex);
       kodeVarian = vMatch ? vMatch[1].toUpperCase() : "A";
     } else {
       const usedVariants = new Set<string>();
       physicalMatches.forEach((i) => {
-        const vMatch = (i.kodeItem || i.noTiket || "").match(/SIP-\d+-([A-Z])-/i);
+        const vMatch = (i.kodeMaster || i.kodeItem || i.noTiket || "").match(variantMatchRegex);
         if (vMatch) {
           usedVariants.add(vMatch[1].toUpperCase());
+        } else {
+          usedVariants.add("A");
         }
       });
 
@@ -432,20 +486,23 @@ export function getKodeData(data: {
       kodeVarian = String.fromCharCode(nextCharCode);
     }
   } else {
-    let maxSIP = 0;
+    let maxSeq = 0;
     existingItems.forEach((i) => {
       const codeToCheck = i.kode || i.kodeItem || "";
-      const match = codeToCheck.match(/SIP-(\d+)/i);
+      const match = codeToCheck.match(prefixNumRegex);
       if (match) {
         const num = parseInt(match[1], 10);
-        if (num > maxSIP) {
-          maxSIP = num;
+        if (num > maxSeq) {
+          maxSeq = num;
         }
       }
     });
 
-    const nextSIPNum = Math.max(maxSIP + 1, nextIndex);
-    kodeItem = `SIP-${String(nextSIPNum).padStart(3, "0")}`;
+    const nextNum =
+      existingItems.length > 0
+        ? maxSeq + 1
+        : Math.max(maxSeq + 1, activePrefix === "SIP" ? nextIndex : 1);
+    kodeItem = `${activePrefix}-${String(nextNum).padStart(3, "0")}`;
     kodeVarian = "A";
   }
 

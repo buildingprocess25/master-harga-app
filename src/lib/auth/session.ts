@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { UserSessionProfile, RoleUser } from "@/types";
 
-const SESSION_COOKIE_NAME = "sparta_harga_session";
+export const SESSION_COOKIE_NAME = "sparta_pricing_session";
 const SESSION_SECRET =
   process.env.SESSION_SECRET ||
-  "sparta-harga-enterprise-zero-trust-secret-key-2026-sumber-alfaria-trijaya";
+  "sparta-pricing-enterprise-zero-trust-secret-key-2026-sumber-alfaria-trijaya";
 
 // TTL Sesi: 8 Jam (Standar shift operasional Alfamart)
-const SESSION_MAX_AGE = 8 * 60 * 60;
+export const SESSION_MAX_AGE = 8 * 60 * 60;
 
 /**
  * Membuat token sesi terenkripsi sederhana berbasis Base64 & HMAC signature menggunakan Web Crypto.
@@ -88,7 +88,7 @@ export async function verifySessionToken(
 /**
  * Simpan token sesi ke HTTP-only cookie.
  */
-export async function setSessionCookie(profile: UserSessionProfile) {
+export async function setSessionCookie(profile: UserSessionProfile): Promise<string> {
   const token = await signSessionToken(profile);
   const cookieStore = await cookies();
 
@@ -99,6 +99,8 @@ export async function setSessionCookie(profile: UserSessionProfile) {
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
+
+  return token;
 }
 
 /**
@@ -107,7 +109,9 @@ export async function setSessionCookie(profile: UserSessionProfile) {
 export async function getSessionUser(): Promise<UserSessionProfile | null> {
   const cookieStore = await cookies();
 
-  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
+  const sessionCookie =
+    cookieStore.get(SESSION_COOKIE_NAME) ||
+    cookieStore.get("sparta_harga_session");
   if (sessionCookie?.value) {
     const verified = await verifySessionToken(sessionCookie.value);
     if (verified) return verified;
@@ -122,4 +126,5 @@ export async function getSessionUser(): Promise<UserSessionProfile | null> {
 export async function clearSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+  cookieStore.delete("sparta_harga_session");
 }

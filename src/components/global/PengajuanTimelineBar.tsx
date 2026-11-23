@@ -53,7 +53,7 @@ export function PengajuanTimelineBar({
     return "pengajuan_baru";
   })();
 
-  // 2. Susun 8 Tahapan Alur Sesuai Standar Bisnis SPARTA-HARGA
+  // 2. Susun 8 Tahapan Alur Sesuai Standar Bisnis SPARTA-PRICING
   let steps: TimelineStep[] = [];
   let flowTitle = "Alur Pengajuan Baru";
   let flowIcon = <Shield className="w-4 h-4 text-[#005BAC]" />;

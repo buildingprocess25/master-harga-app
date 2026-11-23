@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth/session";
 import { advanceTicketStatus } from "@/lib/services/state-machine";
+import { TX_OPTIONS } from "@/lib/services/transisi-tiket";
 
 interface StoreSurveyInput {
   noToko: number;
@@ -195,6 +196,11 @@ export async function POST(
         if (rincianId) {
           const rincianExists = await tx.rincianAhspPengajuan.findUnique({
             where: { id: rincianId },
+            include: {
+              masterKoefisien: {
+                select: { id: true, hargaAcuanDefault: true },
+              },
+            },
           });
 
           if (rincianExists) {
@@ -205,6 +211,19 @@ export async function POST(
                 subtotal,
               },
             });
+
+            // Isi hargaAcuanDefault otomatis hanya jika masih kosong agar survei cabang lain tidak menimpa acuan nasional
+            if (
+              existing.cakupanHarga !== "KHUSUS_WILAYAH" &&
+              rincianExists.masterKoefisien &&
+              rincianExists.masterKoefisien.hargaAcuanDefault === null &&
+              avg > 0
+            ) {
+              await tx.masterKoefisien.update({
+                where: { id: rincianExists.masterKoefisien.id },
+                data: { hargaAcuanDefault: avg },
+              });
+            }
           } else {
             rincianId = undefined;
           }
@@ -323,7 +342,7 @@ export async function POST(
       });
 
       return updatedTiket;
-    });
+    }, TX_OPTIONS);
 
     return NextResponse.json({
       success: true,

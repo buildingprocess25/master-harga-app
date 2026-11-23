@@ -192,6 +192,7 @@ export type DivisiWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Divisi"> | Date | string
   masterItems?: Prisma.MasterItemListRelationFilter
   masterKoefisiens?: Prisma.MasterKoefisienListRelationFilter
+  masterHargaCabangList?: Prisma.MasterHargaCabangListRelationFilter
   pengajuanHargaList?: Prisma.PengajuanHargaListRelationFilter
   kontraktorCabangs?: Prisma.KontraktorCabangListRelationFilter
   users?: Prisma.UserListRelationFilter
@@ -206,6 +207,7 @@ export type DivisiOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   masterItems?: Prisma.MasterItemOrderByRelationAggregateInput
   masterKoefisiens?: Prisma.MasterKoefisienOrderByRelationAggregateInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangOrderByRelationAggregateInput
   pengajuanHargaList?: Prisma.PengajuanHargaOrderByRelationAggregateInput
   kontraktorCabangs?: Prisma.KontraktorCabangOrderByRelationAggregateInput
   users?: Prisma.UserOrderByRelationAggregateInput
@@ -223,6 +225,7 @@ export type DivisiWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Divisi"> | Date | string
   masterItems?: Prisma.MasterItemListRelationFilter
   masterKoefisiens?: Prisma.MasterKoefisienListRelationFilter
+  masterHargaCabangList?: Prisma.MasterHargaCabangListRelationFilter
   pengajuanHargaList?: Prisma.PengajuanHargaListRelationFilter
   kontraktorCabangs?: Prisma.KontraktorCabangListRelationFilter
   users?: Prisma.UserListRelationFilter
@@ -261,6 +264,7 @@ export type DivisiCreateInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserCreateNestedManyWithoutDivisiInput
@@ -275,6 +279,7 @@ export type DivisiUncheckedCreateInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
@@ -289,6 +294,7 @@ export type DivisiUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
@@ -303,6 +309,7 @@ export type DivisiUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
@@ -442,6 +449,20 @@ export type DivisiUpdateOneRequiredWithoutMasterKoefisiensNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.DivisiUpdateToOneWithWhereWithoutMasterKoefisiensInput, Prisma.DivisiUpdateWithoutMasterKoefisiensInput>, Prisma.DivisiUncheckedUpdateWithoutMasterKoefisiensInput>
 }
 
+export type DivisiCreateNestedOneWithoutMasterHargaCabangListInput = {
+  create?: Prisma.XOR<Prisma.DivisiCreateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedCreateWithoutMasterHargaCabangListInput>
+  connectOrCreate?: Prisma.DivisiCreateOrConnectWithoutMasterHargaCabangListInput
+  connect?: Prisma.DivisiWhereUniqueInput
+}
+
+export type DivisiUpdateOneRequiredWithoutMasterHargaCabangListNestedInput = {
+  create?: Prisma.XOR<Prisma.DivisiCreateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedCreateWithoutMasterHargaCabangListInput>
+  connectOrCreate?: Prisma.DivisiCreateOrConnectWithoutMasterHargaCabangListInput
+  upsert?: Prisma.DivisiUpsertWithoutMasterHargaCabangListInput
+  connect?: Prisma.DivisiWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DivisiUpdateToOneWithWhereWithoutMasterHargaCabangListInput, Prisma.DivisiUpdateWithoutMasterHargaCabangListInput>, Prisma.DivisiUncheckedUpdateWithoutMasterHargaCabangListInput>
+}
+
 export type DivisiCreateNestedOneWithoutPengajuanHargaListInput = {
   create?: Prisma.XOR<Prisma.DivisiCreateWithoutPengajuanHargaListInput, Prisma.DivisiUncheckedCreateWithoutPengajuanHargaListInput>
   connectOrCreate?: Prisma.DivisiCreateOrConnectWithoutPengajuanHargaListInput
@@ -465,6 +486,7 @@ export type DivisiCreateWithoutUsersInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
 }
@@ -478,6 +500,7 @@ export type DivisiUncheckedCreateWithoutUsersInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
 }
@@ -507,6 +530,7 @@ export type DivisiUpdateWithoutUsersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
 }
@@ -520,6 +544,7 @@ export type DivisiUncheckedUpdateWithoutUsersInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
 }
@@ -533,6 +558,7 @@ export type DivisiCreateWithoutKontraktorCabangsInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserCreateNestedManyWithoutDivisiInput
 }
@@ -546,6 +572,7 @@ export type DivisiUncheckedCreateWithoutKontraktorCabangsInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
 }
@@ -575,6 +602,7 @@ export type DivisiUpdateWithoutKontraktorCabangsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
 }
@@ -588,6 +616,7 @@ export type DivisiUncheckedUpdateWithoutKontraktorCabangsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
 }
@@ -600,6 +629,7 @@ export type DivisiCreateWithoutMasterItemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserCreateNestedManyWithoutDivisiInput
@@ -613,6 +643,7 @@ export type DivisiUncheckedCreateWithoutMasterItemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
@@ -642,6 +673,7 @@ export type DivisiUpdateWithoutMasterItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
@@ -655,6 +687,7 @@ export type DivisiUncheckedUpdateWithoutMasterItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
@@ -668,6 +701,7 @@ export type DivisiCreateWithoutMasterKoefisiensInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserCreateNestedManyWithoutDivisiInput
@@ -681,6 +715,7 @@ export type DivisiUncheckedCreateWithoutMasterKoefisiensInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
@@ -710,6 +745,7 @@ export type DivisiUpdateWithoutMasterKoefisiensInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
@@ -723,6 +759,79 @@ export type DivisiUncheckedUpdateWithoutMasterKoefisiensInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
+  pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
+  kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
+  users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
+}
+
+export type DivisiCreateWithoutMasterHargaCabangListInput = {
+  id?: string
+  kodeDivisi: string
+  namaDivisi: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
+  masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  pengajuanHargaList?: Prisma.PengajuanHargaCreateNestedManyWithoutDivisiInput
+  kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
+  users?: Prisma.UserCreateNestedManyWithoutDivisiInput
+}
+
+export type DivisiUncheckedCreateWithoutMasterHargaCabangListInput = {
+  id?: string
+  kodeDivisi: string
+  namaDivisi: string
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
+  masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  pengajuanHargaList?: Prisma.PengajuanHargaUncheckedCreateNestedManyWithoutDivisiInput
+  kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
+}
+
+export type DivisiCreateOrConnectWithoutMasterHargaCabangListInput = {
+  where: Prisma.DivisiWhereUniqueInput
+  create: Prisma.XOR<Prisma.DivisiCreateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedCreateWithoutMasterHargaCabangListInput>
+}
+
+export type DivisiUpsertWithoutMasterHargaCabangListInput = {
+  update: Prisma.XOR<Prisma.DivisiUpdateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedUpdateWithoutMasterHargaCabangListInput>
+  create: Prisma.XOR<Prisma.DivisiCreateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedCreateWithoutMasterHargaCabangListInput>
+  where?: Prisma.DivisiWhereInput
+}
+
+export type DivisiUpdateToOneWithWhereWithoutMasterHargaCabangListInput = {
+  where?: Prisma.DivisiWhereInput
+  data: Prisma.XOR<Prisma.DivisiUpdateWithoutMasterHargaCabangListInput, Prisma.DivisiUncheckedUpdateWithoutMasterHargaCabangListInput>
+}
+
+export type DivisiUpdateWithoutMasterHargaCabangListInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  kodeDivisi?: Prisma.StringFieldUpdateOperationsInput | string
+  namaDivisi?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
+  masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  pengajuanHargaList?: Prisma.PengajuanHargaUpdateManyWithoutDivisiNestedInput
+  kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
+  users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
+}
+
+export type DivisiUncheckedUpdateWithoutMasterHargaCabangListInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  kodeDivisi?: Prisma.StringFieldUpdateOperationsInput | string
+  namaDivisi?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
+  masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
   pengajuanHargaList?: Prisma.PengajuanHargaUncheckedUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
@@ -737,6 +846,7 @@ export type DivisiCreateWithoutPengajuanHargaListInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserCreateNestedManyWithoutDivisiInput
 }
@@ -750,6 +860,7 @@ export type DivisiUncheckedCreateWithoutPengajuanHargaListInput = {
   updatedAt?: Date | string
   masterItems?: Prisma.MasterItemUncheckedCreateNestedManyWithoutDivisiInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedCreateNestedManyWithoutDivisiInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedCreateNestedManyWithoutDivisiInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedCreateNestedManyWithoutDivisiInput
   users?: Prisma.UserUncheckedCreateNestedManyWithoutDivisiInput
 }
@@ -779,6 +890,7 @@ export type DivisiUpdateWithoutPengajuanHargaListInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUpdateManyWithoutDivisiNestedInput
 }
@@ -792,6 +904,7 @@ export type DivisiUncheckedUpdateWithoutPengajuanHargaListInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   masterItems?: Prisma.MasterItemUncheckedUpdateManyWithoutDivisiNestedInput
   masterKoefisiens?: Prisma.MasterKoefisienUncheckedUpdateManyWithoutDivisiNestedInput
+  masterHargaCabangList?: Prisma.MasterHargaCabangUncheckedUpdateManyWithoutDivisiNestedInput
   kontraktorCabangs?: Prisma.KontraktorCabangUncheckedUpdateManyWithoutDivisiNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutDivisiNestedInput
 }
@@ -804,6 +917,7 @@ export type DivisiUncheckedUpdateWithoutPengajuanHargaListInput = {
 export type DivisiCountOutputType = {
   masterItems: number
   masterKoefisiens: number
+  masterHargaCabangList: number
   pengajuanHargaList: number
   kontraktorCabangs: number
   users: number
@@ -812,6 +926,7 @@ export type DivisiCountOutputType = {
 export type DivisiCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   masterItems?: boolean | DivisiCountOutputTypeCountMasterItemsArgs
   masterKoefisiens?: boolean | DivisiCountOutputTypeCountMasterKoefisiensArgs
+  masterHargaCabangList?: boolean | DivisiCountOutputTypeCountMasterHargaCabangListArgs
   pengajuanHargaList?: boolean | DivisiCountOutputTypeCountPengajuanHargaListArgs
   kontraktorCabangs?: boolean | DivisiCountOutputTypeCountKontraktorCabangsArgs
   users?: boolean | DivisiCountOutputTypeCountUsersArgs
@@ -839,6 +954,13 @@ export type DivisiCountOutputTypeCountMasterItemsArgs<ExtArgs extends runtime.Ty
  */
 export type DivisiCountOutputTypeCountMasterKoefisiensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.MasterKoefisienWhereInput
+}
+
+/**
+ * DivisiCountOutputType without action
+ */
+export type DivisiCountOutputTypeCountMasterHargaCabangListArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MasterHargaCabangWhereInput
 }
 
 /**
@@ -872,6 +994,7 @@ export type DivisiSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   updatedAt?: boolean
   masterItems?: boolean | Prisma.Divisi$masterItemsArgs<ExtArgs>
   masterKoefisiens?: boolean | Prisma.Divisi$masterKoefisiensArgs<ExtArgs>
+  masterHargaCabangList?: boolean | Prisma.Divisi$masterHargaCabangListArgs<ExtArgs>
   pengajuanHargaList?: boolean | Prisma.Divisi$pengajuanHargaListArgs<ExtArgs>
   kontraktorCabangs?: boolean | Prisma.Divisi$kontraktorCabangsArgs<ExtArgs>
   users?: boolean | Prisma.Divisi$usersArgs<ExtArgs>
@@ -909,6 +1032,7 @@ export type DivisiOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type DivisiInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   masterItems?: boolean | Prisma.Divisi$masterItemsArgs<ExtArgs>
   masterKoefisiens?: boolean | Prisma.Divisi$masterKoefisiensArgs<ExtArgs>
+  masterHargaCabangList?: boolean | Prisma.Divisi$masterHargaCabangListArgs<ExtArgs>
   pengajuanHargaList?: boolean | Prisma.Divisi$pengajuanHargaListArgs<ExtArgs>
   kontraktorCabangs?: boolean | Prisma.Divisi$kontraktorCabangsArgs<ExtArgs>
   users?: boolean | Prisma.Divisi$usersArgs<ExtArgs>
@@ -922,6 +1046,7 @@ export type $DivisiPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     masterItems: Prisma.$MasterItemPayload<ExtArgs>[]
     masterKoefisiens: Prisma.$MasterKoefisienPayload<ExtArgs>[]
+    masterHargaCabangList: Prisma.$MasterHargaCabangPayload<ExtArgs>[]
     pengajuanHargaList: Prisma.$PengajuanHargaPayload<ExtArgs>[]
     kontraktorCabangs: Prisma.$KontraktorCabangPayload<ExtArgs>[]
     users: Prisma.$UserPayload<ExtArgs>[]
@@ -1329,6 +1454,7 @@ export interface Prisma__DivisiClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   masterItems<T extends Prisma.Divisi$masterItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$masterItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MasterItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   masterKoefisiens<T extends Prisma.Divisi$masterKoefisiensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$masterKoefisiensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MasterKoefisienPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  masterHargaCabangList<T extends Prisma.Divisi$masterHargaCabangListArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$masterHargaCabangListArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MasterHargaCabangPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   pengajuanHargaList<T extends Prisma.Divisi$pengajuanHargaListArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$pengajuanHargaListArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PengajuanHargaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kontraktorCabangs<T extends Prisma.Divisi$kontraktorCabangsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$kontraktorCabangsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KontraktorCabangPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   users<T extends Prisma.Divisi$usersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Divisi$usersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1805,6 +1931,30 @@ export type Divisi$masterKoefisiensArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.MasterKoefisienScalarFieldEnum | Prisma.MasterKoefisienScalarFieldEnum[]
+}
+
+/**
+ * Divisi.masterHargaCabangList
+ */
+export type Divisi$masterHargaCabangListArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MasterHargaCabang
+   */
+  select?: Prisma.MasterHargaCabangSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MasterHargaCabang
+   */
+  omit?: Prisma.MasterHargaCabangOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MasterHargaCabangInclude<ExtArgs> | null
+  where?: Prisma.MasterHargaCabangWhereInput
+  orderBy?: Prisma.MasterHargaCabangOrderByWithRelationInput | Prisma.MasterHargaCabangOrderByWithRelationInput[]
+  cursor?: Prisma.MasterHargaCabangWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MasterHargaCabangScalarFieldEnum | Prisma.MasterHargaCabangScalarFieldEnum[]
 }
 
 /**

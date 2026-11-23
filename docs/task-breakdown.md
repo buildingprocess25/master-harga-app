@@ -173,19 +173,19 @@ flowchart TD
 
 * **Tanggung Jawab Utama**: Interaksi rekanan eksternal, kuorum voting, penanganan kontraktor parked, dan katalog harga resmi.
 * **Daftar Tugas Spesifik**:
-  - [ ] **Portal Rekanan Kontraktor (`/kontraktor` & `/kontraktor/[id]`)**:
+  - [x] **Portal Rekanan Kontraktor (`/kontraktor` & `/kontraktor/[id]`)**:
     - Antarmuka khusus rekanan dengan isolasi data ketat: kontraktor hanya dapat melihat penawaran cabang yang mengikat PT-nya (`kontraktorId`).
     - Countdown SLA Timer (3×24 jam) untuk merespons penawaran.
     - Aksi voting: **Setuju** vs **Usulkan Banding**.
-  - [ ] **Formulir Usulan Banding Kontraktor**:
+  - [x] **Formulir Usulan Banding Kontraktor**:
     - Input nilai harga usulan baru, catatan argumentasi, dan upload berkas bukti pembanding pasar (`LampiranBanding`).
-  - [ ] **Kuorum Engine (50% + 1)**:
+  - [x] **Kuorum Engine (50% + 1)**:
     - Kalkulasi reaktif persentase voting rekanan aktif per cabang.
     - Aturan otomatisasi penonaktifan: rekanan yang menolak 2x berturut-turut otomatis berstatus `NONAKTIF_SEMENTARA` (*Parked*).
-  - [ ] **Manajemen Rekanan Parked**:
+  - [x] **Manajemen Rekanan Parked**:
     - Tampilan tabel daftar rekanan *parked* per cabang (tanpa log diskusi sistem).
     - Tombol aksi tunggal: **"Aktifkan Kembali" (*Unpark*)** untuk mengembalikan rekanan ke status aktif oleh S&B / Regional Manager.
-  - [ ] **Direktori Master Harga Resmi (`/master-harga`)**:
+  - [x] **Direktori Master Harga Resmi (`/master-harga`)**:
     - Halaman katalog resmi harga satuan yang berstatus `RELEASED`.
     - Tampilan hierarki: harga induk cabang vs penanda khusus (*badge override*) untuk harga wilayah khusus.
     - Filter pencarian, filter kategori pekerjaan, dan fitur ekspor data ke Excel / PDF.

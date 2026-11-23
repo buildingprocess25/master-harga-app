@@ -14,9 +14,9 @@ import {
 /** Urutan kategori AHSP yang dipakai di seluruh tampilan. */
 export const KATEGORI_AHSP: KategoriKoefisien[] = ["UPAH", "MATERIAL", "ALAT", "BONGKARAN"];
 
-/** Komponen Alat tidak diberi margin (selaras dengan RincianKalkulasiKoefisien). */
-export function marginDefaultKategori(kategori: string, marginAwal: number) {
-  return kategori === "ALAT" ? 0 : marginAwal;
+/** Komponen Material (Bahan & Peralatan) menggunakan margin material yang sama. */
+export function marginDefaultKategori(_kategori: string, marginAwal: number) {
+  return marginAwal;
 }
 
 /**
@@ -64,9 +64,11 @@ export async function getAntreanPengajuan(user: UserSessionProfile, filter: Filt
     },
     orderBy: [{ updatedAt: "asc" }],
     include: {
-      masterItem: { select: { namaItem: true, kodeMaster: true, kategori: true, satuan: true } },
+      masterItem: {
+        select: { namaItem: true, kodeMaster: true, kategori: true, jenisCor: true, satuan: true },
+      },
       divisi: { select: { namaDivisi: true } },
-      cabang: { select: { namaCabang: true, regional: true } },
+      cabang: { select: { namaCabang: true, kodeCabang: true, regional: true } },
       wilayahCabang: { select: { namaWilayah: true } },
       pembuatUser: { select: { fullName: true } },
       _count: { select: { rincianAHSP: true } },
@@ -76,13 +78,16 @@ export async function getAntreanPengajuan(user: UserSessionProfile, filter: Filt
   return rows.map((r) => ({
     id: r.id,
     nomorTiket: r.nomorTiket,
+    kodePaket: r.kodePaket ?? null,
     status: r.status as StatusPengajuanHarga,
     namaItem: r.masterItem?.namaItem ?? "(Item belum terhubung)",
     kodeMaster: r.masterItem?.kodeMaster ?? null,
     kategori: r.masterItem?.kategori ?? "-",
+    jenisCor: r.masterItem?.jenisCor ?? null,
     satuan: r.masterItem?.satuan ?? null,
     namaDivisi: r.divisi.namaDivisi,
     namaCabang: r.cabang.namaCabang,
+    kodeCabang: r.cabang.kodeCabang,
     regional: r.cabang.regional,
     namaWilayah: r.wilayahCabang?.namaWilayah ?? null,
     cakupanHarga: r.cakupanHarga,
@@ -229,8 +234,8 @@ function petakanKeKontrak(t: DetailDb): PengajuanHargaItem {
   // Survei disimpan per komponen material; kontrak UI saat ini menampilkan satu daftar 3 toko.
   const surveiTokoList: SurveyTokoItem[] = t.rincianAHSP.flatMap((r) => r.surveiTokoList.map(petakanSurvei));
 
-  const totalHpp = koefisienItems.reduce((a, k) => a + k.subtotal, 0);
-  const totalHargaSatuan = koefisienItems.reduce((a, k) => a + k.total, 0);
+  const totalHpp = koefisienItems.reduce((a, k) => a + (k.subtotal ?? 0), 0);
+  const totalHargaSatuan = koefisienItems.reduce((a, k) => a + (k.total ?? 0), 0);
 
   return {
     id: t.id,

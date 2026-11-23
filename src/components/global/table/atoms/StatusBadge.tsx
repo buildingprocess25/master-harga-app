@@ -102,7 +102,7 @@ export function StatusBadge({ status, isTrial = false, className = "" }: StatusB
     case "PENDING_SB_SPECIALIST":
       return (
         <span className={cn(baseClasses, "bg-[#005BAC] border border-blue-900", className)}>
-          Kalkulasi SNB
+          Review Survei
         </span>
       );
 

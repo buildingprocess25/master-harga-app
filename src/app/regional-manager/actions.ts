@@ -48,11 +48,11 @@ export async function putuskanLayer3Action(input: {
     });
     revalidasi(input.tiketId);
     if (hasil.status === "PENDING_KONTRAKTOR") {
-      return `Harga disetujui. Kuorum putaran ${hasil.putaran} dibuka untuk ${hasil.totalDiundang} rekanan (SLA 3x24 jam).`;
+      return `Harga disetujui. Penawaran dibuka ke kontraktor cabang.`;
     }
     return hasil.status === "PENDING_SB_SPECIALIST"
-      ? "Tiket dikembalikan ke S&B Specialist untuk tinjauan ulang margin."
-      : "Pengajuan ditolak permanen.";
+      ? "Pengajuan dikembalikan ke S&B Specialist."
+      : "Pengajuan ditolak.";
   });
 }
 
@@ -72,7 +72,7 @@ export async function putuskanKuorumGagalAction(input: {
     });
     revalidasi(input.tiketId);
     return hasil.status === "PENDING_KONTRAKTOR"
-      ? `Kuorum dibuka ulang: putaran ${hasil.putaran} untuk ${hasil.totalDiundang} rekanan.`
-      : "Pengajuan ditolak permanen.";
+      ? "Penawaran dibuka kembali ke kontraktor."
+      : "Pengajuan ditolak.";
   });
 }
