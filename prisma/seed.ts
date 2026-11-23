@@ -1,5 +1,7 @@
 import prisma from "../src/lib/prisma";
 import { buatKodePaket } from "../src/lib/utils";
+import { seedMasterHargaCatalog } from "./seed-master-harga";
+import { seedMultiCabangAccounts } from "./seed-multi-cabang-accounts";
 
 async function main() {
   console.log("🚀 Memulai seeding data resmi SPARTA-HARGA...");
@@ -82,17 +84,32 @@ async function main() {
     },
   });
 
-  // Sub-Wilayah Khusus di bawah Cabang Cikokol
+  // Wilayah di bawah Cabang Cikokol (1 wilayah = 1 area tersendiri)
   const wilayahSerang = await prisma.wilayahCabang.upsert({
     where: { kodeWilayah: "WIL-SRG" },
     update: {
-      namaWilayah: "Wilayah Serang Kota & Kabupaten",
+      namaWilayah: "Wilayah Kota Serang",
       cabangId: cabangCikokol.id,
       isActive: true,
     },
     create: {
       kodeWilayah: "WIL-SRG",
-      namaWilayah: "Wilayah Serang Kota & Kabupaten",
+      namaWilayah: "Wilayah Kota Serang",
+      cabangId: cabangCikokol.id,
+      isActive: true,
+    },
+  });
+
+  await prisma.wilayahCabang.upsert({
+    where: { kodeWilayah: "WIL-SRG-KAB" },
+    update: {
+      namaWilayah: "Wilayah Kab. Serang",
+      cabangId: cabangCikokol.id,
+      isActive: true,
+    },
+    create: {
+      kodeWilayah: "WIL-SRG-KAB",
+      namaWilayah: "Wilayah Kab. Serang",
       cabangId: cabangCikokol.id,
       isActive: true,
     },
@@ -116,13 +133,13 @@ async function main() {
   const wilayahLebak = await prisma.wilayahCabang.upsert({
     where: { kodeWilayah: "WIL-LBK" },
     update: {
-      namaWilayah: "Wilayah Lebak / Rangkasbitung",
+      namaWilayah: "Wilayah Kab. Lebak",
       cabangId: cabangCikokol.id,
       isActive: true,
     },
     create: {
       kodeWilayah: "WIL-LBK",
-      namaWilayah: "Wilayah Lebak / Rangkasbitung",
+      namaWilayah: "Wilayah Kab. Lebak",
       cabangId: cabangCikokol.id,
       isActive: true,
     },
@@ -741,17 +758,17 @@ async function main() {
   const userRegMgr = await prisma.user.upsert({
     where: { email: "reg.manager1@alfamart.co.id" },
     update: {
-      fullName: "David Hartono (Regional Manager Jabodetabek)",
+      fullName: "David Hartono (Regional Manager HO)",
       role: "REGIONAL_MANAGER",
-      branchName: "Regional Jabodetabek",
+      branchName: "Head Office",
       divisiId: divisiBuilding.id,
       isActive: true,
     },
     create: {
       email: "reg.manager1@alfamart.co.id",
-      fullName: "David Hartono (Regional Manager Jabodetabek)",
+      fullName: "David Hartono (Regional Manager HO)",
       role: "REGIONAL_MANAGER",
-      branchName: "Regional Jabodetabek",
+      branchName: "Head Office",
       divisiId: divisiBuilding.id,
       isActive: true,
     },
@@ -1489,6 +1506,9 @@ async function main() {
   }
 
   console.log("✅ 6 Sampel Tiket Siklus Lengkap & Rilis Harga berhasil diseed.");
+  await seedMasterHargaCatalog(prisma as any);
+  await seedMultiCabangAccounts(prisma as any);
+  console.log("✅ Akun Testing Multi-Cabang (Cikokol, Balaraja, Bandung 1) berhasil diseed.");
   console.log("🎉 Seeding database SPARTA-HARGA selesai 100%!");
 }
 

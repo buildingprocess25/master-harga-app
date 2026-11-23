@@ -1,26 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
-
-const DIR_LAMPIRAN_SURVEI = path.join(
-  process.env.STORAGE_DIR || path.join(process.cwd(), "storage"),
-  "lampiran-survei"
-);
+import {
+  TIPE_LAMPIRAN_UMUM,
+  cocokSignature,
+  simpanBerkasLampiran,
+} from "@/lib/storage/lampiran-storage";
 
 const MAKS_UKURAN_LAMPIRAN = 10 * 1024 * 1024; // 10 MB per file
-
-const TIPE_LAMPIRAN: Record<string, { ext: string; mime: string }> = {
-  "application/pdf": { ext: "pdf", mime: "application/pdf" },
-  "image/jpeg": { ext: "jpg", mime: "image/jpeg" },
-  "image/png": { ext: "png", mime: "image/png" },
-  "image/webp": { ext: "webp", mime: "image/webp" },
-};
-
-function formatUkuran(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,12 +36,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await mkdir(DIR_LAMPIRAN_SURVEI, { recursive: true });
-
     const results = [];
 
     for (const file of rawFiles) {
-      const tipe = TIPE_LAMPIRAN[file.type];
+      const tipe = TIPE_LAMPIRAN_UMUM[file.type];
       if (!tipe) {
         return NextResponse.json(
           {
@@ -77,15 +61,42 @@ export async function POST(request: NextRequest) {
       }
 
       const buf = Buffer.from(await file.arrayBuffer());
-      const namaSimpan = `${randomUUID()}.${tipe.ext}`;
-      await writeFile(path.join(DIR_LAMPIRAN_SURVEI, namaSimpan), buf);
+      if (!cocokSignature(buf, tipe.mime)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `${file.name}: isi berkas tidak sesuai dengan formatnya.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const saved = await simpanBerkasLampiran({
+        buffer: buf,
+        originalName: file.name,
+        mimeType: tipe.mime,
+        ext: tipe.ext,
+        size: file.size,
+        bucket: "lampiran-survei",
+        localUrlPrefix: "/api/pengajuan/lampiran",
+        driveFolderEnvKey: "GOOGLE_DRIVE_SURVEI_FOLDER_ID",
+        makePublic: true,
+      });
 
       // Tentukan tipe lampiran (NOTA_PEMBELIAN, FOTO_TOKO, FOTO_MATERIAL)
       const fileNameLower = file.name.toLowerCase();
       let jenisLampiran = "NOTA_PEMBELIAN";
-      if (fileNameLower.includes("toko") || fileNameLower.includes("plang") || fileNameLower.includes("depan")) {
+      if (
+        fileNameLower.includes("toko") ||
+        fileNameLower.includes("plang") ||
+        fileNameLower.includes("depan")
+      ) {
         jenisLampiran = "FOTO_TOKO";
-      } else if (fileNameLower.includes("material") || fileNameLower.includes("barang") || fileNameLower.includes("sampel")) {
+      } else if (
+        fileNameLower.includes("material") ||
+        fileNameLower.includes("barang") ||
+        fileNameLower.includes("sampel")
+      ) {
         jenisLampiran = "FOTO_MATERIAL";
       }
 
@@ -93,10 +104,12 @@ export async function POST(request: NextRequest) {
         id: `lampiran-${randomUUID()}`,
         tipe: jenisLampiran,
         jenisLampiran,
-        namaFile: file.name.slice(0, 200),
-        url: `/api/pengajuan/lampiran/${namaSimpan}`,
-        fileUrl: `/api/pengajuan/lampiran/${namaSimpan}`,
-        ukuranFile: formatUkuran(file.size),
+        namaFile: saved.namaFile,
+        url: saved.url,
+        fileUrl: saved.fileUrl,
+        ukuranFile: saved.ukuranFile,
+        storageProvider: saved.storageProvider,
+        driveFileId: saved.driveFileId,
       });
     }
 
@@ -106,10 +119,13 @@ export async function POST(request: NextRequest) {
       data: results.length === 1 ? results[0] : results,
       items: results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload Multi Lampiran Survei Error:", error);
     return NextResponse.json(
-      { success: false, message: error.message || "Gagal mengunggah berkas lampiran." },
+      {
+        success: false,
+        message: error instanceof Error ? error.message : "Gagal mengunggah berkas lampiran.",
+      },
       { status: 500 }
     );
   }

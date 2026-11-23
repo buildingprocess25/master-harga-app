@@ -1,16 +1,13 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { bacaBerkasLokal } from "@/lib/storage/lampiran-storage";
 import { ROLE_INTERNAL_KUORUM, requireRole } from "../../_lib/guard";
-import { DIR_LAMPIRAN_BANDING, MIME_DARI_EXT } from "../_lib/storage";
 
 const POLA_NAMA = /^[a-f0-9-]{36}\.(pdf|jpg|jpeg|png)$/;
 
 /**
  * GET /api/kuorum/lampiran/[nama]
- * Menyajikan berkas bukti banding. Internal boleh melihat seluruh lampiran;
- * kontraktor hanya lampiran yang melekat pada vote perusahaannya sendiri.
+ * Menyajikan berkas bukti banding fallback lokal (untuk berkas tanpa URL Google Drive).
  */
 export async function GET(
   _request: Request,
@@ -41,19 +38,17 @@ export async function GET(
     return NextResponse.json({ success: false, message: "Berkas tidak ditemukan." }, { status: 404 });
   }
 
-  try {
-    const isi = await readFile(path.join(DIR_LAMPIRAN_BANDING, nama));
-    const ext = nama.split(".").pop() ?? "";
-    return new NextResponse(new Uint8Array(isi), {
-      headers: {
-        "Content-Type": MIME_DARI_EXT[ext] ?? "application/octet-stream",
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(lampiran.namaFile)}`,
-        "X-Content-Type-Options": "nosniff",
-        // Jangan cache: akses berkas dicek per pengguna, sedangkan browser bisa dipakai bergantian.
-        "Cache-Control": "no-store",
-      },
-    });
-  } catch {
+  const loaded = await bacaBerkasLokal("lampiran-banding", nama);
+  if (!loaded) {
     return NextResponse.json({ success: false, message: "Berkas tidak tersedia di server." }, { status: 404 });
   }
+
+  return new NextResponse(new Uint8Array(loaded.buffer), {
+    headers: {
+      "Content-Type": loaded.mimeType,
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(lampiran.namaFile)}`,
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-store",
+    },
+  });
 }
