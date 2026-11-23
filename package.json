@@ -17,7 +17,8 @@
     "test": "vitest run tests/unit",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run --config vitest.integration.config.ts tests/integration",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
