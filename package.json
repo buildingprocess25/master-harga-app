@@ -12,25 +12,43 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:test:push": "tsx scripts/push-test-db.ts",
+    "test": "vitest run tests/unit",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run --config vitest.integration.config.ts tests/integration",
+    "test:e2e": "playwright test",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@reduxjs/toolkit": "^2.13.0",
+    "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "lucide-react": "^1.61.0",
     "next": "16.2.9",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "react-redux": "^9.3.0",
+    "react-select": "^5.10.2",
+    "sweetalert2": "^11.26.25",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@prisma/compute-sdk": "latest",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "eslint": "^10.5.0",
     "eslint-config-next": "16.2.9",
+    "postcss": "^8.5.31",
     "prisma": "^7.8.0",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
   }
 }
