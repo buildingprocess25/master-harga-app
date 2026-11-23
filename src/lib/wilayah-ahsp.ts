@@ -64,6 +64,24 @@ export function isKomponenHargaEditableWilayah(kategori: KategoriKoefisien): boo
   return kategori === "MATERIAL" || kategori === "ALAT";
 }
 
+export function makeThreeStores(existing?: StoreSurveiWilayahInput[]): StoreSurveiWilayahInput[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const src = existing ?? [];
+  return [1, 2, 3].map((num, idx) => {
+    const raw = src[idx] || src.find((s) => s.noToko === num);
+    return {
+      noToko: num,
+      namaToko: raw?.namaToko ?? "",
+      alamatToko: raw?.alamatToko ?? raw?.alamat ?? "",
+      volumeAcuan: 1,
+      hargaSatuan: Number(raw?.hargaSatuan) || 0,
+      tanggalSurvei: raw?.tanggalSurvei || today,
+      catatanSurvei: raw?.catatanSurvei ?? raw?.catatan ?? "",
+      lampiranList: Array.isArray(raw?.lampiranList) ? raw.lampiranList : [],
+    };
+  });
+}
+
 export function susunRincianWilayahDariInduk(
   komponenInduk: KomponenAhspIndukInput[],
   hargaInput: InputHargaKomponenWilayah[],

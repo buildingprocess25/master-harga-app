@@ -685,12 +685,11 @@ export default function BMManagerPage() {
         defaultCabang={userCabang}
       />
 
-      {/* Modal Review Ulang Spesifikasi (Khusus Item dari Master Katalog) */}
+      {/* Modal Review Ulang Spesifikasi (Khusus Item Aktif dari Katalog Cabang) */}
       <ReviewUlangSpesifikasiModal
         isOpen={isReviewUlangModalOpen}
         onClose={() => setIsReviewUlangModalOpen(false)}
-        onSubmit={handleAddItem}
-        existingItems={items}
+        onSubmitted={fetchItems}
         defaultCabang={userCabang}
       />
 

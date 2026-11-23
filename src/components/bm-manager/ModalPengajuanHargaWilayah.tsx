@@ -17,6 +17,7 @@ import { hitungAhsp } from "@/lib/kalkulasi-ahsp";
 import {
   hitungSelisihTerhadapInduk,
   isKomponenHargaEditableWilayah,
+  makeThreeStores,
   type StoreSurveiWilayahInput,
 } from "@/lib/wilayah-ahsp";
 import { cn, formatRupiah } from "@/lib/utils";
@@ -68,24 +69,6 @@ interface TemplateWilayahData {
     wilayahCabangId: string;
     catatanReview: string;
   } | null;
-}
-
-function makeThreeStores(existing?: StoreSurveiWilayahInput[]): StoreSurveiWilayahInput[] {
-  const today = new Date().toISOString().slice(0, 10);
-  const src = existing ?? [];
-  return [1, 2, 3].map((num, idx) => {
-    const raw = src[idx] || src.find((s) => s.noToko === num);
-    return {
-      noToko: num,
-      namaToko: raw?.namaToko ?? "",
-      alamatToko: raw?.alamatToko ?? raw?.alamat ?? "",
-      volumeAcuan: 1,
-      hargaSatuan: Number(raw?.hargaSatuan) || 0,
-      tanggalSurvei: raw?.tanggalSurvei || today,
-      catatanSurvei: raw?.catatanSurvei ?? raw?.catatan ?? "",
-      lampiranList: Array.isArray(raw?.lampiranList) ? raw.lampiranList : [],
-    };
-  });
 }
 
 export interface ModalPengajuanHargaWilayahProps {
@@ -530,6 +513,7 @@ export function ModalPengajuanHargaWilayah({
                                 <RincianSurvei3TokoCard
                                   mode="edit"
                                   hideHeader={true}
+                                  compact={true}
                                   surveyToko={stores}
                                   satuan={k.satuan}
                                   materialName={k.namaKomponen}

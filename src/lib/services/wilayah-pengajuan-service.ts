@@ -13,7 +13,9 @@ import type { KategoriKoefisien } from "@/types";
 
 const URUTAN_KAT: KategoriKoefisien[] = ["UPAH", "MATERIAL", "ALAT", "BONGKARAN"];
 
-function sortKomponen<T extends { kategori: KategoriKoefisien; namaKomponen: string }>(list: T[]) {
+export function sortKomponen<T extends { kategori: KategoriKoefisien; namaKomponen: string }>(
+  list: T[]
+) {
   return [...list].sort((a, b) => {
     const rankA = URUTAN_KAT.indexOf(a.kategori);
     const rankB = URUTAN_KAT.indexOf(b.kategori);
@@ -22,7 +24,22 @@ function sortKomponen<T extends { kategori: KategoriKoefisien; namaKomponen: str
   });
 }
 
-async function simpanRincianDanSurveiWilayah(
+export async function buatNomorTiketUnik(tx: Tx, offset = 0): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  let seq = (await tx.pengajuanHarga.count()) + 1 + offset;
+  let nomorTiket = `REQ-${currentYear}-${String(seq).padStart(3, "0")}`;
+  const conflict = await tx.pengajuanHarga.findUnique({
+    where: { nomorTiket },
+    select: { id: true },
+  });
+  if (conflict) {
+    seq++;
+    nomorTiket = `REQ-${currentYear}-${String(seq).padStart(3, "0")}-${Math.floor(10 + Math.random() * 90)}`;
+  }
+  return nomorTiket;
+}
+
+export async function simpanRincianDanSurveiWilayah(
   tx: Tx,
   pengajuanHargaId: string,
   barisList: BarisAhspWilayahTersusun[]
@@ -451,17 +468,7 @@ export async function ajukanHargaWilayahLangsung(params: AjukanHargaWilayahParam
       return { ...updated, hargaFinal: susunan.hargaFinal, namaWilayah: wilayah.namaWilayah };
     }
 
-    const currentYear = new Date().getFullYear();
-    let seq = (await tx.pengajuanHarga.count()) + 1;
-    let nomorTiket = `REQ-${currentYear}-${String(seq).padStart(3, "0")}`;
-    const conflict = await tx.pengajuanHarga.findUnique({
-      where: { nomorTiket },
-      select: { id: true },
-    });
-    if (conflict) {
-      seq++;
-      nomorTiket = `REQ-${currentYear}-${String(seq).padStart(3, "0")}-${Math.floor(10 + Math.random() * 90)}`;
-    }
+    const nomorTiket = await buatNomorTiketUnik(tx);
 
     const created = await tx.pengajuanHarga.create({
       data: {
