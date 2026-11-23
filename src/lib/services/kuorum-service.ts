@@ -490,8 +490,9 @@ export interface LampiranBandingInput {
   ukuranFile?: string;
 }
 
-/** Lampiran banding hanya boleh merujuk berkas yang diunggah lewat /api/kuorum/lampiran. */
-export const POLA_URL_LAMPIRAN_BANDING = /^\/api\/kuorum\/lampiran\/[a-f0-9-]{36}\.(pdf|jpg|jpeg|png)$/;
+/** Lampiran banding hanya boleh merujuk berkas yang diunggah lewat /api/kuorum/lampiran atau link Google Drive hasil upload. */
+export const POLA_URL_LAMPIRAN_BANDING =
+  /^(?:\/api\/kuorum\/lampiran\/[a-f0-9-]{36}\.(?:pdf|jpg|jpeg|png)|https:\/\/(?:drive|docs)\.google\.com\/file\/d\/[A-Za-z0-9_-]{10,}(?:\/[^\s]*)?|https:\/\/drive\.google\.com\/open\?id=[A-Za-z0-9_-]{10,})$/;
 
 export interface SubmitVoteParams {
   tiketId: string;

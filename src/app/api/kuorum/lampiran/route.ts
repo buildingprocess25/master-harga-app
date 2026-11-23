@@ -1,20 +1,16 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { simpanBerkasLampiran } from "@/lib/storage/lampiran-storage";
 import { errorResponse, requireRole } from "../_lib/guard";
 import {
-  DIR_LAMPIRAN_BANDING,
   MAKS_UKURAN_LAMPIRAN,
   TIPE_LAMPIRAN,
   cocokSignature,
-  formatUkuran,
 } from "./_lib/storage";
 
 /**
  * POST /api/kuorum/lampiran (multipart/form-data, field "file")
- * Unggah satu berkas bukti pembanding pasar untuk usulan banding.
- * Mengembalikan { namaFile, fileUrl, ukuranFile } untuk dikirim bersama vote.
+ * Unggah satu berkas bukti pembanding pasar untuk usulan banding (Google Drive / fallback lokal).
+ * Mengembalikan { namaFile, fileUrl, ukuranFile, storageProvider, driveFileId } untuk dikirim bersama vote.
  */
 export async function POST(request: NextRequest) {
   const guard = await requireRole(["KONTRAKTOR"]);
@@ -49,16 +45,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const namaSimpan = `${randomUUID()}.${tipe.ext}`;
-    await mkdir(DIR_LAMPIRAN_BANDING, { recursive: true });
-    await writeFile(path.join(DIR_LAMPIRAN_BANDING, namaSimpan), buf);
+    const saved = await simpanBerkasLampiran({
+      buffer: buf,
+      originalName: file.name,
+      mimeType: tipe.mime,
+      ext: tipe.ext,
+      size: file.size,
+      bucket: "lampiran-banding",
+      localUrlPrefix: "/api/kuorum/lampiran",
+      driveFolderEnvKey: "GOOGLE_DRIVE_BANDING_FOLDER_ID",
+      makePublic: true,
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        namaFile: file.name.slice(0, 200),
-        fileUrl: `/api/kuorum/lampiran/${namaSimpan}`,
-        ukuranFile: formatUkuran(file.size),
+        namaFile: saved.namaFile,
+        fileUrl: saved.fileUrl,
+        ukuranFile: saved.ukuranFile,
+        storageProvider: saved.storageProvider,
+        driveFileId: saved.driveFileId,
       },
     });
   } catch (error) {
