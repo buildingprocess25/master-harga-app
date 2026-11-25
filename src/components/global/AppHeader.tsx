@@ -14,8 +14,8 @@ import {
   Building,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { UserSessionProfile, RoleUser } from "@/types";
-import { cn } from "@/lib/utils";
+import { UserSessionProfile } from "@/types";
+import { cn, getLokasiUnitLabel, getRoleDisplayName } from "@/lib/utils";
 
 export interface BreadcrumbItem {
   label: string;
@@ -36,16 +36,6 @@ export interface AppHeaderProps {
   badgeTitle?: string;
   subNavigation?: React.ReactNode;
 }
-
-const ROLE_DISPLAY_NAMES: Record<RoleUser, string> = {
-  BUILDING_COORDINATOR: "Building Coordinator",
-  BM_MANAGER: "B&M Manager",
-  PP_MANAGER: "PP Manager",
-  SB_SPECIALIST: "S&B Specialist HO",
-  REGIONAL_MANAGER: "Regional Manager",
-  KONTRAKTOR: "Rekanan Kontraktor",
-  ADMIN: "Super Admin HO",
-};
 
 export function AppHeader({
   user,
@@ -86,9 +76,8 @@ export function AppHeader({
     }
   };
 
-  const roleLabel = user?.role
-    ? ROLE_DISPLAY_NAMES[user.role] || user.role
-    : "Pengguna";
+  const roleLabel = getRoleDisplayName(user?.role);
+  const unitLabel = user ? getLokasiUnitLabel(user) : null;
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b-2 border-slate-200 shadow-2xs">
@@ -215,13 +204,11 @@ export function AppHeader({
 
         {/* Sisi Kanan: Info Profil Pengguna & Logout */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Badge Cabang / Perusahaan Rekanan */}
-          {(user?.namaCabang || user?.namaPerusahaanKontraktor) && (
+          {/* Badge Cabang / Unit Kerja */}
+          {unitLabel && (
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border-2 border-slate-300 text-xs font-bold text-slate-700">
               <Building className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-              <span className="truncate max-w-[180px]">
-                {user.namaPerusahaanKontraktor || user.namaCabang}
-              </span>
+              <span className="truncate max-w-[180px]">{unitLabel}</span>
             </div>
           )}
 
