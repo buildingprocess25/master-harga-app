@@ -159,7 +159,9 @@ export function FilterKatalog({
           type="button"
           onClick={() => {
             setQ("");
-            startTransition(() => router.replace(pathname, { scroll: false }));
+            const tab = params.get("tab");
+            const resetHref = tab ? `${pathname}?tab=${encodeURIComponent(tab)}` : pathname;
+            startTransition(() => router.replace(resetHref, { scroll: false }));
           }}
           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-rose-600 bg-white text-xs font-bold text-rose-600 hover:bg-rose-600 hover:text-white transition-colors cursor-pointer"
         >
