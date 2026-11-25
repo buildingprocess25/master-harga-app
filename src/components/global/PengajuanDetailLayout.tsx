@@ -99,6 +99,8 @@ export function PengajuanDetailLayout({
         <RincianKalkulasiKoefisien
           koefisienItems={item.koefisienItems}
           mode={isAhspEditable ? "editable" : "readonly"}
+          userRole={role}
+          showMargin={role === "SB_SPECIALIST" || role === "ADMIN"}
           liveMarginUpah={item.liveMarginUpah}
           liveMarginMaterial={item.liveMarginMaterial}
           liveMarginBongkaran={item.liveMarginBongkaran}
