@@ -30,6 +30,7 @@ import {
   saveStoredPengajuan,
 } from "@/lib/pengajuanStorage";
 import { submitBulkPengajuanApi } from "@/lib/client/submit-pengajuan";
+import type { UserSessionProfile } from "@/types";
 
 export default function BMManagerPage() {
   // Tab State: 'materials' (Pengajuan Spesifikasi) vs 'approvals' (Persetujuan Harga Layer 1)
@@ -45,8 +46,9 @@ export default function BMManagerPage() {
   const [isCatatanModalOpen, setIsCatatanModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Cabang Operasional Terkunci Sesuai Akun B&M Manager
+  // Cabang & Profil Sesi Terkunci Sesuai Akun B&M Manager
   const [userCabang, setUserCabang] = useState<string>("Cikokol");
+  const [sessionUser, setSessionUser] = useState<UserSessionProfile | null>(null);
 
   // Filter & Search State (Tanpa Filter Cabang)
   const [filters, setFilters] = useState<PengajuanHargaFilterState>({
@@ -85,15 +87,18 @@ export default function BMManagerPage() {
     return false;
   };
 
-  // Ambil profil sesi untuk mengetahui cabang operasional B&M Manager
+  // Ambil profil sesi untuk mengetahui cabang operasional & info akun B&M Manager
   useEffect(() => {
     async function fetchUserSession() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
         const json = await res.json();
-        if (json.success && json.user?.namaCabang) {
-          const cleanName = json.user.namaCabang.replace(/^(cabang\s*)+/i, "").trim();
-          setUserCabang(cleanName || json.user.namaCabang);
+        if (json.success && json.user) {
+          setSessionUser(json.user as UserSessionProfile);
+          if (json.user.namaCabang) {
+            const cleanName = json.user.namaCabang.replace(/^(cabang\s*)+/i, "").trim();
+            setUserCabang(cleanName || json.user.namaCabang);
+          }
         }
       } catch (err) {
         console.warn("Gagal mengambil sesi user B&M Manager:", err);
@@ -435,6 +440,7 @@ export default function BMManagerPage() {
 
   return (
     <AppLayoutShell
+      user={sessionUser}
       breadcrumbs={[
         { label: "Dashboard", href: "/" },
         { label: "B&M Manager" },

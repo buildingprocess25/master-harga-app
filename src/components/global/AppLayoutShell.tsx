@@ -23,6 +23,26 @@ export function AppLayoutShell({
 }: AppLayoutShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isOpenMobile, setIsOpenMobile] = useState(false);
+  const [fetchedUser, setFetchedUser] = useState<UserSessionProfile | null>(null);
+
+  // Bila halaman client tidak meneruskan prop user, ambil otomatis sesi aktif dari /api/auth/me
+  useEffect(() => {
+    if (user !== undefined) return;
+    let active = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (active && json?.success && json?.user) {
+          setFetchedUser(json.user as UserSessionProfile);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const resolvedUser = user !== undefined ? user : fetchedUser;
 
   // Baca preferensi collapse dari localStorage saat mount
   useEffect(() => {
@@ -60,7 +80,7 @@ export function AppLayoutShell({
     <div className="min-h-screen bg-[#F5F7FA] text-slate-800 flex">
       {/* 1. Collapsible Sidebar (Desktop Sticky & Mobile Drawer) */}
       <AppSidebar
-        user={user}
+        user={resolvedUser}
         isCollapsed={isCollapsed}
         isOpenMobile={isOpenMobile}
         onToggleCollapse={handleToggleCollapse}
@@ -71,7 +91,7 @@ export function AppLayoutShell({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
         <AppHeader
-          user={user}
+          user={resolvedUser}
           breadcrumbs={breadcrumbs}
           isSidebarOpen={isOpenMobile}
           isSidebarCollapsed={isCollapsed}

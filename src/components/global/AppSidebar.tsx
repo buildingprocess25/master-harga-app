@@ -29,6 +29,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { UserSessionProfile, RoleUser } from "@/types";
+import { getLokasiUnitLabel, getRoleDisplayName } from "@/lib/utils";
 
 interface NavItem {
   label: string;
@@ -314,15 +315,14 @@ export function AppSidebar({
         </button>
       </div>
 
-      {/* Role Banner Indicator */}
-      {!isCollapsed && user && (
+      {/* Role Indicator (Ringkas Nama Jabatan) */}
+      {!isCollapsed && (user?.role || inferredRole) && (
         <div className="px-4 py-2.5 bg-slate-50 border-b-2 border-slate-200 text-xs">
-          <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-            Workspace Wewenang
-          </div>
-          <div className="font-extrabold text-[#005BAC] flex items-center gap-1.5 mt-0.5 truncate">
+          <div className="font-extrabold text-[#005BAC] flex items-center gap-1.5 truncate">
             <Sparkles className="w-3.5 h-3.5 text-[#E0A800] shrink-0" />
-            <span className="truncate">{user.role}</span>
+            <span className="truncate">
+              {getRoleDisplayName(user?.role ?? inferredRole)}
+            </span>
           </div>
         </div>
       )}
@@ -394,7 +394,7 @@ export function AppSidebar({
       {!isCollapsed && (
         <div className="p-3 border-t-2 border-slate-200 bg-slate-50 text-[11px] text-slate-600 shrink-0">
           <div className="font-bold text-slate-900 truncate">
-            {user?.namaCabang || "Head Office Cikokol"}
+            {getLokasiUnitLabel(user, inferredRole)}
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
             PT Sumber Alfaria Trijaya Tbk

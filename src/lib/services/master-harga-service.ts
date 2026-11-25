@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { getInisialDivisi } from "@/lib/utils";
 import type { TipeLampiranSurvei } from "@/types";
 import {
   buatStatusFilterBmWhere,
@@ -924,7 +925,7 @@ export async function getMasterHargaUntukBm(
       : Promise.resolve([]),
   ]);
 
-  const urutanShortDiv = ["BLD", "MNT", "ENG", "DC"];
+  const urutanShortDiv = ["BLD", "MTC", "ENG", "DC"];
   const cabangAktifPerItem = new Map<
     string,
     Map<
@@ -943,7 +944,7 @@ export async function getMasterHargaUntukBm(
       perCabang = new Map();
       cabangAktifPerItem.set(row.masterItemId, perCabang);
     }
-    const shortDiv = row.divisi.kodeDivisi.replace(/^DIV-/i, "");
+    const shortDiv = getInisialDivisi(row.divisi.kodeDivisi);
     let entry = perCabang.get(row.cabangId);
     if (!entry) {
       entry = {
@@ -975,7 +976,7 @@ export async function getMasterHargaUntukBm(
           divisiId: div.id,
           kodeDivisi: div.kodeDivisi,
           namaDivisi: div.namaDivisi,
-          shortLabel: div.kodeDivisi.replace(/^DIV-/i, ""),
+          shortLabel: getInisialDivisi(div.kodeDivisi, div.namaDivisi),
           status: "AKTIF" as const,
           hargaInduk: hargaCabang.hargaFinalInduk.toNumber(),
           berlakuSejak: hargaCabang.berlakuSejak.toISOString(),
@@ -994,7 +995,7 @@ export async function getMasterHargaUntukBm(
           divisiId: div.id,
           kodeDivisi: div.kodeDivisi,
           namaDivisi: div.namaDivisi,
-          shortLabel: div.kodeDivisi.replace(/^DIV-/i, ""),
+          shortLabel: getInisialDivisi(div.kodeDivisi, div.namaDivisi),
           status: "PROSES" as const,
           tiketIdProses: tiketProses.id,
           nomorTiketProses: tiketProses.nomorTiket,
@@ -1010,7 +1011,7 @@ export async function getMasterHargaUntukBm(
         divisiId: div.id,
         kodeDivisi: div.kodeDivisi,
         namaDivisi: div.namaDivisi,
-        shortLabel: div.kodeDivisi.replace(/^DIV-/i, ""),
+        shortLabel: getInisialDivisi(div.kodeDivisi, div.namaDivisi),
         status: "BELUM_AKTIF" as const,
         hargaInduk: null,
         berlakuSejak: null,

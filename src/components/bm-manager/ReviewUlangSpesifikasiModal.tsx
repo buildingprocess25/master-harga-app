@@ -28,7 +28,7 @@ import {
   makeThreeStores,
   type StoreSurveiWilayahInput,
 } from "@/lib/wilayah-ahsp";
-import { cn, formatRupiah, parseNilaiDanSatuan } from "@/lib/utils";
+import { cn, formatRupiah, getInisialDivisi, parseNilaiDanSatuan } from "@/lib/utils";
 
 interface KomponenReviewTemplate {
   id: string;
@@ -110,14 +110,8 @@ export interface ReviewUlangSpesifikasiModalProps {
 const DISABLED_INPUT_CLS =
   "w-full h-9 px-3 rounded-lg border-2 border-slate-300 text-xs text-slate-600 bg-slate-200 font-semibold cursor-not-allowed";
 
-const getShortDivisiLabel = (kodeDivisi: string, namaDivisi: string): string => {
-  const k = kodeDivisi.toUpperCase();
-  if (k.includes("BLD") || namaDivisi.toLowerCase().includes("building")) return "BLD";
-  if (k.includes("MNT") || namaDivisi.toLowerCase().includes("maintenance")) return "MNT";
-  if (k.includes("ENG") || namaDivisi.toLowerCase().includes("engineering")) return "ENG";
-  if (k.includes("DC") || namaDivisi.toLowerCase().includes("distribution")) return "DC";
-  return k.replace("DIV-", "");
-};
+const getShortDivisiLabel = (kodeDivisi: string, namaDivisi: string): string =>
+  getInisialDivisi(kodeDivisi, namaDivisi);
 
 const getCleanDivisiName = (kodeDivisi: string, namaDivisi: string): string => {
   const k = kodeDivisi.toUpperCase();
