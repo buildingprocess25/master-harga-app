@@ -44,10 +44,12 @@ export function DetailHargaRilisContent({
   detail,
   onSelectWilayah,
   loadingWilayahId = null,
+  showMargin = false,
 }: {
   detail: DetailHargaRilis;
   onSelectWilayah?: (wilayahId: string) => void;
   loadingWilayahId?: string | null;
+  showMargin?: boolean;
 }) {
   const isWilayah = detail.cakupanHarga === "KHUSUS_WILAYAH";
   const surveiGroups = detail.surveiPerKomponen ?? [];
@@ -70,7 +72,8 @@ export function DetailHargaRilisContent({
                   {formatRupiah(detail.hargaFinalWilayah ?? detail.hargaFinalInduk)}
                 </span>
                 <span className="text-xs text-slate-600 font-semibold ml-1.5">
-                  / {detail.item.satuan} (Margin {detail.marginTotalPersen}%)
+                  / {detail.item.satuan}
+                  {showMargin ? ` (Margin ${detail.marginTotalPersen}%)` : ""}
                 </span>
               </div>
             </div>
@@ -117,7 +120,8 @@ export function DetailHargaRilisContent({
               {formatRupiah(detail.hargaFinalInduk)}
             </span>
             <span className="text-xs text-slate-600 font-semibold ml-1.5">
-              / {detail.item.satuan} (Margin {detail.marginTotalPersen}%)
+              / {detail.item.satuan}
+              {showMargin ? ` (Margin ${detail.marginTotalPersen}%)` : ""}
             </span>
           </div>
           {detail.nomorTiket && (
@@ -187,6 +191,8 @@ export function DetailHargaRilisContent({
           item={detail.item}
           koefisienItems={detail.item.koefisienItems}
           mode="readonly"
+          showMargin={showMargin}
+          userRole={showMargin ? "S&B Specialist" : "Viewer"}
           liveMarginUpah={detail.item.liveMarginUpah}
           liveMarginMaterial={detail.item.liveMarginMaterial}
           liveMarginBongkaran={detail.item.liveMarginBongkaran}

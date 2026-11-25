@@ -571,6 +571,7 @@ export function MasterHargaClient({
                     detail={detail}
                     onSelectWilayah={bukaRincianWilayah}
                     loadingWilayahId={loadingRincianId}
+                    showMargin={!readonly}
                   />
                 ) : modalLoading && !modalData ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-xs font-bold text-slate-600">

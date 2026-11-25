@@ -355,9 +355,24 @@ export function ReviewUlangSpesifikasiModal({
       material: ambilMargin("MATERIAL") ?? ambilMargin("ALAT"),
       bongkaran: ambilMargin("BONGKARAN"),
     });
+    const adaTenagaLain = komponenInduk.some(
+      (k) => !isKomponenHargaEditableWilayah(k.kategori)
+    );
+    const totalMaterialAlat = adaTenagaLain
+      ? Math.round(res.perKategori.MATERIAL.total + res.perKategori.ALAT.total)
+      : res.hargaFinal;
+    const totalTenagaKerja = adaTenagaLain
+      ? Math.max(0, res.hargaFinal - totalMaterialAlat)
+      : 0;
     const hargaInduk = activeDivisionObj?.hargaFinalInduk ?? 0;
     const selisih = hitungSelisihTerhadapInduk(res.hargaFinal, hargaInduk);
-    return { ...res, hargaInduk, ...selisih };
+    return {
+      ...res,
+      totalMaterialAlat,
+      totalTenagaKerja,
+      hargaInduk,
+      ...selisih,
+    };
   }, [komponenInduk, surveiMap, activeDivisionObj]);
 
   const parsedUkuran = parseNilaiDanSatuan(selectedCatalogItem?.ukuran, "cm");
@@ -1158,42 +1173,69 @@ export function ReviewUlangSpesifikasiModal({
                 </div>
 
                 {kalkulasiLive && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div className="bg-white border-2 border-slate-300 rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase text-slate-500">
-                        Harga Berlaku Saat Ini
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="bg-white border-2 border-slate-300 rounded-xl p-3">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">
+                          Harga Berlaku Saat Ini
+                        </div>
+                        <div className="font-mono font-black text-sm text-slate-900 mt-0.5">
+                          {formatRupiah(kalkulasiLive.hargaInduk)}
+                        </div>
                       </div>
-                      <div className="font-mono font-black text-sm text-slate-900 mt-0.5">
-                        {formatRupiah(kalkulasiLive.hargaInduk)}
+                      <div className="bg-white border-2 border-[#005BAC] rounded-xl p-3">
+                        <div className="text-[10px] font-bold uppercase text-[#005BAC]">
+                          Estimasi Harga Review Baru
+                        </div>
+                        <div className="font-mono font-black text-sm text-[#005BAC] mt-0.5">
+                          {formatRupiah(kalkulasiLive.hargaFinal)}
+                        </div>
+                      </div>
+                      <div className="bg-white border-2 border-slate-300 rounded-xl p-3">
+                        <div className="text-[10px] font-bold uppercase text-slate-500">
+                          Selisih dari Berlaku
+                        </div>
+                        <div
+                          className={cn(
+                            "font-mono font-black text-sm mt-0.5",
+                            kalkulasiLive.selisihRp > 0
+                              ? "text-rose-700"
+                              : kalkulasiLive.selisihRp < 0
+                                ? "text-emerald-700"
+                                : "text-slate-700"
+                          )}
+                        >
+                          {kalkulasiLive.selisihRp >= 0 ? "+" : ""}
+                          {formatRupiah(kalkulasiLive.selisihRp)} (
+                          {kalkulasiLive.selisihPersen >= 0 ? "+" : ""}
+                          {kalkulasiLive.selisihPersen.toFixed(2)}%)
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-white border-2 border-[#005BAC] rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase text-[#005BAC]">
-                        Estimasi Harga Review Baru
-                      </div>
-                      <div className="font-mono font-black text-sm text-[#005BAC] mt-0.5">
+
+                    <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-700 font-semibold">
+                      <span className="font-bold text-slate-900">Rincian:</span>
+                      <span>
+                        Material &amp; Alat{" "}
+                        <strong className="font-mono text-slate-900">
+                          {formatRupiah(kalkulasiLive.totalMaterialAlat)}
+                        </strong>
+                      </span>
+                      {readonlyKomponen.length > 0 && (
+                        <>
+                          <span className="text-slate-400">+</span>
+                          <span>
+                            Tenaga Kerja &amp; Lainnya{" "}
+                            <strong className="font-mono text-slate-900">
+                              {formatRupiah(kalkulasiLive.totalTenagaKerja)}
+                            </strong>
+                          </span>
+                        </>
+                      )}
+                      <span className="text-slate-400">=</span>
+                      <strong className="font-mono font-black text-[#005BAC]">
                         {formatRupiah(kalkulasiLive.hargaFinal)}
-                      </div>
-                    </div>
-                    <div className="bg-white border-2 border-slate-300 rounded-xl p-3">
-                      <div className="text-[10px] font-bold uppercase text-slate-500">
-                        Selisih dari Berlaku
-                      </div>
-                      <div
-                        className={cn(
-                          "font-mono font-black text-sm mt-0.5",
-                          kalkulasiLive.selisihRp > 0
-                            ? "text-rose-700"
-                            : kalkulasiLive.selisihRp < 0
-                              ? "text-emerald-700"
-                              : "text-slate-700"
-                        )}
-                      >
-                        {kalkulasiLive.selisihRp >= 0 ? "+" : ""}
-                        {formatRupiah(kalkulasiLive.selisihRp)} (
-                        {kalkulasiLive.selisihPersen >= 0 ? "+" : ""}
-                        {kalkulasiLive.selisihPersen.toFixed(2)}%)
-                      </div>
+                      </strong>
                     </div>
                   </div>
                 )}
@@ -1257,7 +1299,7 @@ export function ReviewUlangSpesifikasiModal({
                                   )}
                                 </div>
                                 <div className="text-[11px] text-slate-600 font-mono font-semibold mt-0.5">
-                                  Koefisien: {k.nilaiKoefisien} {k.satuan} · Margin {k.marginPersen}%
+                                  Koefisien: {k.nilaiKoefisien} {k.satuan}
                                 </div>
                               </div>
                             </div>
@@ -1312,26 +1354,34 @@ export function ReviewUlangSpesifikasiModal({
 
                 {readonlyKomponen.length > 0 && (
                   <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
-                    <div className="px-4 py-2 bg-slate-100 border-b-2 border-slate-200 text-[11px] font-black uppercase text-slate-700">
-                      Tenaga Kerja &amp; Lainnya
+                    <div className="px-4 py-2 bg-slate-100 border-b-2 border-slate-200 flex items-center justify-between text-[11px] font-black uppercase text-slate-700">
+                      <span>Tenaga Kerja &amp; Lainnya</span>
+                      <span className="font-mono text-slate-900">
+                        Total: {formatRupiah(kalkulasiLive?.totalTenagaKerja ?? 0)}
+                      </span>
                     </div>
                     <div className="divide-y divide-slate-100">
-                      {readonlyKomponen.map((k) => (
-                        <div
-                          key={k.id}
-                          className="px-4 py-2.5 flex items-center justify-between text-xs gap-3"
-                        >
-                          <div>
-                            <span className="font-bold text-slate-800">{k.namaKomponen}</span>
-                            <span className="text-[11px] text-slate-500 ml-2 font-mono">
-                              ({k.nilaiKoefisien} {k.satuan})
+                      {readonlyKomponen.map((k) => {
+                        const subUpah = Math.round(
+                          k.nilaiKoefisien * k.hargaAcuanSatuan * (1 + k.marginPersen / 100)
+                        );
+                        return (
+                          <div
+                            key={k.id}
+                            className="px-4 py-2.5 flex items-center justify-between text-xs gap-3"
+                          >
+                            <div>
+                              <span className="font-bold text-slate-800">{k.namaKomponen}</span>
+                              <span className="text-[11px] text-slate-500 ml-2 font-mono">
+                                ({k.nilaiKoefisien} {k.satuan} &times; {formatRupiah(k.hargaAcuanSatuan)})
+                              </span>
+                            </div>
+                            <span className="font-mono font-black text-slate-900 whitespace-nowrap">
+                              {formatRupiah(subUpah)}
                             </span>
                           </div>
-                          <span className="font-mono font-bold text-slate-700 whitespace-nowrap">
-                            {formatRupiah(k.hargaAcuanSatuan)}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
