@@ -212,6 +212,7 @@ export interface RincianKalkulasiKoefisienProps {
   onSave?: (data?: any) => void;
   onBack?: () => void;
   userRole?: string;
+  showMargin?: boolean;
   pustakaKoefisien?: OpsiPustakaKoefisien[];
   onTambahKoefisienBaru?: (data: {
     kategori: string;
@@ -243,6 +244,7 @@ export function RincianKalkulasiKoefisien({
   onSave,
   onBack,
   userRole = "S&B Specialist",
+  showMargin,
   pustakaKoefisien = [],
   onTambahKoefisienBaru,
   className = "",
@@ -252,7 +254,9 @@ export function RincianKalkulasiKoefisien({
     isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable" || isBmMaterialOnly;
   const isKoefisienEditable =
     isReadOnlyProp !== undefined ? !isReadOnlyProp : mode === "editable";
-  const isMarginEditable = isKoefisienEditable || mode === "margin-only";
+  const canShowMargin =
+    showMargin ?? (userRole === "S&B Specialist" || userRole === "SB_SPECIALIST");
+  const isMarginEditable = canShowMargin && (isKoefisienEditable || mode === "margin-only");
 
   // State Margin Numerik Terpusat (Tanpa Slider)
   const [marginUpahState, setMarginUpahState] = useState<number>(
@@ -562,7 +566,7 @@ export function RincianKalkulasiKoefisien({
                 <th className="py-2.5 text-right w-36">Harga Acuan (Rp)</th>
                 <th className="py-2.5 text-right w-32">Subtotal Dasar</th>
                 <th className="py-2.5 pr-3 text-right w-36 font-black text-[#005BAC]">
-                  Total (+{currentMargin}%)
+                  {canShowMargin ? `Total (+${currentMargin}%)` : "Total (Rp)"}
                 </th>
               </>
             )}
@@ -727,7 +731,7 @@ export function RincianKalkulasiKoefisien({
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {userRole === "S&B Specialist" && (
+            {canShowMargin && (
               <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
                 <span className="text-[11px] font-bold text-amber-950">
                   Margin {kategori === "UPAH" ? "Upah" : "Bongkaran"}:
@@ -784,7 +788,7 @@ export function RincianKalkulasiKoefisien({
             <span>
               Dasar: <strong className="text-slate-900 font-mono font-bold">{formatRupiah(totals.hpp)}</strong>
             </span>
-            {currentMargin > 0 && (
+            {canShowMargin && currentMargin > 0 && (
               <span>
                 + Margin ({currentMargin}%):{" "}
                 <strong className="text-amber-800 font-mono font-bold">
@@ -817,7 +821,7 @@ export function RincianKalkulasiKoefisien({
           </span>
         </div>
 
-        {!isBmMaterialOnly && userRole === "S&B Specialist" && (
+        {!isBmMaterialOnly && canShowMargin && (
           <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-300 px-2.5 py-1 rounded-lg">
             <span className="text-[11px] font-bold text-amber-950">
               Margin Material:
@@ -922,7 +926,7 @@ export function RincianKalkulasiKoefisien({
                 {formatRupiah(materialTotals.hpp)}
               </strong>
             </span>
-            {marginMaterialState > 0 && (
+            {canShowMargin && marginMaterialState > 0 && (
               <span>
                 + Margin ({marginMaterialState}%):{" "}
                 <strong className="text-amber-800 font-mono font-bold">
@@ -1027,7 +1031,7 @@ export function RincianKalkulasiKoefisien({
           <div className="mt-5 pt-3 border-t-2 border-slate-300 bg-slate-50 p-4 rounded-xl border-2 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <span className="text-xs text-slate-600 font-bold block">
-                Total HPP Murni (Sebelum Margin):
+                {canShowMargin ? "Total HPP Murni (Sebelum Margin):" : "Total HPP Murni:"}
               </span>
               <span className="font-mono text-base font-bold text-slate-900">
                 {formatRupiah(grandTotalHpp)}
@@ -1036,7 +1040,7 @@ export function RincianKalkulasiKoefisien({
 
             <div className="text-right">
               <span className="text-xs font-black text-slate-800 uppercase tracking-wide block">
-                Total Harga Satuan (+Margin):
+                {canShowMargin ? "Total Harga Satuan (+Margin):" : "Total Harga Satuan:"}
               </span>
               <span className="font-mono text-2xl font-black text-[#005BAC] tabular-nums">
                 {formatRupiah(grandTotalAkhir)}

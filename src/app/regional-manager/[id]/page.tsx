@@ -329,12 +329,6 @@ export default function RegionalManagerDetailPage() {
                 {formatRupiah(item.totalHpp || 0)}
               </span>
             </div>
-            <div className="bg-slate-50 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-right">
-              <span className="text-[10px] text-slate-500 block font-bold uppercase">Margin</span>
-              <span className="text-xs font-black text-emerald-700 font-mono">
-                {item.liveMarginMaterial || 8}%
-              </span>
-            </div>
           </div>
         </div>
 
@@ -409,6 +403,8 @@ export default function RegionalManagerDetailPage() {
         <RincianKalkulasiKoefisien
           koefisienItems={item.koefisienItems || []}
           mode="readonly"
+          userRole="REGIONAL_MANAGER"
+          showMargin={false}
           liveMarginUpah={item.liveMarginUpah ?? 8}
           liveMarginMaterial={item.liveMarginMaterial ?? 8}
           liveMarginBongkaran={item.liveMarginBongkaran ?? 8}

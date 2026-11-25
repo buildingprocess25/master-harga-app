@@ -188,8 +188,17 @@ export function ModalPengajuanHargaWilayah({
       }
     );
 
+    const adaTenagaLain = data.komponenInduk.some(
+      (k) => !isKomponenHargaEditableWilayah(k.kategori)
+    );
+    const totalMaterialAlat = adaTenagaLain
+      ? Math.round(kalk.perKategori.MATERIAL.total + kalk.perKategori.ALAT.total)
+      : kalk.hargaFinal;
+    const totalTenagaKerja = adaTenagaLain
+      ? Math.max(0, kalk.hargaFinal - totalMaterialAlat)
+      : 0;
     const selisih = hitungSelisihTerhadapInduk(kalk.hargaFinal, data.hargaFinalInduk);
-    return { ...kalk, ...selisih };
+    return { ...kalk, totalMaterialAlat, totalTenagaKerja, ...selisih };
   }, [data, surveiMap]);
 
   const selectedWilayah = useMemo(
@@ -476,8 +485,7 @@ export function ModalPengajuanHargaWilayah({
                                     )}
                                   </div>
                                   <div className="text-xs text-slate-600 font-mono mt-0.5 font-semibold">
-                                    Koefisien: {k.nilaiKoefisien} {k.satuan} &middot; Margin{" "}
-                                    {k.marginPersen}%
+                                    Koefisien: {k.nilaiKoefisien} {k.satuan}
                                   </div>
                                 </div>
                               </div>
@@ -533,72 +541,106 @@ export function ModalPengajuanHargaWilayah({
                   {/* Tenaga Kerja */}
                   {readonlyKomponen.length > 0 && (
                     <div className="bg-white border-2 border-slate-300 rounded-xl overflow-hidden">
-                      <div className="px-4 py-2 bg-slate-100 border-b-2 border-slate-200 text-[11px] font-black uppercase text-slate-700">
-                        Tenaga Kerja &amp; Lainnya
+                      <div className="px-4 py-2 bg-slate-100 border-b-2 border-slate-200 flex items-center justify-between text-[11px] font-black uppercase text-slate-700">
+                        <span>Tenaga Kerja &amp; Lainnya</span>
+                        {estimasi && (
+                          <span className="font-mono text-slate-900">
+                            Total: {formatRupiah(estimasi.totalTenagaKerja)}
+                          </span>
+                        )}
                       </div>
                       <div className="divide-y divide-slate-100">
-                        {readonlyKomponen.map((k) => (
-                          <div
-                            key={k.id}
-                            className="px-4 py-2.5 flex items-center justify-between text-xs gap-3"
-                          >
-                            <div>
-                              <span className="font-bold text-slate-800">{k.namaKomponen}</span>
-                              <span className="text-[11px] text-slate-500 ml-2 font-mono">
-                                ({k.nilaiKoefisien} {k.satuan})
+                        {readonlyKomponen.map((k) => {
+                          const subUpah = Math.round(
+                            k.nilaiKoefisien * k.hargaAcuanSatuan * (1 + k.marginPersen / 100)
+                          );
+                          return (
+                            <div
+                              key={k.id}
+                              className="px-4 py-2.5 flex items-center justify-between text-xs gap-3"
+                            >
+                              <div>
+                                <span className="font-bold text-slate-800">{k.namaKomponen}</span>
+                                <span className="text-[11px] text-slate-500 ml-2 font-mono">
+                                  ({k.nilaiKoefisien} {k.satuan} &times;{" "}
+                                  {formatRupiah(k.hargaAcuanSatuan)})
+                                </span>
+                              </div>
+                              <span className="font-mono font-black text-slate-900 whitespace-nowrap">
+                                {formatRupiah(subUpah)}
                               </span>
                             </div>
-                            <span className="font-mono font-bold text-slate-700 whitespace-nowrap">
-                              {formatRupiah(k.hargaAcuanSatuan)}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
 
                   {/* Ringkasan Total & Selisih */}
                   {estimasi && (
-                    <div className="bg-white border-2 border-[#005BAC] rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                          Estimasi Harga Wilayah
-                        </span>
-                        <span className="text-2xl font-black font-mono text-[#005BAC]">
-                          {formatRupiah(estimasi.hargaFinal)}
-                        </span>
-                        <span className="text-xs text-slate-600 font-semibold ml-1.5">
-                          / {data.item.satuan}
-                        </span>
-                        <span className="block text-[11px] text-slate-500 font-semibold mt-0.5">
-                          HPP {formatRupiah(Math.round(estimasi.hpp))} &middot; Margin efektif{" "}
-                          {estimasi.marginEfektif}%
-                        </span>
+                    <div className="bg-white border-2 border-[#005BAC] rounded-xl p-4 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                            Estimasi Harga Wilayah
+                          </span>
+                          <span className="text-2xl font-black font-mono text-[#005BAC]">
+                            {formatRupiah(estimasi.hargaFinal)}
+                          </span>
+                          <span className="text-xs text-slate-600 font-semibold ml-1.5">
+                            / {data.item.satuan}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[11px] font-bold uppercase text-slate-500 block">
+                            Selisih dari Induk
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm font-mono font-black",
+                              estimasi.selisihRp > 0
+                                ? "text-[#990F14]"
+                                : estimasi.selisihRp < 0
+                                  ? "text-emerald-700"
+                                  : "text-slate-600"
+                            )}
+                          >
+                            {estimasi.selisihRp > 0 ? "+" : estimasi.selisihRp < 0 ? "-" : ""}
+                            {formatRupiah(Math.abs(estimasi.selisihRp))} (
+                            {estimasi.selisihRp > 0 ? "+" : estimasi.selisihRp < 0 ? "-" : ""}
+                            {Math.abs(estimasi.selisihPersen).toLocaleString("id-ID", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                            %)
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[11px] font-bold uppercase text-slate-500 block">
-                          Selisih dari Induk
+                      <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-700 font-semibold">
+                        <span className="font-bold text-slate-900">Rincian:</span>
+                        <span>
+                          Material &amp; Alat{" "}
+                          <strong className="font-mono text-slate-900">
+                            {formatRupiah(estimasi.totalMaterialAlat)}
+                          </strong>
                         </span>
-                        <span
-                          className={cn(
-                            "text-sm font-mono font-black",
-                            estimasi.selisihRp > 0
-                              ? "text-[#990F14]"
-                              : estimasi.selisihRp < 0
-                                ? "text-emerald-700"
-                                : "text-slate-600"
-                          )}
-                        >
-                          {estimasi.selisihRp > 0 ? "+" : estimasi.selisihRp < 0 ? "-" : ""}
-                          {formatRupiah(Math.abs(estimasi.selisihRp))} (
-                          {estimasi.selisihRp > 0 ? "+" : estimasi.selisihRp < 0 ? "-" : ""}
-                          {Math.abs(estimasi.selisihPersen).toLocaleString("id-ID", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                          %)
-                        </span>
+                        {readonlyKomponen.length > 0 && (
+                          <>
+                            <span className="text-slate-400">+</span>
+                            <span>
+                              Tenaga Kerja &amp; Lainnya{" "}
+                              <strong className="font-mono text-slate-900">
+                                {formatRupiah(estimasi.totalTenagaKerja)}
+                              </strong>
+                            </span>
+                          </>
+                        )}
+                        <span className="text-slate-400">=</span>
+                        <strong className="font-mono font-black text-[#005BAC]">
+                          {formatRupiah(estimasi.hargaFinal)}
+                        </strong>
                       </div>
                     </div>
                   )}
