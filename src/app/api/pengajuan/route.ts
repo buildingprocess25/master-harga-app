@@ -231,7 +231,7 @@ interface SkippedBulkEntry {
 
 const DIVISI_LABEL_ALIASES: Record<string, string[]> = {
   "DIV-BLD": ["building", "sipil", "bld"],
-  "DIV-MNT": ["maintenance", "perawatan", "mnt"],
+  "DIV-MNT": ["maintenance", "perawatan", "mnt", "mtc"],
   "DIV-ENG": ["engineering", "me", "m/e", "hvac", "eng"],
   "DIV-DC": ["dc", "distribution center", "logistik"],
 };

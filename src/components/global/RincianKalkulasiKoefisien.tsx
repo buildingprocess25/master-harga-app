@@ -150,9 +150,9 @@ function ComboBoxInput({
       {isOpen && (
         <div className="absolute z-60 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border-2 border-slate-300 rounded-lg shadow-xl py-1 text-xs">
           {filtered.length > 0 ? (
-            filtered.map((opt) => (
+            filtered.map((opt, idx) => (
               <button
-                key={opt.label}
+                key={opt.id || `${opt.label}-${opt.unit}-${idx}`}
                 type="button"
                 onClick={() => {
                   onSelectOption(opt);
@@ -309,54 +309,50 @@ export function RincianKalkulasiKoefisien({
   const [koefBaru, setKoefBaru] = useState("1.0000");
   const [hargaBaru, setHargaBaru] = useState("0");
 
-  // Opsi Dropdown Dinamis dari Database Master Koefisien
-  const upahOptions: ComboBoxOption[] = useMemo(() => {
-    return pustakaKoefisien
-      .filter((p) => p.kategori === "UPAH")
-      .map((p) => ({
+  // Opsi Dropdown Dinamis dari Database Master Koefisien (dideduplikasi per nama + satuan)
+  const buildCategoryOptions = (kategori: KategoriKoefisien): ComboBoxOption[] => {
+    const byKey = new Map<string, ComboBoxOption>();
+    for (const p of pustakaKoefisien) {
+      if (p.kategori !== kategori) continue;
+      const dedupKey = `${p.namaKomponen.trim().toLowerCase()}::${p.satuan.trim().toLowerCase()}`;
+      const existing = byKey.get(dedupKey);
+      const nextOpt: ComboBoxOption = {
         id: p.id,
         label: p.namaKomponen,
         unit: p.satuan,
         defaultPrice: p.hargaAcuanDefault ?? undefined,
         defaultKoefisien: p.nilaiKoefisienDefault,
-      }));
-  }, [pustakaKoefisien]);
+      };
+      if (!existing || (existing.defaultPrice === undefined && nextOpt.defaultPrice !== undefined)) {
+        byKey.set(dedupKey, nextOpt);
+      }
+    }
+    return Array.from(byKey.values());
+  };
 
-  const materialOptions: ComboBoxOption[] = useMemo(() => {
-    return pustakaKoefisien
-      .filter((p) => p.kategori === "MATERIAL")
-      .map((p) => ({
-        id: p.id,
-        label: p.namaKomponen,
-        unit: p.satuan,
-        defaultPrice: p.hargaAcuanDefault ?? undefined,
-        defaultKoefisien: p.nilaiKoefisienDefault,
-      }));
-  }, [pustakaKoefisien]);
+  const upahOptions = useMemo(
+    () => buildCategoryOptions("UPAH"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pustakaKoefisien]
+  );
 
-  const alatOptions: ComboBoxOption[] = useMemo(() => {
-    return pustakaKoefisien
-      .filter((p) => p.kategori === "ALAT")
-      .map((p) => ({
-        id: p.id,
-        label: p.namaKomponen,
-        unit: p.satuan,
-        defaultPrice: p.hargaAcuanDefault ?? undefined,
-        defaultKoefisien: p.nilaiKoefisienDefault,
-      }));
-  }, [pustakaKoefisien]);
+  const materialOptions = useMemo(
+    () => buildCategoryOptions("MATERIAL"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pustakaKoefisien]
+  );
 
-  const bongkaranOptions: ComboBoxOption[] = useMemo(() => {
-    return pustakaKoefisien
-      .filter((p) => p.kategori === "BONGKARAN")
-      .map((p) => ({
-        id: p.id,
-        label: p.namaKomponen,
-        unit: p.satuan,
-        defaultPrice: p.hargaAcuanDefault ?? undefined,
-        defaultKoefisien: p.nilaiKoefisienDefault,
-      }));
-  }, [pustakaKoefisien]);
+  const alatOptions = useMemo(
+    () => buildCategoryOptions("ALAT"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pustakaKoefisien]
+  );
+
+  const bongkaranOptions = useMemo(
+    () => buildCategoryOptions("BONGKARAN"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pustakaKoefisien]
+  );
 
   // Filter Items per Kategori (Bahan = MATERIAL, Peralatan = ALAT dalam satu grup sistem Material)
   const upahItems = useMemo(() => {

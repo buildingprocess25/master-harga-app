@@ -24,7 +24,7 @@ import {
   getKodeData,
 } from "@/types/pengajuan";
 import { KoefisienDetailItem } from "@/types";
-import { parseNilaiDanSatuan, SATUAN_UKURAN_OPTIONS } from "@/lib/utils";
+import { getInisialDivisi, parseNilaiDanSatuan, SATUAN_UKURAN_OPTIONS } from "@/lib/utils";
 import {
   RincianKalkulasiKoefisien,
   type OpsiPustakaKoefisien,
@@ -103,19 +103,13 @@ interface QueuedPengajuanRow extends BulkPengajuanPayloadItem {
 
 const DEFAULT_DIVISI_OPTIONS: DivisiOption[] = [
   { id: "DIV-BLD", kodeDivisi: "DIV-BLD", namaDivisi: "Building", shortLabel: "BLD" },
-  { id: "DIV-MNT", kodeDivisi: "DIV-MNT", namaDivisi: "Maintenance", shortLabel: "MNT" },
+  { id: "DIV-MNT", kodeDivisi: "DIV-MNT", namaDivisi: "Maintenance", shortLabel: "MTC" },
   { id: "DIV-ENG", kodeDivisi: "DIV-ENG", namaDivisi: "Engineering", shortLabel: "ENG" },
   { id: "DIV-DC", kodeDivisi: "DIV-DC", namaDivisi: "Distribution Center", shortLabel: "DC" },
 ];
 
-const getShortDivisiLabel = (kodeDivisi: string, namaDivisi: string): string => {
-  const k = kodeDivisi.toUpperCase();
-  if (k.includes("BLD") || namaDivisi.toLowerCase().includes("building")) return "BLD";
-  if (k.includes("MNT") || namaDivisi.toLowerCase().includes("maintenance")) return "MNT";
-  if (k.includes("ENG") || namaDivisi.toLowerCase().includes("engineering")) return "ENG";
-  if (k.includes("DC") || namaDivisi.toLowerCase().includes("distribution")) return "DC";
-  return k.replace("DIV-", "");
-};
+const getShortDivisiLabel = (kodeDivisi: string, namaDivisi: string): string =>
+  getInisialDivisi(kodeDivisi, namaDivisi);
 
 const getCleanDivisiName = (kodeDivisi: string, namaDivisi: string): string => {
   const k = kodeDivisi.toUpperCase();
@@ -2003,7 +1997,7 @@ export function TambahPengajuanModal({
                   onChange={(e) => setJenisPengajuan(e.target.value as "Hanya Jasa" | "Material")}
                   className="w-full h-9 px-3 rounded-lg border-2 border-slate-300 text-xs text-slate-800 bg-white font-bold focus:border-[#005BAC] focus:outline-none"
                 >
-                  <option value="Material">Material</option>
+                  <option value="Material + Jasa">Material + Jasa</option>
                   <option value="Hanya Jasa">Hanya Jasa</option>
                 </select>
 

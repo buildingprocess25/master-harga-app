@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { RoleUser } from "@/types";
 
 /**
  * Menggabungkan class Tailwind secara dinamis dan menyelesaikan konflik utility.
@@ -153,6 +154,7 @@ export function jenisMitraUntukDivisi(
   const n = (namaDivisi || "").trim().toLowerCase();
   if (
     k === "DIV-MNT" ||
+    k === "DIV-MTC" ||
     k === "DIV-ENG" ||
     n.includes("maintenance") ||
     n.includes("perawatan") ||
@@ -164,6 +166,29 @@ export function jenisMitraUntukDivisi(
   return "KONTRAKTOR";
 }
 
+/**
+ * Mengembalikan inisial singkat divisi untuk tampilan badge/tabel (BLD, MTC, ENG, DC).
+ */
+export function getInisialDivisi(
+  kodeDivisi?: string | null,
+  namaDivisi?: string | null
+): string {
+  const k = (kodeDivisi || "").trim().toUpperCase();
+  const n = (namaDivisi || "").trim().toLowerCase();
+  if (k.includes("BLD") || n.includes("building")) return "BLD";
+  if (
+    k.includes("MNT") ||
+    k.includes("MTC") ||
+    n.includes("maintenance") ||
+    n.includes("perawatan")
+  ) {
+    return "MTC";
+  }
+  if (k.includes("ENG") || n.includes("engineering")) return "ENG";
+  if (k.includes("DC") || n.includes("distribution")) return "DC";
+  return k.replace(/^DIV-/i, "");
+}
+
 export function labelMitraUntukDivisi(
   kodeDivisi?: string | null,
   namaDivisi?: string | null
@@ -171,4 +196,47 @@ export function labelMitraUntukDivisi(
   return jenisMitraUntukDivisi(kodeDivisi, namaDivisi) === "REKANAN"
     ? "Rekanan"
     : "Kontraktor";
+}
+
+export const ROLE_DISPLAY_NAMES: Record<RoleUser, string> = {
+  BUILDING_COORDINATOR: "Building Coordinator",
+  BM_MANAGER: "B&M Manager",
+  PP_MANAGER: "PP Manager",
+  SB_SPECIALIST: "S&B Specialist HO",
+  REGIONAL_MANAGER: "Regional Manager",
+  KONTRAKTOR: "Rekanan Kontraktor",
+  ADMIN: "Super Admin HO",
+};
+
+export function getRoleDisplayName(role?: RoleUser | null): string {
+  if (!role) return "Pengguna";
+  return ROLE_DISPLAY_NAMES[role] || role;
+}
+
+/**
+ * Menentukan label cabang/unit organisasi sesuai role pengguna:
+ * - Role cabang (B&M/PP/BC): nama cabang (mis. "Cabang Cikokol")
+ * - Role HO (S&B/Regional Manager/Admin) tanpa cabang: "Head Office (HO)"
+ * - Kontraktor: nama perusahaan rekanan atau "Portal Mitra"
+ */
+export function getLokasiUnitLabel(
+  user?: {
+    role?: RoleUser | null;
+    namaCabang?: string | null;
+    namaPerusahaanKontraktor?: string | null;
+  } | null,
+  inferredRole?: RoleUser
+): string {
+  const role = user?.role ?? inferredRole;
+  if (role === "KONTRAKTOR") {
+    return user?.namaPerusahaanKontraktor || user?.namaCabang || "Portal Mitra";
+  }
+  if (
+    role === "SB_SPECIALIST" ||
+    role === "REGIONAL_MANAGER" ||
+    role === "ADMIN"
+  ) {
+    return user?.namaCabang || "Head Office (HO)";
+  }
+  return user?.namaCabang || "Cabang Operasional";
 }

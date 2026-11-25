@@ -8,7 +8,6 @@ import {
   Building2,
   Download,
   FileSpreadsheet,
-  Package,
   ChevronDown,
   ChevronRight,
   Layers,
@@ -457,10 +456,6 @@ export function PengajuanHargaTable({
                             ) : (
                               <ChevronDown className="w-4 h-4 text-slate-300 shrink-0" />
                             )}
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#005BAC] text-white font-mono text-[11px] font-black">
-                              <Package className="w-3.5 h-3.5" />
-                              {group.paketKey}
-                            </span>
                             <span className="text-xs font-bold text-white">
                               {group.cabangLabel}
                             </span>
